@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team QA MCVN — Coming Soon</title>
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{
+    min-height:100vh;background:#04080f;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    overflow:hidden;cursor:none;
+  }
+  canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  .cursor{
+    position:fixed;width:8px;height:8px;background:#fff;border-radius:50%;
+    pointer-events:none;z-index:100;transform:translate(-50%,-50%);opacity:0.4;
+  }
+  .content{position:relative;z-index:10;text-align:center;padding:2rem;user-select:none}
+  .logo-label{
+    font-size:11px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;
+    color:rgba(160,200,255,0.45);margin-bottom:2.5rem;
+  }
+  .title{
+    font-size:clamp(52px,10vw,96px);font-weight:700;
+    letter-spacing:-0.03em;line-height:1;margin-bottom:0.4rem;
+    background:linear-gradient(160deg,#fff 30%,#7ab8f5 70%,#3a80d2 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    filter:drop-shadow(0 0 40px rgba(100,180,255,0.5));
+  }
+  .title-sub{
+    font-size:clamp(20px,4vw,36px);font-weight:700;letter-spacing:-0.02em;
+    background:linear-gradient(160deg,#fff 40%,#7ab8f5 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    margin-bottom:1.5rem;filter:drop-shadow(0 0 24px rgba(100,180,255,0.4));
+  }
+  .divider{width:40px;height:1px;background:rgba(120,170,255,0.25);margin:0 auto 1.5rem}
+  .sub{
+    font-size:14px;color:rgba(160,200,255,0.45);line-height:1.9;
+    max-width:300px;margin:0 auto;letter-spacing:0.02em;
+  }
+  .footer{
+    position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);
+    font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
+    color:rgba(120,160,220,0.18);z-index:10;white-space:nowrap;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="cursor" id="cursor"></div>
+<div class="content">
+  <p class="logo-label">Team QA &nbsp;&middot;&nbsp; MCVN &nbsp;&middot;&nbsp; Shopee Vietnam</p>
+  <h1 class="title">Coming</h1>
+  <h1 class="title-sub">Soon</h1>
+  <div class="divider"></div>
+  <p class="sub">Hệ thống đang được xây dựng.<br>Các công cụ QA sẽ sớm ra mắt tại đây.</p>
+</div>
+<p class="footer">MCVN &nbsp;&middot;&nbsp; Quality Assurance &nbsp;&middot;&nbsp; 2025</p>
+
+<script>
+var canvas = document.getElementById('c');
+var ctx    = canvas.getContext('2d');
+var cursorEl = document.getElementById('cursor');
+var W = 0, H = 0;
+var mouse  = { x:0.5, y:0.5 };
+var smooth = { x:0.5, y:0.5 };
+
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+document.addEventListener('mousemove', function(e) {
+  mouse.x = e.clientX/W; mouse.y = e.clientY/H;
+  cursorEl.style.left = e.clientX+'px'; cursorEl.style.top = e.clientY+'px';
+});
+document.addEventListener('touchmove', function(e) {
+  mouse.x = e.touches[0].clientX/W; mouse.y = e.touches[0].clientY/H;
+}, {passive:true});
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+
+// 3 nguồn sáng: vị trí gốc trên màn, anchor sàn, follow chuột
+var LIGHTS = [
+  { sx:0.18, sy:0.0, fx:0.22, follow:0.22 },
+  { sx:0.50, sy:0.0, fx:0.50, follow:0.70 },
+  { sx:0.82, sy:0.0, fx:0.78, follow:0.22 }
+];
+
+function drawBeam(x0,y0, x1,y1) {
+  var dx=x1-x0, dy=y1-y0;
+  var len=Math.sqrt(dx*dx+dy*dy);
+  if(len<1) return;
+  var ux=dx/len, uy=dy/len;
+  var px=-uy, py=ux;
+
+  var sw = 8;
+  var ew = len * 0.28;
+
+  // layer 1: core sáng nhất (cyan-white) — to và sáng
+  var g1 = ctx.createLinearGradient(x0,y0,x1,y1);
+  g1.addColorStop(0,   'rgba(230,248,255,0.95)');
+  g1.addColorStop(0.08,'rgba(180,230,255,0.70)');
+  g1.addColorStop(0.35,'rgba(100,195,255,0.30)');
+  g1.addColorStop(0.7, 'rgba(70,165,255,0.10)');
+  g1.addColorStop(1,   'rgba(50,140,255,0.0)');
+  ctx.beginPath();
+  ctx.moveTo(x0+px*sw*0.55, y0+py*sw*0.55);
+  ctx.lineTo(x0-px*sw*0.55, y0-py*sw*0.55);
+  ctx.lineTo(x1-px*ew*0.55, y1-py*ew*0.55);
+  ctx.lineTo(x1+px*ew*0.55, y1+py*ew*0.55);
+  ctx.closePath();
+  ctx.fillStyle=g1; ctx.fill();
+
+  // layer 2: mid glow
+  var g2 = ctx.createLinearGradient(x0,y0,x1,y1);
+  g2.addColorStop(0,   'rgba(120,205,255,0.55)');
+  g2.addColorStop(0.12,'rgba(80,175,255,0.28)');
+  g2.addColorStop(0.55,'rgba(55,150,255,0.08)');
+  g2.addColorStop(1,   'rgba(40,120,255,0.0)');
+  ctx.beginPath();
+  ctx.moveTo(x0+px*sw, y0+py*sw);
+  ctx.lineTo(x0-px*sw, y0-py*sw);
+  ctx.lineTo(x1-px*ew, y1-py*ew);
+  ctx.lineTo(x1+px*ew, y1+py*ew);
+  ctx.closePath();
+  ctx.fillStyle=g2; ctx.fill();
+
+  // layer 3: outer haze
+  var g3 = ctx.createLinearGradient(x0,y0,x1,y1);
+  g3.addColorStop(0,   'rgba(60,140,255,0.18)');
+  g3.addColorStop(0.08,'rgba(40,120,255,0.08)');
+  g3.addColorStop(0.45,'rgba(30,100,255,0.03)');
+  g3.addColorStop(1,   'rgba(20,80,255,0.0)');
+  ctx.beginPath();
+  ctx.moveTo(x0+px*sw*2.5, y0+py*sw*2.5);
+  ctx.lineTo(x0-px*sw*2.5, y0-py*sw*2.5);
+  ctx.lineTo(x1-px*ew*2.0, y1-py*ew*2.0);
+  ctx.lineTo(x1+px*ew*2.0, y1+py*ew*2.0);
+  ctx.closePath();
+  ctx.fillStyle=g3; ctx.fill();
+}
+
+function drawSource(x, y) {
+  // điểm nguồn sáng nhỏ ở trần
+  var sg = ctx.createRadialGradient(x,y,0, x,y, 20);
+  sg.addColorStop(0,   'rgba(220,240,255,0.90)');
+  sg.addColorStop(0.25,'rgba(140,210,255,0.40)');
+  sg.addColorStop(1,   'rgba(80,170,255,0)');
+  ctx.fillStyle=sg;
+  ctx.beginPath(); ctx.arc(x,y,20,0,Math.PI*2); ctx.fill();
+}
+
+function drawFloor(x, y) {
+  // ellipse sàn: oval nằm ngang
+  var rx = Math.min(W,H)*0.13;
+  var ry = rx*0.22;
+
+  // outer haze
+  ctx.save();
+  ctx.translate(x,y); ctx.scale(1, ry/rx);
+  var fo = ctx.createRadialGradient(0,0,0,0,0,rx);
+  fo.addColorStop(0,   'rgba(100,200,255,0.30)');
+  fo.addColorStop(0.45,'rgba(70,170,255,0.10)');
+  fo.addColorStop(1,   'rgba(40,140,255,0)');
+  ctx.fillStyle=fo; ctx.beginPath(); ctx.arc(0,0,rx,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // bright ring (giống ảnh mẫu — vòng tròn sáng viền)
+  ctx.save();
+  ctx.translate(x,y); ctx.scale(1, ry/rx);
+  ctx.beginPath(); ctx.arc(0,0,rx*0.62,0,Math.PI*2);
+  ctx.strokeStyle='rgba(160,230,255,0.35)';
+  ctx.lineWidth=2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0,rx*0.38,0,Math.PI*2);
+  ctx.strokeStyle='rgba(180,235,255,0.25)';
+  ctx.lineWidth=1.5; ctx.stroke();
+  ctx.restore();
+
+  // center hotspot
+  ctx.save();
+  ctx.translate(x,y); ctx.scale(1,0.16);
+  var fc = ctx.createRadialGradient(0,0,0,0,0,rx*0.18);
+  fc.addColorStop(0,'rgba(230,245,255,0.90)');
+  fc.addColorStop(1,'rgba(180,225,255,0)');
+  ctx.fillStyle=fc; ctx.beginPath(); ctx.arc(0,0,rx*0.18,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function frame() {
+  smooth.x = lerp(smooth.x, mouse.x, 0.055);
+  smooth.y = lerp(smooth.y, mouse.y, 0.055);
+  ctx.clearRect(0,0,W,H);
+
+  var floorY  = H*0.82;
+  var offsetX = smooth.x - 0.5;
+
+  // vẽ floor trước (dưới beam)
+  for(var i=0;i<LIGHTS.length;i++){
+    var L=LIGHTS[i];
+    var hx=(L.fx + offsetX*L.follow)*W;
+    drawFloor(hx, floorY);
+  }
+
+  // beam
+  for(var i=0;i<LIGHTS.length;i++){
+    var L=LIGHTS[i];
+    var sx=L.sx*W, sy=L.sy*H;
+    var hx=(L.fx + offsetX*L.follow)*W;
+    drawBeam(sx, sy, hx, floorY);
+  }
+
+  // nguồn sáng trên cùng
+  for(var i=0;i<LIGHTS.length;i++){
+    var L=LIGHTS[i];
+    drawSource(L.sx*W, L.sy*H);
+  }
+
+  // cursor ambient
+  var cx=smooth.x*W, cy=smooth.y*H, cr=Math.min(W,H)*0.08;
+  var cg=ctx.createRadialGradient(cx,cy,0,cx,cy,cr);
+  cg.addColorStop(0,'rgba(140,210,255,0.08)');
+  cg.addColorStop(1,'rgba(140,210,255,0)');
+  ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(cx,cy,cr,0,Math.PI*2); ctx.fill();
+
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>
