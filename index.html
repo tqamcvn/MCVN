@@ -1,1 +1,1867 @@
-404: Not Found
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo vấn đề — QA Team</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --bg:#f4f6fb;
+  --white:#ffffff;
+  --purple:#6c47ff;
+  --purple-light:#ede9ff;
+  --purple-mid:rgba(108,71,255,.12);
+  --green:#00b67a;
+  --green-light:#e6f9f2;
+  --text:#1a1a2e;
+  --mid:#5a5f7a;
+  --light:#9499b5;
+  --border:#e4e6f0;
+  --red:#ff4d6d;
+  --shadow:0 4px 24px rgba(108,71,255,.10);
+}
+
+body{
+  font-family:'Be Vietnam Pro',sans-serif;
+  background:var(--bg);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px 16px 48px;
+  color:var(--text);
+}
+
+/* ─── CARD ─── */
+.card{
+  background:var(--white);
+  border-radius:20px;
+  width:100%;
+  max-width:520px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+/* ─── HEADER ─── */
+.card-header{
+  padding:28px 28px 20px;
+  border-bottom:1px solid var(--border);
+}
+
+.header-tag{
+  font-size:11px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--purple);
+  margin-bottom:6px;
+}
+
+.header-title{
+  font-size:20px;font-weight:800;color:var(--text);
+  line-height:1.2;margin-bottom:6px;
+}
+
+.header-sub{
+  font-size:13px;color:var(--mid);line-height:1.5;
+}
+
+/* ─── TEAM PICKER ─── */
+.team-section{
+  padding:18px 28px 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+}
+.team-section-label{
+  font-size:12px;font-weight:700;color:var(--text);
+  text-transform:uppercase;letter-spacing:.09em;
+  margin-bottom:10px;display:flex;align-items:center;gap:6px;
+}
+.team-required-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--red);flex-shrink:0;
+}
+.team-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+}
+.team-btn{
+  border:2px solid var(--border);border-radius:12px;
+  padding:10px 6px;cursor:pointer;text-align:center;
+  background:#fff;font-family:'Be Vietnam Pro',sans-serif;
+  transition:border-color .18s,background .18s,color .18s;
+  user-select:none;
+}
+.team-btn:hover{border-color:var(--purple);background:var(--purple-mid);}
+.team-btn.selected{
+  border-color:var(--purple);background:var(--purple-light);
+}
+.team-btn-icon{font-size:20px;margin-bottom:4px;}
+.team-btn-name{
+  font-size:12px;font-weight:700;color:var(--text);
+  transition:color .18s;
+}
+.team-btn.selected .team-btn-name{color:var(--purple);}
+.team-error-msg{
+  font-size:11px;color:var(--red);margin-top:8px;
+  display:none;
+}
+.team-error-msg.show{display:block;}
+
+/* ─── ANONYMOUS TOGGLE ─── */
+.anon-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+}
+
+.anon-label{font-size:13px;font-weight:600;color:var(--text);}
+.anon-sub{font-size:11px;color:var(--light);margin-top:2px;}
+
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{
+  position:absolute;inset:0;
+  background:#d0d3e4;border-radius:24px;cursor:pointer;
+  transition:background .25s;
+}
+.toggle-slider::before{
+  content:'';position:absolute;
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;top:3px;left:3px;
+  transition:transform .25s;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+}
+.toggle input:checked + .toggle-slider{background:var(--purple);}
+.toggle input:checked + .toggle-slider::before{transform:translateX(20px);}
+
+/* ─── NAME FIELD (conditional) ─── */
+.name-row{
+  padding:0 28px;
+  max-height:0;overflow:hidden;
+  transition:max-height .3s ease,padding .3s ease;
+}
+.name-row.visible{max-height:80px;padding:14px 28px 0;}
+
+.input-field{
+  width:100%;padding:11px 14px;
+  border:1.5px solid var(--border);border-radius:10px;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;
+  color:var(--text);background:#fff;outline:none;
+  transition:border-color .2s;
+}
+.input-field:focus{border-color:var(--purple);}
+.input-field::placeholder{color:var(--light);}
+
+/* ─── MODE PICKER ─── */
+.mode-section{padding:20px 28px;}
+.mode-label{font-size:12px;font-weight:700;color:var(--light);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;}
+
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+.mode-card{
+  border:2px solid var(--border);border-radius:14px;
+  padding:16px 14px;cursor:pointer;
+  transition:border-color .2s,background .2s,transform .15s;
+  text-align:center;position:relative;
+  user-select:none;
+}
+.mode-card:hover{border-color:var(--purple);background:var(--purple-mid);}
+.mode-card.selected{border-color:var(--purple);background:var(--purple-light);}
+.mode-card.selected .mode-card-title{color:var(--purple);}
+
+.mode-badge{
+  position:absolute;top:-1px;right:-1px;
+  background:var(--purple);color:#fff;
+  font-size:9px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 8px;border-radius:0 12px 0 8px;
+}
+
+.mode-icon{
+  width:48px;height:48px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 10px;font-size:22px;
+}
+.mode-icon.purple{background:var(--purple);}
+.mode-icon.green{background:var(--green);}
+
+.mode-card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.mode-card-desc{font-size:11px;color:var(--mid);line-height:1.4;}
+
+/* ─── FORM PANELS ─── */
+.panel{display:none;padding:0 28px 24px;}
+.panel.active{display:block;}
+
+/* BOT PANEL */
+.bot-textarea-wrap{
+  position:relative;margin-bottom:12px;
+}
+.bot-textarea{
+  width:100%;min-height:140px;padding:14px;
+  border:1.5px solid var(--border);border-radius:12px;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;
+  color:var(--text);line-height:1.6;resize:vertical;outline:none;
+  transition:border-color .2s;
+}
+.bot-textarea:focus{border-color:var(--purple);}
+.bot-textarea::placeholder{color:var(--light);}
+
+.bot-actions{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+
+.action-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:8px;border:1.5px solid var(--border);
+  background:#fff;font-family:'Be Vietnam Pro',sans-serif;
+  font-size:12px;font-weight:600;color:var(--mid);cursor:pointer;
+  transition:all .2s;
+}
+.action-btn:hover{border-color:var(--purple);color:var(--purple);background:var(--purple-mid);}
+.action-btn.recording{border-color:var(--red);color:var(--red);background:#fff0f3;animation:pulse .8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+/* ATTACH AREA */
+.attach-area{
+  border:1.5px dashed var(--border);border-radius:10px;
+  padding:12px 14px;margin-bottom:12px;
+  background:#fafbff;cursor:pointer;transition:border-color .2s,background .2s;
+}
+.attach-area:hover{border-color:var(--purple);background:var(--purple-mid);}
+
+.attach-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.attach-label{font-size:12px;font-weight:700;color:var(--purple);}
+.attach-input-row{display:flex;gap:8px;align-items:center;}
+.attach-url{
+  flex:1;padding:8px 10px;border-radius:7px;
+  border:1.5px solid var(--border);
+  font-family:'Be Vietnam Pro',sans-serif;font-size:12px;
+  color:var(--text);outline:none;
+}
+.attach-url:focus{border-color:var(--purple);}
+.attach-url::placeholder{color:var(--light);}
+.attach-add-btn{
+  padding:8px 14px;border-radius:7px;border:none;
+  background:var(--purple);color:#fff;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:12px;font-weight:700;
+  cursor:pointer;transition:opacity .2s;
+}
+.attach-add-btn:hover{opacity:.85;}
+
+.paste-hint{
+  border:1.5px dashed #c8cbde;border-radius:8px;
+  padding:10px;text-align:center;
+  font-size:11px;color:var(--light);margin-top:8px;
+  cursor:pointer;transition:border-color .2s;
+}
+.paste-hint:hover{border-color:var(--purple);color:var(--purple);}
+.paste-hint-icon{font-size:14px;margin-right:4px;}
+
+.attach-limit{font-size:10px;color:var(--light);text-align:center;margin-top:6px;}
+
+.file-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.file-chip{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:6px;
+  background:var(--purple-light);border:1px solid rgba(108,71,255,.2);
+  font-size:11px;font-weight:600;color:var(--purple);
+}
+.file-chip-remove{
+  cursor:pointer;color:var(--purple);opacity:.6;font-size:13px;line-height:1;
+}
+.file-chip-remove:hover{opacity:1;}
+
+/* MANUAL PANEL */
+.field-group{margin-bottom:14px;}
+.field-label{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;display:block;}
+
+.select-field{
+  width:100%;padding:11px 14px;
+  border:1.5px solid var(--border);border-radius:10px;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;
+  color:var(--text);background:#fff;outline:none;
+  appearance:none;cursor:pointer;
+  transition:border-color .2s;
+}
+.select-field:focus{border-color:var(--purple);}
+
+.other-input{
+  margin-top:8px;
+  display:none;
+}
+.other-input.show{display:block;}
+
+.manual-textarea{
+  width:100%;min-height:100px;padding:12px 14px;
+  border:1.5px solid var(--border);border-radius:10px;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;
+  color:var(--text);line-height:1.6;resize:vertical;outline:none;
+  transition:border-color .2s;
+}
+.manual-textarea:focus{border-color:var(--purple);}
+.manual-textarea::placeholder{color:var(--light);}
+
+/* BOT HINT */
+.bot-hint{
+  font-size:11px;color:var(--light);
+  display:flex;align-items:flex-start;gap:6px;line-height:1.5;
+  margin-bottom:14px;
+}
+.bot-hint-icon{flex-shrink:0;margin-top:1px;}
+
+/* SUBMIT */
+.submit-btn{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:var(--purple);color:#fff;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:15px;font-weight:700;
+  cursor:pointer;transition:opacity .2s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.submit-btn:hover{opacity:.9;}
+.submit-btn:active{transform:scale(.98);}
+.submit-btn:disabled{opacity:.45;cursor:not-allowed;}
+
+/* SUCCESS STATE */
+.success-panel{
+  display:none;padding:40px 28px;text-align:center;
+}
+.success-icon{
+  width:64px;height:64px;border-radius:50%;
+  background:var(--green-light);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin:0 auto 16px;
+}
+.success-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;}
+.success-sub{font-size:13px;color:var(--mid);line-height:1.6;margin-bottom:24px;}
+.reset-btn{
+  padding:10px 24px;border-radius:10px;
+  border:2px solid var(--purple);background:transparent;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;font-weight:700;
+  color:var(--purple);cursor:pointer;transition:all .2s;
+}
+.reset-btn:hover{background:var(--purple);color:#fff;}
+
+/* STATUS MSG */
+.status-msg{
+  font-size:12px;text-align:center;margin-top:10px;
+  color:var(--mid);min-height:18px;
+}
+.status-msg.error{color:var(--red);}
+
+/* SPINNER */
+@keyframes spin{to{transform:rotate(360deg);}}
+.spinner{
+  width:18px;height:18px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;
+  animation:spin .7s linear infinite;
+}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:0 28px 20px;}
+
+/* ─── REVIEW MODAL ─── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(20,20,40,.55);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;padding:16px;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{
+  background:#fff;border-radius:20px;width:100%;max-width:500px;
+  box-shadow:0 8px 40px rgba(20,20,40,.18);
+  overflow:hidden;transform:translateY(16px);
+  transition:transform .25s;
+}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-head{
+  padding:20px 24px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-head-title{font-size:16px;font-weight:800;color:var(--text);}
+.modal-head-sub{font-size:12px;color:var(--mid);margin-top:2px;}
+.modal-close{
+  width:28px;height:28px;border-radius:8px;border:none;
+  background:var(--bg);color:var(--mid);font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.modal-body{padding:20px 24px;max-height:60vh;overflow-y:auto;}
+.review-section{margin-bottom:16px;}
+.review-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--light);margin-bottom:6px;
+}
+.review-value{
+  font-size:13px;color:var(--text);line-height:1.6;
+  background:var(--bg);border-radius:8px;padding:10px 12px;
+  border-left:3px solid var(--purple);
+}
+.review-value.empty{color:var(--light);font-style:italic;}
+.review-edit-hint{
+  font-size:11px;color:var(--light);margin-top:8px;
+  display:flex;align-items:center;gap:5px;
+}
+.modal-footer{
+  padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;gap:10px;
+}
+.btn-confirm{
+  flex:1;padding:12px;border-radius:10px;border:none;
+  background:var(--purple);color:#fff;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;transition:opacity .2s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn-confirm:hover{opacity:.88;}
+.btn-edit{
+  padding:12px 18px;border-radius:10px;
+  border:1.5px solid var(--border);background:#fff;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;font-weight:600;
+  color:var(--mid);cursor:pointer;transition:all .2s;
+}
+.btn-edit:hover{border-color:var(--purple);color:var(--purple);}
+
+
+/* ─── REVIEW EDITABLE FIELDS ─── */
+.rv-section{margin-bottom:14px;}
+.rv-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--light);margin-bottom:5px;}
+.rv-wrap{position:relative;}
+.rv-input, .rv-area{
+  width:100%;padding:9px 32px 9px 12px;
+  border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:13px;
+  color:var(--text);background:var(--bg);outline:none;
+  transition:border-color .2s,background .2s,box-shadow .2s;
+  box-sizing:border-box;
+}
+.rv-area{resize:vertical;min-height:80px;line-height:1.6;}
+.rv-input:focus,.rv-area:focus{
+  border-color:var(--purple);background:#fff;
+  box-shadow:0 0 0 3px rgba(108,71,255,.08);
+}
+.rv-input::placeholder,.rv-area::placeholder{color:#c0c4d8;font-style:italic;}
+.rv-pencil{
+  position:absolute;top:50%;right:10px;transform:translateY(-50%);
+  font-size:13px;color:var(--light);pointer-events:none;
+  transition:opacity .2s;
+}
+.rv-wrap:focus-within .rv-pencil{opacity:0;}
+.rv-readonly{
+  font-size:12px;color:var(--mid);padding:8px 12px;
+  background:var(--bg);border-radius:8px;
+  border-left:3px solid var(--border);
+}
+.rv-badge{
+  display:inline-block;font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 10px;border-radius:6px;margin-bottom:14px;
+}
+.rv-badge-purple{background:var(--purple-mid);color:var(--purple);}
+.rv-badge-green{background:var(--green-light);color:var(--green);}
+.rv-hint{
+  font-size:11px;color:var(--light);margin-top:12px;
+  padding:8px 10px;background:rgba(108,71,255,.05);
+  border-radius:6px;
+}
+
+/* ─── HELP BUTTON (top-right) ─── */
+#help-btn{
+  position:fixed;top:18px;right:18px;
+  width:36px;height:36px;border-radius:50%;
+  background:var(--purple);color:#fff;
+  border:none;font-size:16px;font-weight:800;
+  cursor:pointer;z-index:1100;
+  box-shadow:0 2px 12px rgba(108,71,255,.35);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .2s,box-shadow .2s;
+}
+#help-btn:hover{transform:scale(1.1);box-shadow:0 4px 18px rgba(108,71,255,.45);}
+
+/* ─── SPOTLIGHT OVERLAY ─── */
+#spot-overlay{
+  position:fixed;inset:0;
+  z-index:1000;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .3s;
+}
+#spot-overlay.open{opacity:1;pointer-events:all;}
+
+/* dark mask rendered via box-shadow on highlight ring */
+#spot-mask{
+  position:absolute;inset:0;
+  background:rgba(10,10,30,.68);
+  transition:opacity .3s;
+}
+
+/* the cutout window — absolute positioned by JS */
+#spot-cut{
+  position:absolute;
+  border-radius:12px;
+  box-shadow:0 0 0 9999px rgba(10,10,30,.68);
+  border:2px solid rgba(255,255,255,.25);
+  transition:top .35s cubic-bezier(.4,0,.2,1),
+             left .35s cubic-bezier(.4,0,.2,1),
+             width .35s cubic-bezier(.4,0,.2,1),
+             height .35s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;
+}
+
+/* tooltip card that follows the spotlight */
+#spot-card{
+  position:absolute;
+  background:#fff;
+  border-radius:16px;
+  padding:0;
+  width:280px;
+  box-shadow:0 8px 32px rgba(10,10,30,.22);
+  transition:top .35s cubic-bezier(.4,0,.2,1),
+             left .35s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
+}
+
+#spot-flame-bar{
+  background:linear-gradient(120deg,#ff6a00,#ffaa00);
+  padding:14px 16px 0;
+  display:flex;align-items:flex-end;gap:10px;
+}
+#spot-flame-mini{
+  width:54px;height:54px;flex-shrink:0;
+}
+#spot-flame-mini svg{width:100%;height:100%;}
+.spot-pupil{transition:cx .05s linear,cy .05s linear;}
+
+#spot-flame-says{
+  font-size:12px;font-weight:600;color:#fff;
+  line-height:1.5;padding-bottom:12px;
+  text-shadow:0 1px 3px rgba(0,0,0,.18);
+}
+
+#spot-body{padding:14px 16px 16px;}
+#spot-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:5px;}
+#spot-desc{font-size:12px;color:var(--mid);line-height:1.6;margin-bottom:14px;}
+
+.spot-dots{display:flex;gap:5px;margin-bottom:12px;}
+.spot-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:background .2s;}
+.spot-dot.active{background:var(--purple);}
+
+.spot-btns{display:flex;gap:8px;}
+#spot-skip{
+  padding:8px 13px;border-radius:8px;
+  border:1.5px solid var(--border);background:#fff;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:12px;
+  font-weight:600;color:var(--mid);cursor:pointer;
+  transition:all .2s;
+}
+#spot-skip:hover{border-color:var(--purple);color:var(--purple);}
+#spot-next{
+  flex:1;padding:8px 13px;border-radius:8px;
+  border:none;background:var(--purple);color:#fff;
+  font-family:'Be Vietnam Pro',sans-serif;font-size:12px;
+  font-weight:700;cursor:pointer;transition:opacity .2s;
+}
+#spot-next:hover{opacity:.88;}
+
+/* arrow connector from card to spotlight */
+#spot-arrow{
+  position:absolute;
+  width:0;height:0;
+  pointer-events:none;
+  transition:top .35s cubic-bezier(.4,0,.2,1),left .35s cubic-bezier(.4,0,.2,1);
+}
+
+/* ─── FLOATING FLAME ─── */
+#float-flame{
+  position:fixed;bottom:24px;right:24px;
+  width:64px;height:64px;cursor:pointer;
+  z-index:1100;
+  filter:drop-shadow(0 3px 10px rgba(200,50,0,.35));
+  transition:transform .2s;
+  display:none;
+}
+#float-flame:hover{transform:scale(1.12);}
+#float-flame svg{width:100%;height:100%;}
+.float-pupil{transition:cx .05s linear,cy .05s linear;}
+
+#float-bubble{
+  position:fixed;bottom:94px;right:16px;
+  background:#fff;border-radius:14px 14px 4px 14px;
+  padding:10px 14px;font-size:12px;font-weight:600;
+  color:var(--text);box-shadow:0 4px 18px rgba(0,0,0,.13);
+  max-width:210px;line-height:1.5;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s;
+  z-index:1100;
+}
+#float-bubble.show{opacity:1;pointer-events:all;}
+#float-bubble-close{
+  display:block;margin-top:6px;font-size:10px;
+  color:var(--light);cursor:pointer;text-align:right;
+}
+#float-bubble-close:hover{color:var(--purple);}
+
+/* keep card overflow visible during spotlight */
+.card.spotlight-active{overflow:visible !important;}
+
+</style>
+</head>
+<body>
+
+<!-- HELP BUTTON -->
+<button id="help-btn" onclick="openOnboard()" title="Hướng dẫn">?</button>
+
+<!-- FLOATING FLAME -->
+<div id="float-flame" onclick="floatFlameClick()">
+  <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="ff-g1" cx="50%" cy="100%" r="80%" gradientUnits="objectBoundingBox">
+        <stop offset="0%"   stop-color="#FFF176"/>
+        <stop offset="30%"  stop-color="#FFB300"/>
+        <stop offset="60%"  stop-color="#F4511E"/>
+        <stop offset="100%" stop-color="#B71C1C"/>
+      </radialGradient>
+      <radialGradient id="ff-g2" cx="50%" cy="80%" r="60%" gradientUnits="objectBoundingBox">
+        <stop offset="0%"   stop-color="#FFFDE7"/>
+        <stop offset="70%"  stop-color="#FFF176"/>
+        <stop offset="100%" stop-color="#FFF176" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <path fill="url(#ff-g1)" d="M35.56,40.73c-0.57,6.08-0.97,16.84,2.62,21.42c0,0-1.69-11.82,13.46-26.65c6.1-5.97,7.51-14.09,5.38-20.18c-1.21-3.45-3.42-6.3-5.34-8.29C50.56,5.86,51.42,3.93,53.05,4c9.86,0.44,25.84,3.18,32.63,20.22c2.98,7.48,3.2,15.21,1.78,23.07c-0.9,5.02-4.1,16.18,3.2,17.55c5.21,0.98,7.73-3.16,8.86-6.14c0.47-1.24,2.1-1.55,2.98-0.56c8.8,10.01,9.55,21.8,7.73,31.95c-3.52,19.62-23.39,33.9-43.13,33.9c-24.66,0-44.29-14.11-49.38-39.65c-2.05-10.31-1.01-30.71,14.89-45.11C33.79,38.15,35.72,39.11,35.56,40.73z"/>
+    <path fill="url(#ff-g2)" d="M76.11,77.42c-9.09-11.7-5.02-25.05-2.79-30.37c0.3-0.7-0.5-1.36-1.13-0.93c-3.91,2.66-11.92,8.92-15.65,17.73c-5.05,11.91-4.69,17.74-1.7,24.86c1.8,4.29-0.29,5.2-1.34,5.36c-1.02,0.16-1.96-0.52-2.71-1.23c-2.15-2.05-3.7-4.72-4.44-7.6c-0.16-0.62-0.97-0.79-1.34-0.28c-2.8,3.87-4.25,10.08-4.32,14.47C40.47,113,51.68,124,65.24,124c17.09,0,29.54-18.9,19.72-34.7C82.11,84.7,79.43,81.69,76.11,77.42z"/>
+    <ellipse cx="47" cy="89" rx="12.5" ry="13" fill="white" opacity=".95"/>
+    <ellipse cx="77" cy="87" rx="12.5" ry="13" fill="white" opacity=".95"/>
+    <ellipse id="fe-l" cx="47" cy="89" rx="12.5" ry="13" fill="none"/>
+    <ellipse id="fe-r" cx="77" cy="87" rx="12.5" ry="13" fill="none"/>
+    <circle class="float-pupil" id="fp-l" cx="47" cy="89" r="7" fill="#2d0e00"/>
+    <circle class="float-pupil" id="fp-r" cx="77" cy="87" r="7" fill="#2d0e00"/>
+    <circle cx="50.5" cy="85" r="2.5" fill="white" opacity=".9"/>
+    <circle cx="80.5" cy="83" r="2.5" fill="white" opacity=".9"/>
+    <path d="M52,110 Q62,116 72,110" fill="none" stroke="#7a2000" stroke-width="2.2" stroke-linecap="round"/>
+  </svg>
+</div>
+<div id="float-bubble">
+  <span id="float-bubble-text"></span>
+</div>
+
+<!-- SPOTLIGHT ONBOARDING -->
+<div id="spot-overlay">
+  <div id="spot-mask"></div>
+  <div id="spot-cut"></div>
+  <div id="spot-card">
+    <div id="spot-flame-bar">
+      <div id="spot-flame-mini">
+        <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="sf-g1" cx="50%" cy="100%" r="80%" gradientUnits="objectBoundingBox">
+              <stop offset="0%"   stop-color="#FFF176"/>
+              <stop offset="30%"  stop-color="#FFB300"/>
+              <stop offset="60%"  stop-color="#F4511E"/>
+              <stop offset="100%" stop-color="#B71C1C"/>
+            </radialGradient>
+            <radialGradient id="sf-g2" cx="50%" cy="80%" r="60%" gradientUnits="objectBoundingBox">
+              <stop offset="0%"   stop-color="#FFFDE7"/>
+              <stop offset="70%"  stop-color="#FFF176"/>
+              <stop offset="100%" stop-color="#FFF176" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <path fill="url(#sf-g1)" d="M35.56,40.73c-0.57,6.08-0.97,16.84,2.62,21.42c0,0-1.69-11.82,13.46-26.65c6.1-5.97,7.51-14.09,5.38-20.18c-1.21-3.45-3.42-6.3-5.34-8.29C50.56,5.86,51.42,3.93,53.05,4c9.86,0.44,25.84,3.18,32.63,20.22c2.98,7.48,3.2,15.21,1.78,23.07c-0.9,5.02-4.1,16.18,3.2,17.55c5.21,0.98,7.73-3.16,8.86-6.14c0.47-1.24,2.1-1.55,2.98-0.56c8.8,10.01,9.55,21.8,7.73,31.95c-3.52,19.62-23.39,33.9-43.13,33.9c-24.66,0-44.29-14.11-49.38-39.65c-2.05-10.31-1.01-30.71,14.89-45.11C33.79,38.15,35.72,39.11,35.56,40.73z"/>
+          <path fill="url(#sf-g2)" d="M76.11,77.42c-9.09-11.7-5.02-25.05-2.79-30.37c0.3-0.7-0.5-1.36-1.13-0.93c-3.91,2.66-11.92,8.92-15.65,17.73c-5.05,11.91-4.69,17.74-1.7,24.86c1.8,4.29-0.29,5.2-1.34,5.36c-1.02,0.16-1.96-0.52-2.71-1.23c-2.15-2.05-3.7-4.72-4.44-7.6c-0.16-0.62-0.97-0.79-1.34-0.28c-2.8,3.87-4.25,10.08-4.32,14.47C40.47,113,51.68,124,65.24,124c17.09,0,29.54-18.9,19.72-34.7C82.11,84.7,79.43,81.69,76.11,77.42z"/>
+          <ellipse cx="47" cy="89" rx="12.5" ry="13" fill="white" opacity=".95"/>
+          <ellipse cx="77" cy="87" rx="12.5" ry="13" fill="white" opacity=".95"/>
+          <ellipse id="se-l" cx="47" cy="89" rx="12.5" ry="13" fill="none"/>
+          <ellipse id="se-r" cx="77" cy="87" rx="12.5" ry="13" fill="none"/>
+          <circle class="spot-pupil" id="sp-l" cx="47" cy="89" r="7" fill="#2d0e00"/>
+          <circle class="spot-pupil" id="sp-r" cx="77" cy="87" r="7" fill="#2d0e00"/>
+          <circle cx="50.5" cy="85" r="2.5" fill="white" opacity=".9"/>
+          <circle cx="80.5" cy="83" r="2.5" fill="white" opacity=".9"/>
+          <path d="M52,110 Q62,116 72,110" fill="none" stroke="#7a2000" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div id="spot-flame-says">Ơ có người mới! Mình là Bé lửa.</div>
+    </div>
+    <div id="spot-body">
+      <div id="spot-title">Chào mừng bạn</div>
+      <div id="spot-desc">Form này giúp bạn kể những điều không ổn trong quá trình QA. Bé lửa dẫn bạn qua từng phần nhé.</div>
+      <div class="spot-dots" id="spot-dots"></div>
+      <div class="spot-btns">
+        <button id="spot-skip" onclick="skipOnboard()">Bỏ qua</button>
+        <button id="spot-next" onclick="nextStep()">Bắt đầu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="main-card">
+
+  <!-- HEADER -->
+  <div class="card-header">
+    <div class="header-tag">QA Team · Altius Link Vietnam</div>
+    <div class="header-title">Thấy gì thì kể đi</div>
+    <div class="header-sub">Chỉ MNG QA mới đọc được — bảo mật hoàn toàn. Thấy mà không nói mới là có vấn đề đó.</div>
+  </div>
+
+  <!-- TEAM PICKER -->
+  <div class="team-section" id="team-section">
+    <div class="team-section-label">
+      <span class="team-required-dot"></span>
+      Bạn thuộc team nào?
+    </div>
+    <div class="team-grid">
+      <div class="team-btn" id="team-Chat" onclick="selectTeam('Chat')">
+        <div class="team-btn-icon">💬</div>
+        <div class="team-btn-name">Chat</div>
+      </div>
+      <div class="team-btn" id="team-Call" onclick="selectTeam('Call')">
+        <div class="team-btn-icon">📞</div>
+        <div class="team-btn-name">Call</div>
+      </div>
+      <div class="team-btn" id="team-Multi" onclick="selectTeam('Multi')">
+        <div class="team-btn-icon">🔀</div>
+        <div class="team-btn-name">Multi</div>
+      </div>
+      <div class="team-btn" id="team-Secret" onclick="selectTeam('Secret')">
+        <div class="team-btn-icon">🔒</div>
+        <div class="team-btn-name">Bí mật</div>
+      </div>
+    </div>
+    <div class="team-error-msg" id="team-error">Vui lòng chọn team của bạn trước khi tiếp tục.</div>
+  </div>
+
+  <!-- ANONYMOUS TOGGLE -->
+  <div class="anon-row" id="anon-row">
+    <div>
+      <div class="anon-label">Gửi ẩn danh</div>
+      <div class="anon-sub">Tên bạn không xuất hiện ở đâu hết</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="anon-toggle" checked>
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <!-- NAME FIELD -->
+  <div class="name-row" id="name-row">
+    <input class="input-field" type="text" id="reporter-name" placeholder="Tên của bạn (không bắt buộc)">
+  </div>
+
+  <!-- MODE PICKER -->
+  <div class="mode-section">
+    <div class="mode-label">Bạn muốn kể chuyện kiểu nào?</div>
+    <div class="mode-grid" id="mode-grid">
+      <div class="mode-card selected" id="mode-bot" onclick="selectMode('bot')">
+        <div class="mode-badge">Nhanh nhất</div>
+        <div class="mode-icon purple">🔥</div>
+        <div class="mode-card-title">Kể tự nhiên</div>
+        <div class="mode-card-desc">Gõ hoặc nói thoải mái như nhắn tin. Bé Lửa tự sắp xếp lại cho bạn xem.</div>
+      </div>
+      <div class="mode-card" id="mode-manual" onclick="selectMode('manual')">
+        <div class="mode-icon green">📋</div>
+        <div class="mode-card-title">Điền từng bước</div>
+        <div class="mode-card-desc">Chọn loại vấn đề rồi mô tả chi tiết.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- BOT PANEL — KỂ TỰ NHIÊN -->
+  <div class="panel active" id="panel-bot">
+    <div class="bot-textarea-wrap">
+      <textarea class="bot-textarea" id="bot-text"
+        placeholder="Cứ kể thật, không cần văn hoa, không cần nhớ hết. Thấy gì kể nấy — khi nào, ai, chuyện gì xảy ra. Không chắc 100% cũng không sao."></textarea>
+    </div>
+
+    <div class="bot-actions">
+      <button class="action-btn" id="voice-btn" onclick="toggleVoice()">
+        <span>🎤</span> Nói thay vì gõ
+      </button>
+    </div>
+
+    <div class="attach-area" id="attach-area">
+      <div class="attach-top">
+        <span class="attach-label">📎 Ảnh / file bằng chứng (nếu có)</span>
+      </div>
+      <div class="attach-input-row">
+        <input class="attach-url" type="text" id="attach-url" placeholder="Dán link web, Drive, video...">
+        <button class="attach-add-btn" onclick="addLinkAttach()">Thêm</button>
+      </div>
+      <input type="file" id="file-input" accept="image/*,video/*,.pdf" multiple style="display:none;" onchange="handleFileSelect(event)">
+      <div class="paste-hint" onclick="document.getElementById('file-input').click()">
+        <span class="paste-hint-icon">📁</span> Bấm để chọn file — hoặc dán ảnh (Ctrl+V)
+      </div>
+      <div class="attach-limit">Tối đa 5MB/ảnh</div>
+      <div class="file-preview" id="file-preview-bot"></div>
+    </div>
+
+    <div class="bot-hint">
+      <span class="bot-hint-icon">💡</span>
+      <span>Kể xong bấm nút bên dưới — Bé Lửa sẽ tự sắp xếp lại thành từng mục để bạn xem lại và chỉnh trước khi gửi. Không lo nhấn nhầm.</span>
+    </div>
+
+    <button class="submit-btn" id="submit-bot" onclick="submitBot()">
+      Xem lại trước khi gửi →
+    </button>
+    <div class="status-msg" id="status-bot"></div>
+  </div>
+
+  <!-- MANUAL PANEL -->
+  <div class="panel" id="panel-manual">
+    <div class="field-group">
+      <label class="field-label">Chuyện gì đang xảy ra?</label>
+      <select class="select-field" id="issue-type" onchange="handleTypeChange()">
+        <option value="">— Chọn loại vấn đề —</option>
+        <option value="hanh_vi">Hành vi</option>
+        <option value="ky_nang">Kỹ năng</option>
+        <option value="performance">Performance</option>
+        <option value="khac">Khác</option>
+      </select>
+      <div class="other-input" id="other-input">
+        <input class="input-field" type="text" id="other-text" placeholder="Mô tả ngắn loại vấn đề...">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Kể thêm cho mình nghe</label>
+      <textarea class="manual-textarea" id="manual-desc"
+        placeholder="Kể những gì bạn nhớ — khi nào, ai, chuyện gì xảy ra. Không chắc 100% cũng không sao, cứ kể theo cách bạn nhớ là được."></textarea>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Ảnh hoặc file bằng chứng (nếu có)</label>
+      <div class="attach-area">
+        <div class="attach-input-row">
+          <input class="attach-url" type="text" id="manual-attach-url" placeholder="Dán link web, Drive, video...">
+          <button class="attach-add-btn" onclick="addManualLink()">Thêm</button>
+        </div>
+        <input type="file" id="manual-file-input" accept="image/*,video/*,.pdf" multiple style="display:none;" onchange="handleManualFileSelect(event)">
+        <div class="paste-hint" onclick="document.getElementById('manual-file-input').click()">
+          <span class="paste-hint-icon">📁</span> Bấm để chọn file — hoặc dán ảnh (Ctrl+V)
+        </div>
+        <div class="attach-limit">Tối đa 5MB/ảnh</div>
+        <div class="file-preview" id="file-preview-manual"></div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submit-manual" onclick="submitManual()">
+      Xem lại trước khi gửi →
+    </button>
+    <div class="status-msg" id="status-manual"></div>
+  </div>
+
+</div>
+
+<!-- SUCCESS CARD -->
+<div class="card" id="success-card" style="display:none;">
+  <div class="success-panel" style="display:block;">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Gửi rồi!</div>
+    <div class="success-sub">Chỉ MNG QA mới đọc được chuyện bạn kể thôi.<br>MNG QA xem xét và xử lý trong thời gian sớm nhất.<br><br>Cảm ơn bạn đã dũng cảm lên tiếng.</div>
+    <button class="reset-btn" onclick="resetForm()">Kể thêm chuyện khác</button>
+  </div>
+</div>
+
+<!-- FAIL CARD -->
+<div class="card" id="fail-card" style="display:none;">
+  <div class="success-panel" style="display:block;">
+    <div class="success-icon" style="background:#ffe8ec;">⚠️</div>
+    <div class="success-title">Gửi chưa được</div>
+    <div class="success-sub">
+      Báo cáo của bạn <b>chưa lưu được</b> — có thể do mạng, hoặc Bé Lửa đang gặp trục trặc.
+      <br>Nội dung bạn vừa kể <b>vẫn còn</b>, chưa mất đi đâu.
+      <br><br>Bạn thử gửi lại. Nếu vẫn không được, liên hệ <b id="fail-contact"></b> để được hỗ trợ nhé.
+    </div>
+    <div id="fail-reason" style="font-size:11px;color:var(--light);margin-bottom:16px;"></div>
+    <button class="submit-btn" id="fail-retry-btn" style="margin-bottom:10px;" onclick="retrySend()">Thử gửi lại</button>
+    <button class="reset-btn" onclick="backToFormFromFail()">Quay lại sửa nội dung</button>
+  </div>
+</div>
+
+
+<!-- REVIEW MODAL -->
+<div class="modal-overlay" id="review-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-head-title">Xem lại trước khi gửi</div>
+        <div class="modal-head-sub">Mình đã sắp xếp lại — bạn xem qua và chỉnh nếu cần</div>
+      </div>
+      <button class="modal-close" onclick="closeReview()">×</button>
+    </div>
+    <div class="modal-body" id="review-body">
+      <!-- filled by JS -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn-edit" onclick="closeReview()">Sửa lại</button>
+      <button class="btn-confirm" id="btn-confirm-send" onclick="confirmSend()">
+        Gửi cho MNG QA
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────
+const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/shopeemobile-external.com/s/AKfycbwBSyVVfbQE1x5ff4DWlMTdISttsRwZjJ9oejHJKQ87dbjYid-zX4I-XA10xLDvKW7xCw/exec';
+const MNG_CONTACT = 'MNG QA';
+const SEND_TIMEOUT_MS = 30000;
+// Lấy key miễn phí tại https://api.imgbb.com (đăng ký → API → tạo key)
+const IMGBB_API_KEY = '6f397cc54fe6d8e01f8e67a6d52b3515';
+
+// ─── STATE ────────────────────────────────────────────────
+let currentTeam = '';
+let currentMode = 'bot';
+let botFiles = [];
+let botLinks = [];
+let manualFiles = [];
+let manualLinks = [];
+let recognition = null;
+let isRecording = false;
+let pendingPayload = null;
+
+// ─── TEAM SELECTOR ────────────────────────────────────────
+function selectTeam(team) {
+  currentTeam = team;
+  ['Chat','Call','Multi','Secret'].forEach(t => {
+    document.getElementById('team-' + t).classList.toggle('selected', t === team);
+  });
+  document.getElementById('team-error').classList.remove('show');
+}
+
+function validateTeam() {
+  if (!currentTeam) {
+    const errEl = document.getElementById('team-error');
+    errEl.classList.add('show');
+    document.getElementById('team-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+  return true;
+}
+
+// ─── ANONYMOUS TOGGLE ─────────────────────────────────────
+document.getElementById('anon-toggle').addEventListener('change', function() {
+  document.getElementById('name-row').classList.toggle('visible', !this.checked);
+});
+
+// ─── MODE SELECTOR ────────────────────────────────────────
+function selectMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-bot').classList.toggle('selected', mode === 'bot');
+  document.getElementById('mode-manual').classList.toggle('selected', mode === 'manual');
+  document.getElementById('panel-bot').classList.toggle('active', mode === 'bot');
+  document.getElementById('panel-manual').classList.toggle('active', mode === 'manual');
+}
+
+// ─── ATTACH TOGGLE ────────────────────────────────────────
+function toggleAttach() {
+  const area = document.getElementById('attach-area');
+  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+// ─── VOICE INPUT (fixed transcript concat) ────────────────
+function toggleVoice() {
+  const btn = document.getElementById('voice-btn');
+
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Tính năng giọng nói hoạt động tốt nhất trên Chrome — bạn mở lại bằng Chrome nhé.');
+    return;
+  }
+
+  if (isRecording) {
+    recognition.stop();
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'vi-VN';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  const textarea = document.getElementById('bot-text');
+  // Snapshot existing text so we don't overwrite what QA already typed
+  const existingText = textarea.value.trim();
+  let committed = existingText ? existingText + ' ' : '';
+  let lastInterim = '';
+
+  recognition.onstart = () => {
+    isRecording = true;
+    btn.classList.add('recording');
+    btn.innerHTML = '<span>🔴</span> Đang nghe... (bấm để dừng)';
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    // Only process results from current session
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        committed += transcript + ' ';
+        interim = '';
+      } else {
+        interim = transcript;
+      }
+    }
+    lastInterim = interim;
+    // Show committed + current interim
+    textarea.value = committed + interim;
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.innerHTML = '<span>🎤</span> Nói thay vì gõ';
+    // Finalize: remove trailing interim if any
+    textarea.value = committed.trim();
+  };
+
+  recognition.onerror = (e) => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.innerHTML = '<span>🎤</span> Nói thay vì gõ';
+
+    var inIframe = false;
+    try { inIframe = window.self !== window.top; } catch (err) { inIframe = true; }
+
+    var notAllowedMsg = inIframe
+      ? 'Form đang được nhúng trong một trang khác (Canva) nên trình duyệt chặn micro. Bạn mở form bằng link trực tiếp để nói được — còn bây giờ cứ gõ tay nhé.'
+      : 'Micro chưa được cấp quyền. Bấm biểu tượng micro trên thanh địa chỉ để cho phép — hoặc cứ gõ tay cũng được nhé.';
+
+    const msgs = {
+      'not-allowed'    : notAllowedMsg,
+      'service-not-allowed' : notAllowedMsg,
+      'no-speech'      : 'Mình chưa nghe thấy gì. Bạn thử nói lại gần micro hơn nhé.',
+      'audio-capture'  : 'Không tìm thấy micro. Kiểm tra lại micro của máy bạn nhé.',
+      'network'        : 'Mất mạng nên chưa nhận được giọng nói. Bạn kiểm tra kết nối rồi thử lại nhé.'
+    };
+    if (e.error !== 'aborted') {
+      setStatus('status-bot', msgs[e.error] || ('Chưa nhận được giọng nói (' + e.error + '). Bạn cứ gõ tay cũng được nhé.'), true);
+    }
+  };
+
+  recognition.start();
+}
+
+// ─── FILE HANDLING ────────────────────────────────────────
+async function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = () => res(reader.result.split(',')[1]);
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Upload ảnh lên imgbb, trả về URL hoặc null nếu thất bại
+async function uploadToImgbb(file) {
+  if (!IMGBB_API_KEY) return null;
+  try {
+    const b64 = await fileToBase64(file);
+    const form = new FormData();
+    form.append('key', IMGBB_API_KEY);
+    form.append('image', b64);
+    form.append('name', file.name.replace(/\.[^.]+$/, ''));
+    const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
+    const json = await res.json();
+    if (json.success) return json.data.url;
+  } catch(e) {}
+  return null;
+}
+
+// Thêm chip trạng thái "đang tải" tạm thời
+function addUploadingChip(previewId, name) {
+  const el = document.getElementById(previewId);
+  const chip = document.createElement('div');
+  chip.className = 'file-chip';
+  chip.dataset.uploading = name;
+  chip.innerHTML = '⏳ <span>Đang tải: ' + (name.length > 22 ? name.slice(0,22)+'…' : name) + '</span>';
+  el.appendChild(chip);
+  return chip;
+}
+
+async function processImageUpload(file, filesArr, linksArr, previewId) {
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File "' + file.name + '" hơi nặng (trên 5MB) — bạn nén lại hoặc dùng link Drive thay thế nhé.');
+    return;
+  }
+  if (file.type.startsWith('image/') && IMGBB_API_KEY) {
+    const chip = addUploadingChip(previewId, file.name);
+    const url = await uploadToImgbb(file);
+    chip.remove();
+    if (url) {
+      linksArr.push(url);
+    } else {
+      // fallback: lưu base64 để gửi qua Apps Script nếu có
+      const b64 = await fileToBase64(file);
+      filesArr.push({ name: file.name, base64: b64, type: file.type });
+    }
+  } else {
+    const b64 = await fileToBase64(file);
+    filesArr.push({ name: file.name, base64: b64, type: file.type });
+  }
+}
+
+async function handleFileSelect(e) {
+  for (const file of Array.from(e.target.files)) {
+    await processImageUpload(file, botFiles, botLinks, 'file-preview-bot');
+  }
+  renderPreview('file-preview-bot', botFiles, botLinks, 'bot');
+  e.target.value = '';
+}
+
+async function handleManualFileSelect(e) {
+  for (const file of Array.from(e.target.files)) {
+    await processImageUpload(file, manualFiles, manualLinks, 'file-preview-manual');
+  }
+  renderPreview('file-preview-manual', manualFiles, manualLinks, 'manual');
+  e.target.value = '';
+}
+
+function addLinkAttach() {
+  const url = document.getElementById('attach-url').value.trim();
+  if (!url) return;
+  botLinks.push(url);
+  document.getElementById('attach-url').value = '';
+  renderPreview('file-preview-bot', botFiles, botLinks, 'bot');
+}
+
+function addManualLink() {
+  const url = document.getElementById('manual-attach-url').value.trim();
+  if (!url) return;
+  manualLinks.push(url);
+  document.getElementById('manual-attach-url').value = '';
+  renderPreview('file-preview-manual', manualFiles, manualLinks, 'manual');
+}
+
+function renderPreview(id, files, links, mode) {
+  const el = document.getElementById(id);
+  const allItems = [
+    ...files.map((f, i) => ({ label: f.name, type: 'file', idx: i })),
+    ...links.map((l, i) => ({ label: l, type: 'link', idx: i }))
+  ];
+  el.innerHTML = allItems.map(item =>
+    '<div class="file-chip">' +
+    '📎 <span>' + (item.label.length > 28 ? item.label.slice(0,28)+'…' : item.label) + '</span>' +
+    '<span class="file-chip-remove" onclick="removeItem(\''+mode+'\',\''+item.type+'\','+item.idx+')">×</span>' +
+    '</div>'
+  ).join('');
+}
+
+function removeItem(mode, type, idx) {
+  if (mode === 'bot') {
+    if (type === 'file') botFiles.splice(idx, 1);
+    else botLinks.splice(idx, 1);
+    renderPreview('file-preview-bot', botFiles, botLinks, 'bot');
+  } else {
+    if (type === 'file') manualFiles.splice(idx, 1);
+    else manualLinks.splice(idx, 1);
+    renderPreview('file-preview-manual', manualFiles, manualLinks, 'manual');
+  }
+}
+
+// Paste screenshot
+document.addEventListener('paste', async (e) => {
+  const items = e.clipboardData?.items || [];
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const rawFile = item.getAsFile();
+      const name = 'screenshot_' + Date.now() + '.png';
+      const file = new File([rawFile], name, { type: 'image/png' });
+      if (currentMode === 'bot') {
+        await processImageUpload(file, botFiles, botLinks, 'file-preview-bot');
+        renderPreview('file-preview-bot', botFiles, botLinks, 'bot');
+      } else {
+        await processImageUpload(file, manualFiles, manualLinks, 'file-preview-manual');
+        renderPreview('file-preview-manual', manualFiles, manualLinks, 'manual');
+      }
+    }
+  }
+});
+
+// ─── ISSUE TYPE ───────────────────────────────────────────
+function handleTypeChange() {
+  const val = document.getElementById('issue-type').value;
+  document.getElementById('other-input').classList.toggle('show', val === 'khac');
+}
+
+// ─── RULE-BASED STRUCTURER ────────────────────────────────
+function structureContent(rawText, issueType) {
+  const text = rawText.trim();
+  const lines = text.split(/[.!?\n]+/).map(s => s.trim()).filter(Boolean);
+
+  // Keyword patterns
+  const whoPatterns = [/\b(bạn|người|anh|chị|em|QA|TL|mng|manager|bạn [A-Z][a-z]+|anh [A-Z][a-z]+|chị [A-Z][a-z]+)\b/gi];
+  const whenPatterns = [/\b(hôm nay|hôm qua|tuần này|tuần trước|tháng này|sáng|chiều|tối|\d+ giờ|thứ [2-7]|cuối tuần)\b/gi];
+  const evidencePatterns = [/\b(tin nhắn|ảnh|screenshot|chụp màn hình|link|file|bằng chứng|ghi âm|email)\b/gi];
+  const actionPatterns = [/\b(sửa|chỉnh|đổi|thay|xóa|thêm|nhờ|yêu cầu|bảo|nói|nhắn|can thiệp|giảm|tăng|che|giấu)\b/gi];
+
+  function extract(patterns) {
+    const found = new Set();
+    patterns.forEach(p => {
+      const matches = text.match(p) || [];
+      matches.forEach(m => found.add(m.toLowerCase()));
+    });
+    return [...found].slice(0, 4).join(', ');
+  }
+
+  const who = extract(whoPatterns);
+  const when = extract(whenPatterns);
+  const actions = extract(actionPatterns);
+  const evidence = extract(evidencePatterns);
+
+  // Detect issue type from content if not provided
+  // If issueType provided (manual mode), use it directly
+  // If not (bot mode), detect from content
+  let detectedType = issueType || '';
+  if (!detectedType) {
+    if (/nhờ|yêu cầu|bảo.*chỉnh|sửa.*kết quả|can thiệp/i.test(text))
+      detectedType = 'Có người nhờ chỉnh kết quả chấm';
+    else if (/đồng nghiệp|bạn QA|hành vi lạ|pattern|bất thường|sửa.*kết quả.*không.*calibration/i.test(text))
+      detectedType = 'Thấy đồng nghiệp QA có hành vi lạ';
+    else
+      detectedType = 'Chưa xác định — xem mô tả chi tiết';
+  }
+
+  return {
+    issueType: detectedType,
+    who: who || null,
+    when: when || null,
+    actions: actions || null,
+    detail: text,
+    evidence: evidence || null
+  };
+}
+
+// ─── REVIEW MODAL ─────────────────────────────────────────
+function openReview(payload, structured) {
+  pendingPayload = payload;
+  const body = document.getElementById('review-body');
+
+  function esc(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fieldInput(id, label, value) {
+    const v = (value && value !== '—') ? value : '';
+    return '<div class="rv-section">' +
+      '<div class="rv-label">' + label + '</div>' +
+      '<div class="rv-wrap">' +
+      '<input id="rv-' + id + '" class="rv-input" type="text" value="' + esc(v) + '" placeholder="Chưa rõ — bạn bổ sung được không?">' +
+      '<span class="rv-pencil">✎</span>' +
+      '</div></div>';
+  }
+
+  function fieldArea(id, label, value) {
+    const v = (value && value !== '—') ? value : '';
+    return '<div class="rv-section">' +
+      '<div class="rv-label">' + label + '</div>' +
+      '<div class="rv-wrap">' +
+      '<textarea id="rv-' + id + '" class="rv-area" rows="4" placeholder="Chưa có nội dung — bạn thêm vào được nhé">' + esc(v) + '</textarea>' +
+      '<span class="rv-pencil" style="top:10px;">✎</span>' +
+      '</div></div>';
+  }
+
+  const badge = payload.mode === 'bot'
+    ? '<span class="rv-badge rv-badge-purple">Kể tự nhiên</span>'
+    : '<span class="rv-badge rv-badge-green">Điền từng bước</span>';
+
+  const teamLabel = { Chat:'💬 Chat', Call:'📞 Call', Multi:'🔀 Multi', Secret:'🔒 Bí mật' }[payload.team] || payload.team;
+
+  let html = badge;
+  html += '<div class="rv-section"><div class="rv-label">Team</div><div class="rv-readonly">' + esc(teamLabel) + '</div></div>';
+  html += fieldInput('issueType', 'Loại vấn đề', structured.issueType);
+  html += fieldInput('who', 'Người liên quan phát hiện được', structured.who);
+  html += fieldInput('when', 'Thời điểm', structured.when);
+  html += fieldInput('actions', 'Hành vi phát hiện', structured.actions);
+  html += fieldArea('detail', 'Nội dung đầy đủ', structured.detail);
+  html += fieldInput('evidence', 'Bằng chứng đề cập', structured.evidence);
+
+  if (payload.files && payload.files.length) {
+    html += '<div class="rv-section"><div class="rv-label">File đính kèm</div>' +
+      '<div class="rv-readonly">' + payload.files.map(f => f.name).join(', ') + '</div></div>';
+  }
+  if (payload.links && payload.links.length) {
+    html += '<div class="rv-section"><div class="rv-label">Link đính kèm</div>' +
+      '<div class="rv-readonly">' + payload.links.join(', ') + '</div></div>';
+  }
+
+  html += '<div class="rv-hint">Bấm vào ô bất kỳ để chỉnh trực tiếp — rồi gửi khi bạn thấy ổn.</div>';
+  body.innerHTML = html;
+  document.getElementById('review-modal').classList.add('open');
+}
+
+function closeReview() {
+  document.getElementById('review-modal').classList.remove('open');
+  pendingPayload = null;
+}
+
+// ─── CONFIRM & SEND ───────────────────────────────────────
+async function confirmSend() {
+  if (!pendingPayload) return;
+
+  function rv(id) {
+    const el = document.getElementById('rv-' + id);
+    return el ? el.value.trim() : '';
+  }
+
+  pendingPayload.issueType = rv('issueType') || pendingPayload.issueType;
+  pendingPayload.who       = rv('who');
+  pendingPayload.when      = rv('when');
+  pendingPayload.actions   = rv('actions');
+  pendingPayload.detail    = rv('detail') || pendingPayload.content;
+  pendingPayload.evidence  = rv('evidence');
+  pendingPayload.content   = pendingPayload.detail || pendingPayload.content;
+
+  const btn = document.getElementById('btn-confirm-send');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Đang gửi đi...';
+  await sendToSheet(pendingPayload);
+}
+
+// ─── SUBMIT FLOW ──────────────────────────────────────────
+function submitBot() {
+  if (!validateTeam()) return;
+  const content = document.getElementById('bot-text').value.trim();
+  if (!content) { setStatus('status-bot', 'Bạn chưa kể gì cho mình nghe — gõ vài dòng là được.', true); return; }
+
+  const { name, timestamp, isAnon } = getCommonFields();
+  const structured = structureContent(content, '');
+
+  const payload = {
+    mode: 'bot', name, timestamp, isAnon,
+    team: currentTeam,
+    issueType: structured.issueType,
+    content,
+    links: botLinks,
+    files: botFiles.map(f => ({ name: f.name, base64: f.base64, type: f.type }))
+  };
+
+  openReview(payload, structured);
+}
+
+function submitManual() {
+  if (!validateTeam()) return;
+  const type = document.getElementById('issue-type').value;
+  const desc = document.getElementById('manual-desc').value.trim();
+  const otherText = document.getElementById('other-text').value.trim();
+
+  if (!type) { setStatus('status-manual', 'Bạn chọn loại vấn đề giúp mình với nhé.', true); return; }
+  if (!desc && type !== 'khac') { setStatus('status-manual', 'Kể thêm một chút về chuyện đã xảy ra nha.', true); return; }
+  if (type === 'khac' && !otherText && !desc) { setStatus('status-manual', 'Bạn mô tả qua loại vấn đề giúp mình nhé.', true); return; }
+
+  const typeLabel = {
+    hanh_vi: 'Hành vi',
+    ky_nang: 'Kỹ năng',
+    performance: 'Performance',
+    khac: otherText ? 'Khác: ' + otherText : 'Khác'
+  }[type] || type;
+
+  const { name, timestamp, isAnon } = getCommonFields();
+  const structured = structureContent(desc, typeLabel);
+
+  const payload = {
+    mode: 'manual', name, timestamp, isAnon,
+    team: currentTeam,
+    issueType: typeLabel,
+    content: desc,
+    links: manualLinks,
+    files: manualFiles.map(f => ({ name: f.name, base64: f.base64, type: f.type }))
+  };
+
+  openReview(payload, structured);
+}
+
+// ─── SEND TO SHEET ────────────────────────────────────────
+// Apps Script /exec KHONG tra CORS header -> fetch khong doc duoc phan hoi.
+// Dung 2 duong khong dinh CORS:
+//   1) google.script.run  (khi form duoc serve qua Apps Script HtmlService)
+//   2) JSONP qua <script>  (khi mo file roi / host khac)
+function buildData(payload) {
+  return {
+    timestamp : payload.timestamp || '',
+    name      : payload.name      || '',
+    isAnon    : !!payload.isAnon,
+    team      : payload.team      || '',
+    mode      : payload.mode      || '',
+    issueType : payload.issueType || '',
+    who       : payload.who       || '',
+    when      : payload.when      || '',
+    actions   : payload.actions   || '',
+    detail    : payload.detail    || payload.content || '',
+    evidence  : payload.evidence  || '',
+    links     : payload.links     || [],
+    fileNames : (payload.files || []).map(function(f){ return f.name; })
+  };
+}
+
+function postToScript(payload) {
+  return new Promise(function(resolve) {
+    // --- Duong 1: google.script.run (khong gioi han do dai, doc ket qua that) ---
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      var done1 = false;
+      var to1 = setTimeout(function(){
+        if (done1) return; done1 = true;
+        resolve({ ok:false, reason:'Hết thời gian chờ — Bé Lửa không phản hồi.' });
+      }, SEND_TIMEOUT_MS);
+
+      google.script.run
+        .withSuccessHandler(function(res){
+          if (done1) return; done1 = true; clearTimeout(to1);
+          var ok = res && res.status === 'ok';
+          resolve({ ok: ok, reason: ok ? '' : ((res && res.message) || 'Lưu thất bại.') });
+        })
+        .withFailureHandler(function(err){
+          if (done1) return; done1 = true; clearTimeout(to1);
+          resolve({ ok:false, reason: (err && err.message) || 'Lỗi máy chủ.' });
+        })
+        .submitReport(buildData(payload));
+      return;
+    }
+
+    // --- Duong 2: JSONP fallback ---
+    jsonpSubmit(payload, resolve);
+  });
+}
+
+function jsonpSubmit(payload, resolve) {
+  var cb = 'qa_cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+  var d = buildData(payload);
+
+  var params = new URLSearchParams({
+    submit    : '1',
+    callback  : cb,
+    timestamp : d.timestamp,
+    name      : d.name,
+    isAnon    : d.isAnon ? 'true' : 'false',
+    team      : d.team,
+    mode      : d.mode,
+    issueType : d.issueType,
+    who       : d.who,
+    when      : d.when,
+    actions   : d.actions,
+    detail    : d.detail,
+    evidence  : d.evidence,
+    links     : (d.links || []).join(', '),
+    fileNames : (d.fileNames || []).join(', ')
+  });
+
+  var script = document.createElement('script');
+  var done = false;
+
+  function cleanup() {
+    try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  var to = setTimeout(function(){
+    if (done) return; done = true; cleanup();
+    resolve({ ok:false, reason:'Hết thời gian chờ — Bé Lửa không phản hồi.' });
+  }, SEND_TIMEOUT_MS);
+
+  window[cb] = function(res){
+    if (done) return; done = true; clearTimeout(to); cleanup();
+    var ok = res && res.status === 'ok';
+    resolve({ ok: ok, reason: ok ? '' : ((res && res.message) || 'Lưu thất bại.') });
+  };
+
+  script.onerror = function(){
+    if (done) return; done = true; clearTimeout(to); cleanup();
+    resolve({ ok:false, reason:'Không gửi được — nội dung có thể quá dài hoặc mất mạng.' });
+  };
+
+  script.src = APPS_SCRIPT_URL + '?' + params.toString();
+  document.body.appendChild(script);
+}
+
+async function sendToSheet(payload) {
+  const result = await postToScript(payload);
+  if (result.ok) {
+    onSendSuccess();
+  } else {
+    onSendFail(result.reason);
+  }
+}
+
+function onSendSuccess() {
+  const modal = document.getElementById('review-modal');
+  if (modal && modal.classList.contains('open')) closeReview();
+  pendingPayload = null;
+  showSuccess();
+}
+
+function onSendFail(reason) {
+  // Dong modal nhung GIU pendingPayload de con thu gui lai
+  const modal = document.getElementById('review-modal');
+  if (modal) modal.classList.remove('open');
+
+  // Khoi phuc nut xac nhan trong modal (phong khi user quay lai)
+  const cBtn = document.getElementById('btn-confirm-send');
+  if (cBtn) { cBtn.disabled = false; cBtn.innerHTML = 'Gửi cho MNG QA'; }
+
+  document.getElementById('fail-contact').textContent = MNG_CONTACT;
+  const r = document.getElementById('fail-reason');
+  if (r) r.textContent = reason ? ('Lý do: ' + reason) : '';
+
+  const retry = document.getElementById('fail-retry-btn');
+  if (retry) { retry.disabled = false; retry.textContent = 'Thử gửi lại'; }
+
+  document.getElementById('main-card').style.display = 'none';
+  document.getElementById('success-card').style.display = 'none';
+  document.getElementById('fail-card').style.display = 'block';
+}
+
+async function retrySend() {
+  if (!pendingPayload) { backToFormFromFail(); return; }
+  const retry = document.getElementById('fail-retry-btn');
+  if (retry) { retry.disabled = true; retry.innerHTML = '<div class="spinner"></div> Đang gửi lại...'; }
+  const result = await postToScript(pendingPayload);
+  if (result.ok) {
+    document.getElementById('fail-card').style.display = 'none';
+    onSendSuccess();
+  } else {
+    onSendFail(result.reason);
+  }
+}
+
+function backToFormFromFail() {
+  // Quay lai form, GIU nguyen noi dung de user sua/gui lai
+  document.getElementById('fail-card').style.display = 'none';
+  document.getElementById('main-card').style.display = 'block';
+}
+
+// ─── HELPERS ──────────────────────────────────────────────
+function getCommonFields() {
+  const isAnon = document.getElementById('anon-toggle').checked;
+  const name = isAnon ? 'Ẩn danh' : (document.getElementById('reporter-name').value.trim() || 'Không cung cấp');
+  return { isAnon, name, timestamp: new Date().toLocaleString('vi-VN') };
+}
+
+function setStatus(id, msg, isError = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'status-msg' + (isError ? ' error' : '');
+}
+
+function showSuccess() {
+  document.getElementById('main-card').style.display = 'none';
+  document.getElementById('fail-card').style.display = 'none';
+  document.getElementById('success-card').style.display = 'block';
+}
+
+function resetForm() {
+  document.getElementById('main-card').style.display = 'block';
+  document.getElementById('success-card').style.display = 'none';
+  document.getElementById('fail-card').style.display = 'none';
+  ['bot-text','manual-desc','reporter-name'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('issue-type').value = '';
+  document.getElementById('anon-toggle').checked = true;
+  document.getElementById('name-row').classList.remove('visible');
+  document.getElementById('attach-area').style.display = 'block';
+  document.getElementById('other-input').classList.remove('show');
+  botFiles = []; botLinks = []; manualFiles = []; manualLinks = [];
+  ['file-preview-bot','file-preview-manual'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+  pendingPayload = null;
+  currentTeam = '';
+  ['Chat','Call','Multi','Secret'].forEach(t => {
+    document.getElementById('team-' + t).classList.remove('selected');
+  });
+  document.getElementById('team-error').classList.remove('show');
+  selectMode('bot');
+}
+
+// Close modal on overlay click
+document.getElementById('review-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeReview();
+});
+
+// ─── ONBOARDING DATA ──────────────────────────────────────
+const ONBOARD_KEY = 'qa_onboard_done_v1';
+
+// ─── ONBOARDING STEPS (spotlight per element) ────────────
+const steps = [
+  {
+    targetId: null,
+    says: 'Ơ có người mới! Mình là Bé lửa — mình chỉ bạn dùng form này nha.',
+    title: 'Thấy gì thì kể đi!',
+    desc: 'Form này để kể những chuyện không ổn trong QA. Bảo mật tuyệt đối — chỉ MNG QA mới đọc được. Thấy mà im lặng mới là có vấn đề đó.',
+    btn: 'Chỉ mình xem'
+  },
+  {
+    targetId: 'anon-row',
+    says: 'Cái nút này nè! Mặc định bạn đã ẩn danh rồi — tên bạn không xuất hiện ở đâu hết.',
+    title: 'Bước 1 — Ẩn danh',
+    desc: 'Muốn giấu tên? Cứ để nguyên. Muốn để tên để MNG có thể hỏi lại cho rõ? Tắt toggle này.',
+    btn: 'Hiểu rồi, tiếp'
+  },
+  {
+    targetId: 'mode-grid',
+    says: 'Hai cách này khác nhau nha. Ngại gõ nhiều thì chọn "Kể tự nhiên", mình lo phần còn lại.',
+    title: 'Bước 2 — Chọn cách kể',
+    desc: '"Kể tự nhiên" — gõ hoặc nói thoải mái như nhắn tin, Bé Lửa tự phân loại. "Điền từng bước" — chọn loại vấn đề trước rồi mô tả sau.',
+    btn: 'Oke, tiếp đi'
+  },
+  {
+    targetId: 'bot-text',
+    says: 'Ô này quan trọng nhất! Cứ kể thật, không cần văn hoa, không cần nhớ hết. Thấy gì kể nấy là đủ rồi.',
+    title: 'Bước 3 — Kể chuyện',
+    desc: 'Gõ thẳng vào đây những gì bạn thấy — khi nào, ai, chuyện gì. Không nhớ rõ cũng không sao, kể theo cách bạn nhớ là được.',
+    btn: 'Còn gì nữa không'
+  },
+  {
+    targetId: 'submit-bot',
+    says: 'Bấm vào đây thì mình cho bạn xem lại toàn bộ trước khi gửi — không lo nhấn nhầm đâu!',
+    title: 'Bước 4 — Xem lại & Gửi',
+    desc: 'Trước khi gửi bạn thấy màn hình xem lại. Chỉnh được, không vội. Xong rồi mới gửi.',
+    btn: 'Mình hiểu rồi!'
+  }
+];
+
+// ─── FLOAT QUOTES (human, warm, varied) ──────────────────
+const flameQuotes = [
+  'Thấy mà không nói — bạn mới là người có vấn đề đó nha.',
+  'Bảo mật 100%. Chỉ MNG QA mới đọc được thôi, không ai khác.',
+  'Không cần chắc chắn 100% mới kể. Nghi ngờ thôi cũng đủ rồi.',
+  'Im lặng không bảo vệ được ai — kể ra mới bảo vệ cả team.',
+  'Dù ẩn danh hay để tên — mình đều trân trọng như nhau.',
+  'Bạn không tố cáo ai cả. Bạn đang giúp team hoạt động đúng hơn.',
+  'Nếu bạn thấy mà im — người có chuyện kia còn làm tiếp đó.',
+  'Kể ra không có gì phải ngại. Ngại mới đáng lo hơn.',
+  'Chỉ mình với MNG QA biết thôi. Không đi đâu hết.',
+  'Mọi chuyện bạn kể đều quan trọng — kể cả khi bạn nghĩ "chắc không cần đâu".'
+];
+
+let currentStep = 0;
+let flameQuoteIdx = Math.floor(Math.random() * flameQuotes.length);
+let bubbleVisible = false;
+
+// ─── SPOTLIGHT HELPERS ────────────────────────────────────
+function getTargetRect(id) {
+  if (!id) return null;
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { top: r.top, left: r.left, width: r.width, height: r.height };
+}
+
+function positionSpotlight(targetId) {
+  const cut = document.getElementById('spot-cut');
+  const card = document.getElementById('spot-card');
+  const mask = document.getElementById('spot-mask');
+
+  if (!targetId) {
+    // Welcome step: no cutout, just dim + center card
+    cut.style.opacity = '0';
+    mask.style.background = 'rgba(10,10,30,.72)';
+    card.style.position = 'fixed';
+    card.style.top = '50%';
+    card.style.left = '50%';
+    card.style.transform = 'translate(-50%,-50%)';
+    return;
+  }
+
+  cut.style.opacity = '1';
+  mask.style.background = 'transparent';
+  card.style.transform = '';
+
+  const PAD = 10;
+  const r = getTargetRect(targetId);
+  if (!r) return;
+
+  // position cutout
+  cut.style.top    = (r.top - PAD) + 'px';
+  cut.style.left   = (r.left - PAD) + 'px';
+  cut.style.width  = (r.width + PAD*2) + 'px';
+  cut.style.height = (r.height + PAD*2) + 'px';
+
+  // position tooltip card — prefer below, fallback above
+  const CARD_W = 280;
+  const CARD_MARGIN = 14;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let cardTop, cardLeft;
+  const spaceBelow = vh - (r.top + r.height + PAD);
+  const spaceAbove = r.top - PAD;
+
+  // horizontal: center on target, clamp to viewport
+  cardLeft = r.left + r.width/2 - CARD_W/2;
+  cardLeft = Math.max(8, Math.min(cardLeft, vw - CARD_W - 8));
+
+  if (spaceBelow >= 200) {
+    cardTop = r.top + r.height + PAD + CARD_MARGIN;
+  } else if (spaceAbove >= 200) {
+    // will be set after we know card height — approximate 220px
+    cardTop = r.top - PAD - 220 - CARD_MARGIN;
+  } else {
+    // side: right of target if space
+    cardTop = Math.max(8, r.top);
+    cardLeft = r.left + r.width + PAD + CARD_MARGIN;
+    if (cardLeft + CARD_W > vw - 8) cardLeft = r.left - CARD_W - PAD - CARD_MARGIN;
+    cardLeft = Math.max(8, cardLeft);
+  }
+
+  card.style.position = 'fixed';
+  card.style.top  = cardTop + 'px';
+  card.style.left = cardLeft + 'px';
+}
+
+// ─── RENDER STEP ──────────────────────────────────────────
+function renderStep() {
+  const s = steps[currentStep];
+
+  document.getElementById('spot-flame-says').textContent = s.says;
+  document.getElementById('spot-title').textContent = s.title;
+  document.getElementById('spot-desc').textContent = s.desc;
+  document.getElementById('spot-next').textContent = s.btn;
+
+  // scroll target into view first, then position
+  if (s.targetId) {
+    const el = document.getElementById(s.targetId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  setTimeout(() => positionSpotlight(s.targetId), s.targetId ? 350 : 0);
+
+  // dots
+  const dots = document.getElementById('spot-dots');
+  dots.innerHTML = steps.map((_, i) =>
+    '<div class="spot-dot' + (i === currentStep ? ' active' : '') + '"></div>'
+  ).join('');
+
+  document.getElementById('spot-skip').style.display =
+    currentStep === steps.length - 1 ? 'none' : '';
+}
+
+// ─── OPEN / CLOSE ─────────────────────────────────────────
+function openOnboard() {
+  currentStep = 0;
+  document.getElementById('main-card').classList.add('spotlight-active');
+  document.getElementById('spot-overlay').classList.add('open');
+  document.getElementById('float-flame').style.display = 'none';
+  renderStep();
+}
+
+function skipOnboard() {
+  document.getElementById('spot-overlay').classList.remove('open');
+  document.getElementById('main-card').classList.remove('spotlight-active');
+  localStorage.setItem(ONBOARD_KEY, '1');
+  showFloatFlame();
+}
+
+function nextStep() {
+  if (currentStep < steps.length - 1) {
+    currentStep++;
+    renderStep();
+  } else {
+    skipOnboard();
+  }
+}
+
+// close spotlight on overlay click (outside card)
+document.getElementById('spot-overlay').addEventListener('click', function(e) {
+  if (e.target === this || e.target.id === 'spot-mask') skipOnboard();
+});
+
+// ─── FLOATING FLAME ───────────────────────────────────────
+function showFloatFlame() {
+  document.getElementById('float-flame').style.display = 'block';
+  // auto show first quote after 4s
+  setTimeout(showNextQuote, 4000);
+}
+
+function floatFlameClick() {
+  if (bubbleVisible) {
+    closeBubble();
+  } else {
+    showNextQuote();
+  }
+}
+
+function showNextQuote() {
+  const bubble = document.getElementById('float-bubble');
+  const text   = document.getElementById('float-bubble-text');
+  text.textContent = flameQuotes[flameQuoteIdx % flameQuotes.length];
+  flameQuoteIdx++;
+  bubbleVisible = true;
+  bubble.classList.add('show');
+}
+
+function closeBubble() {
+  document.getElementById('float-bubble').classList.remove('show');
+  bubbleVisible = false;
+}
+
+// ─── PUPIL TRACKING ───────────────────────────────────────
+function moveSinglePupil(pupilId, eyeId, svgEl, mx, my, pupilR) {
+  const p = document.getElementById(pupilId);
+  const e = document.getElementById(eyeId);
+  if (!p || !e) return;
+
+  const rect = svgEl.getBoundingClientRect();
+  if (rect.width === 0) return;
+  const vb = svgEl.viewBox.baseVal;
+  const sx = vb.width / rect.width;
+  const sy = vb.height / rect.height;
+
+  const lx = (mx - rect.left) * sx;
+  const ly = (my - rect.top) * sy;
+
+  const ex = parseFloat(e.getAttribute('cx'));
+  const ey = parseFloat(e.getAttribute('cy'));
+  const er = Math.min(parseFloat(e.getAttribute('rx')||e.getAttribute('r')||4), parseFloat(e.getAttribute('ry')||e.getAttribute('r')||5));
+
+  const dx = lx - ex, dy = ly - ey;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const limit = Math.max(0, er - pupilR - 0.5);
+  const nx = dist <= limit ? ex + dx * 0.55 : ex + (dx/dist)*limit;
+  const ny = dist <= limit ? ey + dy * 0.55 : ey + (dy/dist)*limit;
+
+  p.setAttribute('cx', nx.toFixed(2));
+  p.setAttribute('cy', ny.toFixed(2));
+}
+
+function trackPupils(e) {
+  // float flame
+  const ff = document.getElementById('float-flame');
+  if (ff && ff.style.display !== 'none') {
+    const ffSvg = ff.querySelector('svg');
+    if (ffSvg) {
+      moveSinglePupil('fp-l','fe-l', ffSvg, e.clientX, e.clientY, 7);
+      moveSinglePupil('fp-r','fe-r', ffSvg, e.clientX, e.clientY, 7);
+    }
+  }
+  // spotlight mini flame
+  const sf = document.getElementById('spot-flame-mini');
+  if (sf) {
+    const sfSvg = sf.querySelector('svg');
+    if (sfSvg) {
+      moveSinglePupil('sp-l','se-l', sfSvg, e.clientX, e.clientY, 7);
+      moveSinglePupil('sp-r','se-r', sfSvg, e.clientX, e.clientY, 7);
+    }
+  }
+}
+
+document.addEventListener('mousemove', trackPupils);
+
+// reposition on resize
+window.addEventListener('resize', () => {
+  if (document.getElementById('spot-overlay').classList.contains('open')) {
+    positionSpotlight(steps[currentStep].targetId);
+  }
+});
+
+// ─── INIT ─────────────────────────────────────────────────
+(function init() {
+  const done = localStorage.getItem(ONBOARD_KEY);
+  if (!done) {
+    setTimeout(openOnboard, 500);
+  } else {
+    showFloatFlame();
+  }
+})();
+
+// (engine chat Be Lua da duoc go bo - luong gio la: ke tu nhien -> phan tich -> xem lai -> gui)
+
+</script>
+</body>
