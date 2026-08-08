@@ -8,6 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Repeated Agent Dashboard — MCVN QA</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
 <style>
 :root{
   --bg:#0d1018;--surf:#141720;--s2:#1a1f2e;--s3:#212840;
@@ -168,6 +169,8 @@ table.at tbody tr:last-child td{border-bottom:none}
 .empty-state b{color:var(--t2)}
 
 .srch{background:var(--s2);border:1px solid var(--bdr);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;outline:none}
+.btn-dl{background:var(--acc);border:1px solid var(--acc);color:#fff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.btn-dl:hover{opacity:.85}
 .srch:focus{border-color:var(--blue)}
 .toast{position:fixed;bottom:22px;right:22px;background:var(--green);color:#000;font-size:11px;font-weight:700;padding:8px 16px;border-radius:8px;display:none;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .footer{font-size:10px;color:var(--t3);margin-top:18px;padding-top:11px;border-top:1px solid var(--bdr);display:flex;justify-content:space-between}
@@ -387,7 +390,10 @@ Row 1-5 có thể là header/meta — script sẽ tự detect header dòng có c
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <div><div class="card-t">Danh sách Repeated · <span id="tbl-cnt" style="color:var(--acc)">—</span> agents</div><div class="card-s">Click ô Root Cause / Reason để nhập</div></div>
-        <input class="srch" type="text" placeholder="Tìm agent..." oninput="filterTbl(this.value)" id="srch">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="srch" type="text" placeholder="Tìm agent..." oninput="filterTbl(this.value)" id="srch">
+          <button class="btn-dl" onclick="downloadTable()" title="Tải danh sách hiện tại ra file Excel">⬇ Download</button>
+        </div>
       </div>
       <div class="tbl-wrap"><table class="at"><thead><tr>
         <th onclick="srt('name')">Agent</th><th onclick="srt('full_team')">Team</th>
@@ -415,6 +421,7 @@ Row 1-5 có thể là header/meta — script sẽ tự detect header dòng có c
         <option value="A">A</option><option value="B">B</option>
         <option value="C">C</option><option value="D">D</option><option value="U">U</option>
       </select>
+      <button class="btn-dl" onclick="downloadHistory()" title="Tải bảng CSAT History ra file Excel">⬇ Download</button>
     </div>
   </div>
   <div id="hist-empty" class="empty-state"><div class="icon">📊</div><p>Chưa có data CSAT Weekly.<br>Paste File 2 trong tab <b>Nhập Data</b>.</p></div>
@@ -479,6 +486,8 @@ let G = {
 
 let activeTab='all', activeUT='all';
 let sortCol='csat_cur', sortDir='asc';
+let lastTableRows=[];
+let lastHistory={wks:[],agents:[]};
 let charts={};
 
 // ================================================================
@@ -1174,6 +1183,7 @@ function renderTable(){
       return sortDir==='asc'?(va>vb?1:-1):(va<vb?1:-1);
     });
   document.getElementById('tbl-cnt').textContent=data.length;
+  lastTableRows=data;
   const lb=l=>l>=3?`<span class="badge b4">L${l}</span>`:l===2?`<span class="badge b2">L${l}</span>`:`<span class="badge b1">L${l}</span>`;
   const mb=m=>m==='New Join'?`<span class="badge bnew">New</span>`:m==='Rejoin'?`<span class="badge brej">Rejoin</span>`:`<span class="badge bcon">Consec</span>`;
   const bk=b=>`<span class="badge bb${b||'U'}">${b||'U'}</span>`;
@@ -1203,6 +1213,52 @@ function renderTable(){
 }
 function filterTbl(v){renderTable();}
 function srt(col){if(sortCol===col)sortDir=sortDir==='asc'?'desc':'asc';else{sortCol=col;sortDir='asc';}renderTable();}
+// Xuất grid: dùng Excel .xlsx thật nếu SheetJS đã nạp, nếu không thì fallback CSV (BOM UTF-8)
+function exportGrid(baseName,headers,rows2d){
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  const stamp=`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  if(window.XLSX){
+    const ws=XLSX.utils.aoa_to_sheet([headers,...rows2d]);
+    ws['!cols']=headers.map((h,i)=>{
+      let w=String(h).length;
+      rows2d.forEach(r=>{const l=(r[i]==null?'':String(r[i])).length;if(l>w)w=l;});
+      return {wch:Math.min(Math.max(w+2,8),40)};
+    });
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Data');
+    XLSX.writeFile(wb,`${baseName}_${stamp}.xlsx`);
+    return;
+  }
+  const esc=v=>{const s=(v==null?'':String(v)).replace(/"/g,'""');return /[",\n]/.test(s)?`"${s}"`:s;};
+  const csv='﻿'+[headers,...rows2d].map(r=>r.map(esc).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`${baseName}_${stamp}.csv`;document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+function downloadTable(){
+  const rows=lastTableRows;
+  if(!rows||!rows.length){alert('Chưa có dữ liệu để tải. Hãy nhập/parse data trước.');return;}
+  const headers=['Agent','Team','Bkt','Seniority','Lần','Movement','CSAT W-1','CSAT W','WoW Δ (%)','Trend (history)','Treatment','Forecast','Bottom','Root Cause','Reason next wk'];
+  const rows2d=rows.map(r=>[
+    r.name,
+    r.full_team||r.team||'',
+    r.bucket||'U',
+    r.seniority||'',
+    r.repeated,
+    r.movement||'',
+    r.csat_prev==null?'':r.csat_prev,
+    r.csat_cur==null?'':r.csat_cur,
+    r.wow==null?'':Number(r.wow.toFixed(1)),
+    (r.csat_history||[]).filter(v=>v!=null).join(' | '),
+    r.treatment||'',
+    r.forecast_remove||'',
+    r.bottom_monthly==='YES'?'YES':'',
+    r.root_cause||'',
+    r.reason_next||''
+  ]);
+  exportGrid('repeated_agents',headers,rows2d);
+}
 
 // ================================================================
 // HISTORY
@@ -1228,14 +1284,15 @@ function renderHistory(search='',bkt='all'){
   // Fix: email lookup
   const agentList=G.curAgents.filter(a=>a.repeated>=1);
 
-  document.getElementById('hTbody').innerHTML=agentList
-    .filter(a=>{
+  const shown=agentList.filter(a=>{
       const cs=G.csatMap[a.email];
       if(!cs)return false;
       if(search&&!a.name.toLowerCase().includes(search.toLowerCase()))return false;
       if(bkt!=='all'&&(cs.bucket||'U')!==bkt)return false;
       return true;
-    })
+    });
+  lastHistory={wks,agents:shown.map(a=>({name:a.name,team:a.team,cs:G.csatMap[a.email]||{}}))};
+  document.getElementById('hTbody').innerHTML=shown
     .map(a=>{
       const cs=G.csatMap[a.email]||{};
       const vals=wks.map(w=>cs[w]);
@@ -1270,6 +1327,20 @@ function renderHistory(search='',bkt='all'){
   }
 }
 function filterH(v){renderHistory(v,document.getElementById('h-bkt').value);}
+function downloadHistory(){
+  const h=lastHistory;
+  if(!h||!h.agents.length){alert('Chưa có data CSAT History để tải. Hãy paste File 2 (CSAT Weekly) trước.');return;}
+  const headers=['Agent','Team','Bkt','Seniority',...h.wks,'Min','Avg'];
+  const rows2d=h.agents.map(a=>{
+    const cs=a.cs||{};
+    const valid=h.wks.map(w=>cs[w]).filter(v=>v!=null);
+    const mn=valid.length?Number(Math.min(...valid).toFixed(1)):'';
+    const avg=valid.length?Number((valid.reduce((s,v)=>s+v,0)/valid.length).toFixed(1)):'';
+    return [a.name,cs.full_team||a.team||'',cs.bucket||'U',cs.seniority||'',
+      ...h.wks.map(w=>cs[w]==null?'':Number(cs[w].toFixed(1))),mn,avg];
+  });
+  exportGrid('csat_history',headers,rows2d);
+}
 
 // ================================================================
 // REPORT
