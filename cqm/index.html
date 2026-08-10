@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCVN CQM Monitor — W23-W27 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+:root {
+  --bg:#0f1117; --card:#1a1d27; --card2:#1e2130; --border:#2a2d3e;
+  --accent:#4f6ef7; --accent2:#7c3aed;
+  --pos:#22c55e; --warn:#f59e0b; --neg:#ef4444; --crit:#dc2626;
+  --text:#e2e8f0; --dim:#94a3b8; --muted:#64748b;
+  --r:10px; --g:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;}
+.dash{max-width:1600px;margin:0 auto;padding:20px;}
+
+.hdr{background:linear-gradient(135deg,#1a1d27,#1e2130);border:1px solid var(--border);border-radius:var(--r);padding:18px 24px;margin-bottom:var(--g);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.hdr h1{font-size:17px;font-weight:700;color:#fff;}
+.hdr .sub{font-size:11px;color:var(--dim);margin-top:2px;}
+.hdr-r{display:flex;gap:8px;align-items:center;}
+select.fs{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;}
+select.fs:focus{outline:none;border-color:var(--accent);}
+.badge{background:var(--accent);color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge.red{background:var(--crit);}
+
+.tabs{display:flex;gap:4px;margin-bottom:var(--g);}
+.tab{padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;border:1px solid transparent;color:var(--dim);transition:all .15s;}
+.tab:hover{background:var(--card);color:var(--text);}
+.tab.active{background:var(--accent);color:#fff;}
+
+.panel{display:none;} .panel.active{display:block;}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:var(--g);margin-bottom:var(--g);}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px 18px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kpi.bl::before{background:var(--accent);}
+.kpi.gr::before{background:var(--pos);}
+.kpi.yw::before{background:var(--warn);}
+.kpi.rd::before{background:var(--neg);}
+.kl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.kv{font-size:24px;font-weight:700;color:#fff;line-height:1;}
+.ks{font-size:11px;color:var(--dim);margin-top:3px;}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:var(--g);margin-bottom:var(--g);}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--g);margin-bottom:var(--g);}
+.g12{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--g);margin-bottom:var(--g);}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
+.ct{font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.ct .hint{font-size:10px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;}
+canvas{max-height:260px;}
+
+.alert{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;padding:10px 14px;margin-bottom:var(--g);}
+.alert .al{font-size:12px;color:#fca5a5;} .alert strong{color:#ef4444;}
+
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;cursor:pointer;user-select:none;}
+thead th:hover{color:var(--text);}
+tbody td{padding:7px 10px;border-bottom:1px solid rgba(42,45,62,.4);vertical-align:middle;}
+tbody tr:hover td{background:rgba(79,110,247,.04);}
+tbody tr:last-child td{border-bottom:none;}
+
+.pb{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;}
+.p-Critical{background:rgba(220,38,38,.2);color:#fca5a5;}
+.p-High{background:rgba(245,158,11,.2);color:#fcd34d;}
+.p-Medium{background:rgba(79,110,247,.2);color:#a5b4fc;}
+.p-Monitor{background:rgba(100,116,139,.2);color:#94a3b8;}
+.ztp-tag{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;}
+.w-tag{background:rgba(79,110,247,.15);color:#a5b4fc;padding:1px 6px;border-radius:3px;font-size:10px;}
+
+.sbar{height:4px;border-radius:2px;background:var(--border);display:inline-block;width:70px;vertical-align:middle;margin-left:5px;}
+.sbar-f{height:100%;border-radius:2px;}
+
+.srch{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;width:200px;}
+.srch:focus{outline:none;border-color:var(--accent);}
+
+.pgr{display:flex;gap:6px;align-items:center;margin-top:10px;justify-content:flex-end;}
+.pgr-btn{background:var(--card2);border:1px solid var(--border);color:var(--dim);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;}
+.pgr-btn:hover{border-color:var(--accent);color:var(--text);}
+.pgr-info{font-size:11px;color:var(--muted);}
+
+.ar{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.al2{font-size:11px;color:var(--dim);width:230px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.abw{flex:1;height:7px;background:var(--border);border-radius:3px;overflow:hidden;}
+.abf{height:100%;border-radius:3px;}
+.apct{font-size:11px;width:42px;text-align:right;}
+.ascore{font-size:10px;color:#94a3b8;white-space:nowrap;padding-left:8px;min-width:120px;text-align:right;}
+.ascore span{display:inline-block;background:rgba(79,110,247,.15);color:#818cf8;border:1px solid rgba(79,110,247,.3);padding:1px 5px;border-radius:3px;font-size:10px;}
+.ascore .w10{background:rgba(245,158,11,.12);color:#fbbf24;border-color:rgba(245,158,11,.3);}
+.ascore .w30{background:rgba(220,38,38,.12);color:#f87171;border-color:rgba(220,38,38,.3);}
+.ascore .w5{background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.25);}
+
+.cscroll{max-height:380px;overflow-y:auto;}
+
+@media(max-width:900px){
+  .g2,.g3,.g12{grid-template-columns:1fr;}
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="dash">
+
+<div class="hdr">
+  <div>
+    <h1>MCVN CQM Agent Performance Monitor</h1>
+    <div class="sub">LLM + Common + Senior &nbsp;|&nbsp; W23-W27 2026 &nbsp;|&nbsp; 59,174 cases &nbsp;|&nbsp; 271 agents</div>
+  </div>
+  <div class="hdr-r">
+    <span id="filterLabel" style="font-size:11px;color:#64748b;display:none">Showing: <strong id="filterLabelText" style="color:#a5b4fc"></strong></span>
+    <select class="fs" id="fCard" onchange="applyGlobalFilter()">
+      <option value="">All Cards</option>
+      <option value="LLM">LLM</option>
+      <option value="Common">Common</option>
+      <option value="Senior">Senior</option>
+    </select>
+    <select class="fs" id="fWeek" onchange="applyGlobalFilter()"><option value="">All Weeks</option></select>
+    <a href="MCVN_CQM_Weekly_Report.xlsx" download style="background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px">⬇ Export Excel</a>
+    <span class="badge red" id="ztpBadge">ZTP: 26</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview')">Overview</div>
+  <div class="tab" onclick="switchTab('agents')">Agent Monitor</div>
+  <div class="tab" onclick="switchTab('trend')">Weekly Trend</div>
+  <div class="tab" onclick="switchTab('solution')">Solution Fails</div>
+  <div class="tab" onclick="switchTab('attrs')">Error Attributes</div>
+  <div class="tab" onclick="switchTab('ztp')">ZTP Cases</div>
+</div>
+
+<!-- OVERVIEW -->
+<div class="panel active" id="panel-overview">
+  <div id="alertBanner"></div>
+  <div class="kpi-row">
+    <div class="kpi bl"><div class="kl">Total Cases</div><div class="kv" id="kpiCases">59,174</div><div class="ks" id="kpiCasesSub">W23-W27 2026</div></div>
+    <div class="kpi gr"><div class="kl">Avg CQM Score</div><div class="kv" id="kpiScore">97.75%</div><div class="ks">Target >= 98.0%</div></div>
+    <div class="kpi rd"><div class="kl">ZTP Cases</div><div class="kv" id="kpiZtp">27</div><div class="ks" id="kpiZtpSub">Target: 0 | W27 spike: 22</div></div>
+    <div class="kpi rd"><div class="kl">Critical Agents</div><div class="kv" id="kpiCrit">12</div><div class="ks">ZTP hoac score &lt;90</div></div>
+  </div>
+  <div class="card" style="margin-bottom:var(--g)"><div class="ct">Weekly Score Trend <span class="hint">avg score | ZTP</span></div><canvas id="cWeek"></canvas></div>
+  <div class="g2">
+    <div class="card"><div class="ct">Score Distribution (Agent avg)</div><canvas id="cDist"></canvas></div>
+    <div class="card"><div class="ct">Avg Score by Case Category</div><canvas id="cCat"></canvas></div>
+  </div>
+</div>
+
+<!-- AGENT MONITOR -->
+<div class="panel" id="panel-agents">
+  <div class="card">
+    <div class="ct">Agent Performance Table
+      <div style="display:flex;gap:8px">
+        <input class="srch" id="agSrch" placeholder="Tim agent..." oninput="renderAgents()">
+      </div>
+    </div>
+    <div class="tw">
+      <table><thead><tr>
+        <th onclick="sortAg('display_name')">Agent</th>
+        <th onclick="sortAg('team')">Team</th>
+        <th onclick="sortAg('total_cases')">Cases</th>
+        <th onclick="sortAg('avg_score')">Avg Score</th>
+
+        <th onclick="sortAg('ztp_count')">ZTP</th>
+        <th onclick="sortAg('below_90_rate')">Below 90%</th>
+        <th onclick="sortAg('fail_per_case')">Fail/Case</th>
+        <th>Top Error</th>
+        <th onclick="sortAg('coaching_priority')">Priority</th>
+      </tr></thead>
+      <tbody id="agBody"></tbody></table>
+    </div>
+    <div class="pgr">
+      <span class="pgr-info" id="agPgInfo"></span>
+      <button class="pgr-btn" onclick="agPg(-1)">Prev</button>
+      <button class="pgr-btn" onclick="agPg(1)">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- ATTRS -->
+<div class="panel" id="panel-attrs">
+  <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi yw"><div class="kl">Top Error (Q16)</div><div class="kv" style="font-size:13px">Empathy - Thau hieu</div><div class="ks">3.89% fail rate - 2,221 cases</div></div>
+    <div class="kpi bl"><div class="kl">Systemic (>=2%)</div><div class="kv">9</div><div class="ks">attributes can team-level action</div></div>
+    <div class="kpi gr"><div class="kl">Clean (0 fail)</div><div class="kv">6</div><div class="ks">Q01 Q06 Q07 Q08 Q11 Q12</div></div>
+  </div>
+  <div class="g12">
+    <div class="card"><div class="ct">Fail Rate by Attribute - Q01 to Q42</div><canvas id="cAttr" style="max-height:380px"></canvas></div>
+    <div class="card"><div class="ct">Detail</div><div class="cscroll" id="attrDetail"></div></div>
+  </div>
+</div>
+
+<!-- WEEKLY TREND -->
+<div class="panel" id="panel-trend">
+  <div class="card" style="margin-bottom:var(--g)">
+    <div class="ct">Agent Score Trend — W23 to W27
+      <div style="display:flex;gap:8px">
+        <input class="srch" id="trendSrch" placeholder="Tim agent..." oninput="renderTrend()">
+      </div>
+    </div>
+    <div class="tw">
+      <table><thead><tr>
+        <th onclick="sortTrend('display_name')">Agent</th>
+        <th onclick="sortTrend('team')">Team</th>
+        <th>W23</th><th>W24</th><th>W25</th><th>W26</th><th>W27</th>
+        <th onclick="sortTrend('overall_avg')">Avg</th>
+        <th>Trend</th>
+      </tr></thead>
+      <tbody id="trendBody"></tbody></table>
+    </div>
+    <div class="pgr">
+      <span class="pgr-info" id="trendPgInfo"></span>
+      <button class="pgr-btn" onclick="trendPg(-1)">Prev</button>
+      <button class="pgr-btn" onclick="trendPg(1)">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- SOLUTION FAILS -->
+<div class="panel" id="panel-solution">
+  <div class="card" style="margin-bottom:var(--g)">
+    <div class="ct">Solution Errors by KB — Q25-Q29, Q37-Q40 <span class="hint">Dựa trên qa_comment KB code</span></div>
+    <div class="tw">
+      <table><thead><tr>
+        <th onclick="sortSol('kb')">KB Code</th>
+        <th onclick="sortSol('l1')">Category</th>
+        <th onclick="sortSol('fail_cases')">Fail Cases</th>
+        <th onclick="sortSol('total_cases')">Total Cases</th>
+        <th onclick="sortSol('fail_rate')">Fail Rate</th>
+        <th>By Week</th>
+        <th>Top Agents</th>
+      </tr></thead>
+      <tbody id="solBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ZTP -->
+<div class="panel" id="panel-ztp">
+  <div class="alert">
+    <div class="al"><strong>W27 ZTP Spike:</strong> 21 ZTP cases trong 1 tuan - cluster tai 6 agents Chat-Buyer. Can dieu tra truoc khi ket luan behavioral issue.</div>
+  </div>
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi rd"><div class="kl">Total ZTP</div><div class="kv">26</div><div class="ks">Target: 0</div></div>
+    <div class="kpi rd"><div class="kl">Agents co ZTP</div><div class="kv">8</div><div class="ks">can 1:1 ngay</div></div>
+    <div class="kpi yw"><div class="kl">W27 ZTP</div><div class="kv">21</div><div class="ks">80.8% tong ZTP trong 1 tuan</div></div>
+    <div class="kpi bl"><div class="kl">Top ZTP Agent</div><div class="kv" style="font-size:13px">Luu Vu Ngoc Han</div><div class="ks">7 ZTP - W27</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ct">ZTP by Week</div><canvas id="cZtpW"></canvas></div>
+    <div class="card"><div class="ct">ZTP by Agent</div><canvas id="cZtpA"></canvas></div>
+  </div>
+  <div class="card" style="margin-bottom:var(--g)"><div class="ct">Lỗi ZTP mắc phải nhiều nhất <span class="hint">Pass = mắc lỗi</span></div><canvas id="cZtpErr" style="max-height:200px"></canvas></div>
+  <div class="card">
+    <div class="ct">ZTP Case Detail <span class="hint">Pass = mắc lỗi | Fail = không mắc</span></div>
+    <div class="tw"><table><thead><tr>
+      <th>Case ID</th><th>Agent</th><th>Week</th><th>Category</th><th>KB Code</th><th>Lỗi mắc phải (Pass)</th><th>Không mắc (Fail)</th>
+    </tr></thead><tbody id="ztpBody"></tbody></table></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ── LIVE DATA ─────────────────────────────────────────────────
+// Paste your deployed Google Apps Script Web App /exec URL here:
+const WEB_APP_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const REFRESH_MS = 15 * 60 * 1000;   // auto-refresh interval (15 min)
+
+// These are filled from the Web App on load (no more embedded data).
+let STATS = {};
+let WEEK_TREND_BY_CARD = {};
+let AGENT_TRENDS = [];
+let ALL_WEEKS = [];                   // dynamic list of week numbers as strings, e.g. ['23','24',...]
+
+// D = current view data (rebuilt on filter change)
+let D = null;
+let E = {
+  agent_trends: [],
+  agent_week_stats: {},
+  sol_kb: [],
+  fail_attrs_per_week: {},
+  ztp_detail_new: [],
+};
+
+function buildD(week, cardType) {
+  const s = STATS[week]?.[cardType];
+  if (!s) return null;
+  const wt = WEEK_TREND_BY_CARD[cardType] || WEEK_TREND_BY_CARD['ALL'];
+  return {
+    meta: s.overview,
+    agent_stats: (s.low_perf||[]).map(a => ({
+      agent_name: a.agent_name||a.agent,
+      display_name: a.agent,
+      team: a.team,
+      total_cases: a.cases,
+      avg_score: a.avg_score,
+      ztp_count: a.ztp,
+      below_90: 0,
+      below_90_rate: a.below_90_pct,
+      perfect_rate: 0,
+      total_fail_instances: 0,
+      fail_per_case: a.fail_per_case,
+      top_fail_attr: '',
+      needs_coaching: a.avg_score < 98 || a.ztp > 0,
+      coaching_priority: a.avg_score < 90 || a.ztp > 0 ? 'Critical' : a.avg_score < 95 ? 'High' : a.avg_score < 97 ? 'Medium' : 'Monitor',
+    })),
+    team_stats: [],
+    week_trend: wt,
+    cat_stats: [],
+    fail_attrs: (s.attr_rows||[]).map(a => ({
+      question: a.label,
+      label: a.label,
+      fail_count: a.fail,
+      total_applicable: a.total,
+      fail_rate: a.rate,
+    })),
+    ztp_detail: (s.ztp_detail||[]).map(z => ({
+      case_id: z.case_id||'',
+      agent_name: z.agent,
+      week: z.week,
+      level1_case_category_name: z.l1,
+      level2_case_category_name: z.kb||z.l1,
+      errors_raw: z.errors||'',
+    })),
+  };
+}
+
+let agSort='avg_score', agDir=1, agPage=0;
+const PS=20;
+let agFiltered=[];
+
+window.addEventListener('DOMContentLoaded',()=>{
+  loadData(true);
+  setInterval(()=>loadData(false), REFRESH_MS);
+});
+
+// JSONP fetch — works from any static host with no CORS setup.
+function fetchData(){
+  return new Promise((resolve,reject)=>{
+    if(!WEB_APP_URL || WEB_APP_URL.indexOf('PASTE_YOUR')===0){
+      reject(new Error('WEB_APP_URL chưa được cấu hình. Dán link /exec của Apps Script vào biến WEB_APP_URL.'));
+      return;
+    }
+    const cb='__cqm_cb_'+Date.now();
+    const s=document.createElement('script');
+    let done=false;
+    window[cb]=(data)=>{ done=true; cleanup(); resolve(data); };
+    function cleanup(){ delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
+    s.onerror=()=>{ if(!done){ cleanup(); reject(new Error('Không tải được dữ liệu từ Web App.')); } };
+    const sep=WEB_APP_URL.indexOf('?')>=0?'&':'?';
+    s.src=WEB_APP_URL+sep+'callback='+cb+'&t='+Date.now();
+    document.body.appendChild(s);
+    setTimeout(()=>{ if(!done){ cleanup(); reject(new Error('Hết thời gian chờ dữ liệu (timeout).')); } }, 60000);
+  });
+}
+
+function setStatus(msg,isErr){
+  const el=document.getElementById('filterLabel');
+  const txt=document.getElementById('filterLabelText');
+  if(!el||!txt) return;
+  el.style.display='inline';
+  txt.textContent=msg;
+  txt.style.color=isErr?'#f87171':'#a5b4fc';
+}
+
+async function loadData(isFirst){
+  try{
+    if(isFirst) setStatus('Đang tải dữ liệu…',false);
+    const data=await fetchData();
+    if(data.error) throw new Error(data.error);
+    STATS = data.STATS||{};
+    WEEK_TREND_BY_CARD = data.WEEK_TREND_BY_CARD||{};
+    AGENT_TRENDS = data.AGENT_TRENDS||[];
+    ALL_WEEKS = (data.weeks||[]).map(String);
+    E.agent_trends = AGENT_TRENDS;
+    E.sol_kb = data.sol_kb||[];
+    updateHeader(data);
+    populateSelects();
+    applyGlobalFilter();
+    checkAlerts();
+  }catch(err){
+    console.error(err);
+    if(isFirst) setStatus('Lỗi: '+err.message,true);
+  }
+}
+
+function updateHeader(data){
+  const all = STATS['ALL'] && STATS['ALL']['ALL'] && STATS['ALL']['ALL'].overview;
+  const sub=document.querySelector('.hdr .sub');
+  if(sub && all){
+    const wk = ALL_WEEKS.length ? ('W'+ALL_WEEKS[0]+'-W'+ALL_WEEKS[ALL_WEEKS.length-1]) : '';
+    const when = data.generated_at ? new Date(data.generated_at).toLocaleString('vi-VN') : '';
+    sub.innerHTML='LLM + Common + Senior &nbsp;|&nbsp; '+wk+' &nbsp;|&nbsp; '+all.total_cases.toLocaleString()+' cases &nbsp;|&nbsp; '+all.agents+' agents'+(when?(' &nbsp;|&nbsp; cập nhật: '+when):'');
+  }
+}
+
+function populateSelects(){
+  const sel=document.getElementById('fWeek');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All Weeks</option>';
+  const wt=(WEEK_TREND_BY_CARD['ALL']||[]);
+  wt.forEach(w=>{
+    const o=document.createElement('option');
+    o.value=w.week;o.textContent=w.label;
+    sel.appendChild(o);
+  });
+  sel.value=cur;
+}
+
+function checkAlerts(){
+  const banner=document.getElementById('alertBanner');
+  if(!banner) return;
+  banner.innerHTML='';
+  if(!D||!D.week_trend||!D.week_trend.length) return;
+  // Flag the most recent week if its ZTP count spikes.
+  const last=D.week_trend[D.week_trend.length-1];
+  if(last&&last.ztp_count>=10){
+    banner.innerHTML=`<div class="alert"><div class="al"><strong>Alert W${last.week}:</strong> ${last.ztp_count} ZTP cases trong 1 tuan - spike bat thuong. Verify LLM calibration truoc khi escalate coaching.</div></div>`;
+  }
+}
+
+function switchTab(name){
+  const names=['overview','agents','trend','solution','attrs','ztp'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='trend') renderTrend();
+  if(name==='solution') renderSolution();
+}
+
+function getSelectedWeek(){
+  const v = document.getElementById('fWeek').value;
+  return v ? parseInt(v) : null;
+}
+
+function getSelectedCard(){
+  return document.getElementById('fCard')?.value || '';
+}
+
+function applyGlobalFilter(){
+  const w = getSelectedWeek();
+  const ct = getSelectedCard();
+  const wKey = w ? String(w) : 'ALL';
+  const ctKey = ct || 'ALL';
+
+  D = buildD(wKey, ctKey);
+
+  const lbl = document.getElementById('filterLabel');
+  const lblTxt = document.getElementById('filterLabelText');
+  const parts = [];
+  if(ct) parts.push(ct);
+  if(w) parts.push('W'+w);
+  if(parts.length){
+    lbl.style.display='inline';
+    lblTxt.textContent=parts.join(' | ');
+  } else {
+    lbl.style.display='none';
+  }
+
+  if(D && D.meta){
+    const m = D.meta;
+    const el = (id) => document.getElementById(id);
+    if(el('kpiCases')) el('kpiCases').textContent = m.total_cases.toLocaleString();
+    if(el('kpiCasesSub')) el('kpiCasesSub').textContent = parts.length ? parts.join(' | ') : 'W23-W27 2026';
+    if(el('kpiScore')) el('kpiScore').textContent = m.avg_score+'%';
+    if(el('kpiZtp')) el('kpiZtp').textContent = m.ztp;
+    if(el('kpiZtpSub')) el('kpiZtpSub').textContent = 'Target: 0'+(w?' | W'+w:'');
+  }
+
+  updateZtpBadge(w);
+  renderOverview();
+  renderAgents();
+  renderTrend();
+  renderZTP();
+  renderAttrChart();
+  renderAttrDetail();
+  renderSolution();
+}
+
+function updateKpiRow(w){ /* handled in applyGlobalFilter */ }
+
+function updateZtpBadge(w){
+  const badge = document.getElementById('ztpBadge');
+  if(!D || !D.meta){ badge.textContent='ZTP: 0'; return; }
+  badge.textContent = 'ZTP: '+D.meta.ztp;
+  badge.className = D.meta.ztp > 0 ? 'badge red' : 'badge';
+}
+
+function renderOverview(){
+  renderWeekChart();
+  renderDistChart();
+  renderCatChart();
+}
+
+function renderWeekChart(){
+  const ctx=document.getElementById('cWeek').getContext('2d');
+  if(window._wc)window._wc.destroy();
+  const W=D.week_trend;
+  const sel=getSelectedWeek();
+  const barColors=W.map(w=>sel&&w.week===sel?'rgba(79,110,247,1)':'rgba(79,110,247,.45)');
+  window._wc=new Chart(ctx,{type:'bar',data:{labels:W.map(w=>w.label),datasets:[
+    {label:'Avg Score',data:W.map(w=>w.avg_score),backgroundColor:barColors,yAxisID:'y'},
+
+    {label:'ZTP',data:W.map(w=>w.ztp_count),backgroundColor:W.map(w=>sel&&w.week===sel?'rgba(220,38,38,1)':'rgba(220,38,38,.6)'),yAxisID:'y3',borderRadius:2}
+  ]},options:{responsive:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{backgroundColor:'#1e2130'}},
+    scales:{
+      x:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},
+      y:{position:'left',min:94,max:100,ticks:{color:'#64748b'},grid:{color:'#2a2d3e'},title:{display:true,text:'Score',color:'#64748b',font:{size:10}}},
+
+      y3:{position:'right',max:30,display:false}
+    }
+  }});
+}
+
+
+
+function renderDistChart(){
+  const ctx=document.getElementById('cDist').getContext('2d');
+  if(window._dc)window._dc.destroy();
+  const b={a:0,b:0,c:0,d:0,e:0,f:0};
+  D.agent_stats.forEach(a=>{
+    const s=a.avg_score;
+    if(s===0)b.a++;else if(s<80)b.b++;else if(s<90)b.c++;else if(s<95)b.d++;else if(s<100)b.e++;else b.f++;
+  });
+  window._dc=new Chart(ctx,{type:'doughnut',data:{
+    labels:['Score 0','Score <80','Score 80-89','Score 90-94','Score 95-99','Score 100'],
+    datasets:[{data:Object.values(b),backgroundColor:['#dc2626','#ef4444','#f59e0b','#3b82f6','#4f6ef7','#22c55e'],borderWidth:0}]
+  },options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:10},padding:8}},tooltip:{backgroundColor:'#1e2130'}}}});
+}
+
+function renderCatChart(){
+  const ctx=document.getElementById('cCat').getContext('2d');
+  if(window._cc)window._cc.destroy();
+  const cats=D.cat_stats.slice(0,10);
+  const colors=cats.map(c=>c.avg_score>=98?'#22c55e':c.avg_score>=97?'#4f6ef7':'#f59e0b');
+  window._cc=new Chart(ctx,{type:'bar',data:{labels:cats.map(c=>c.category.length>18?c.category.slice(0,18)+'...':c.category),datasets:[{label:'Avg Score',data:cats.map(c=>c.avg_score),backgroundColor:colors,borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130',callbacks:{afterLabel:c=>`Cases: ${cats[c.dataIndex].total_cases.toLocaleString()} | ZTP: ${cats[c.dataIndex].ztp_count}`}}},
+    scales:{x:{min:88,max:100,ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}
+  });
+}
+
+
+
+const SUB_TO_MAIN = (()=>{
+  const m = {};
+  ['Q01','Q02','Q03','Q04','Q05','Q06','Q07','Q08','Q09'].forEach(q=>m[q]='Greeting & Etiquette');
+  ['Q10','Q11','Q12','Q13','Q14'].forEach(q=>m[q]='Effective Communication');
+  ['Q15','Q16','Q17','Q18'].forEach(q=>m[q]='Empathy');
+  ['Q19','Q20','Q21','Q22'].forEach(q=>m[q]='Comprehension of the Problem');
+  ['Q23','Q24','Q41','Q42'].forEach(q=>m[q]='Gathering Information');
+  ['Q25','Q26','Q27','Q28','Q29','Q30','Q37','Q38','Q39','Q40'].forEach(q=>m[q]='Solution');
+  ['Q31','Q32','Q33','Q34','Q35','Q36'].forEach(q=>m[q]='SOP Compliance');
+  return m;
+})();
+const ATTR_WEIGHT = {
+  'Greeting & Etiquette': 5,
+  'Effective Communication': 5,
+  'Empathy': 10,
+  'Comprehension of the Problem': 10,
+  'Gathering Information': 30,
+  'Solution': 30,
+  'SOP Compliance': 10,
+};
+function getScoreImpact(label){
+  const match = label.match(/^(Q\d+)/);
+  if(!match) return null;
+  const q = match[1];
+  const main = SUB_TO_MAIN[q];
+  if(!main) return null;
+  return {main, weight: ATTR_WEIGHT[main]};
+}
+
+function getAttrData(){
+  return (D.fail_attrs||[]).filter(a=>a.fail_count>0);
+}
+
+function renderAttrChart(){
+  const ctx=document.getElementById('cAttr').getContext('2d');
+  if(window._ac)window._ac.destroy();
+  const attrs=getAttrData();
+  const colors=attrs.map(a=>a.fail_rate>=10?'#dc2626':a.fail_rate>=5?'#f59e0b':a.fail_rate>=2?'#4f6ef7':'#22c55e');
+  window._ac=new Chart(ctx,{type:'bar',data:{labels:attrs.map(a=>a.label.length>32?a.label.slice(0,32)+'...':a.label),datasets:[{label:'Fail Rate %',data:attrs.map(a=>a.fail_rate),backgroundColor:colors,borderRadius:3}]},
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130',callbacks:{afterLabel:c=>`Fail: ${attrs[c.dataIndex].fail_count.toLocaleString()} / ${attrs[c.dataIndex].total_applicable.toLocaleString()}`}}},
+    scales:{x:{ticks:{color:'#64748b',callback:v=>v+'%'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}
+  });
+}
+
+function renderAttrDetail(){
+  const cont=document.getElementById('attrDetail');
+  const attrs=getAttrData();
+  const maxRate=attrs[0]?.fail_rate||1;
+  const ct=getSelectedCard();
+  const isLLM=(ct==='LLM');
+  cont.innerHTML=attrs.map(a=>{
+    const color=a.fail_rate>=10?'#dc2626':a.fail_rate>=5?'#f59e0b':a.fail_rate>=2?'#4f6ef7':'#22c55e';
+    const w=Math.min(a.fail_rate/maxRate*100,100);
+    let scoreImpactHtml='';
+    if(isLLM){
+      const si=getScoreImpact(a.label);
+      if(si){
+        const wc=si.weight>=30?'w30':si.weight>=10?'w10':'w5';
+        scoreImpactHtml=`<div class="ascore"><span class="${wc}" title="Fail bất kỳ sub-Q trong nhóm này → mất ${si.weight}% điểm">-${si.weight}% ${si.main}</span></div>`;
+      } else {
+        scoreImpactHtml=`<div class="ascore"></div>`;
+      }
+    }
+    return`<div class="ar">
+      <div class="al2" title="${a.label}">${a.label}</div>
+      <div class="abw"><div class="abf" style="width:${w}%;background:${color}"></div></div>
+      <div class="apct" style="color:${color}">${a.fail_rate}%</div>
+      ${scoreImpactHtml}
+    </div>`;
+  }).join('');
+}
+
+function sortAg(key){
+  if(agSort===key)agDir*=-1;else{agSort=key;agDir=1;}
+  agPage=0;renderAgents();
+}
+function agPg(d){
+  const max=Math.ceil(agFiltered.length/PS)-1;
+  agPage=Math.max(0,Math.min(max,agPage+d));renderAgents();
+}
+function renderAgents(){
+  const srch=document.getElementById('agSrch')?.value.toLowerCase()||'';
+  const pmap={Critical:0,High:1,Medium:2,Monitor:3};
+  const selW=getSelectedWeek();
+
+  const displayStats = D.agent_stats;
+
+  agFiltered=displayStats.filter(a=>{
+    if(srch&&!a.display_name.toLowerCase().includes(srch)&&!a.team.toLowerCase().includes(srch))return false;
+    return true;
+  }).sort((a,b)=>{
+    let av=a[agSort],bv=b[agSort];
+    if(agSort==='coaching_priority'){av=pmap[av]||3;bv=pmap[bv]||3;}
+    if(typeof av==='string')return av.localeCompare(bv)*agDir;
+    return(av-bv)*agDir;
+  });
+  const start=agPage*PS;
+  const page=agFiltered.slice(start,start+PS);
+  document.getElementById('agPgInfo').textContent=`${start+1}-${Math.min(start+PS,agFiltered.length)} / ${agFiltered.length}`;
+  document.getElementById('agBody').innerHTML=page.map(a=>{
+    const sc=a.avg_score>=98?'#22c55e':a.avg_score>=95?'#4f6ef7':a.avg_score>=90?'#f59e0b':'#ef4444';
+    const sw=Math.max(0,(a.avg_score-60)/40*100);
+    const zs=a.ztp_count>0?`<span class="ztp-tag">ZTP x${a.ztp_count}</span>`:'<span style="color:#64748b">0</span>';
+    const pb=`<span class="pb p-${a.coaching_priority}">${a.coaching_priority}</span>`;
+    const te=a.top_fail_attr.length>28?a.top_fail_attr.slice(0,28)+'...':a.top_fail_attr;
+    const b9c=a.below_90_rate>5?'#ef4444':a.below_90_rate>2?'#f59e0b':'#94a3b8';
+    return`<tr>
+      <td style="font-weight:500;color:#e2e8f0">${a.display_name}</td>
+      <td style="color:#94a3b8">${a.team}</td>
+      <td>${a.total_cases.toLocaleString()}</td>
+      <td style="color:${sc};font-weight:700">${a.avg_score}<div class="sbar"><div class="sbar-f" style="width:${sw}%;background:${sc}"></div></div></td>
+      <td>${zs}</td>
+      <td style="color:${b9c}">${a.below_90_rate}%</td>
+      <td>${a.fail_per_case}</td>
+      <td style="color:#94a3b8;font-size:11px" title="${a.top_fail_attr}">${te}</td>
+      <td>${pb}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── WEEKLY TREND ──────────────────────────────────────────────
+let trendSort='overall_avg', trendDir=1, trendPage=0, trendFiltered=[];
+const TREND_PS=25;
+
+// agentPriorityMap removed - not used in current renderTrend
+
+function sortTrend(key){
+  if(trendSort===key)trendDir*=-1;else{trendSort=key;trendDir=1;}
+  trendPage=0;renderTrend();
+}
+function trendPg(d){
+  const max=Math.ceil(trendFiltered.length/TREND_PS)-1;
+  trendPage=Math.max(0,Math.min(max,trendPage+d));renderTrend();
+}
+
+function renderTrend(){
+  const srch=(document.getElementById('trendSrch')?.value||'').toLowerCase();
+  const ct=getSelectedCard();
+
+  trendFiltered=E.agent_trends.filter(a=>{
+    if(ct && a.card_type !== ct) return false;
+    if(srch && !a.display_name.toLowerCase().includes(srch)) return false;
+    return true;
+  }).sort((a,b)=>{
+    let av=a[trendSort], bv=b[trendSort];
+    if(typeof av==='string') return av.localeCompare(bv)*trendDir;
+    return(av-bv)*trendDir;
+  });
+
+  const WEEKS=ALL_WEEKS.length?ALL_WEEKS:['23','24','25','26','27'];
+  const start=trendPage*TREND_PS;
+  const page=trendFiltered.slice(start,start+TREND_PS);
+  document.getElementById('trendPgInfo').textContent=`${start+1}-${Math.min(start+TREND_PS,trendFiltered.length)} / ${trendFiltered.length}`;
+
+  document.getElementById('trendBody').innerHTML=page.map(a=>{
+    const scores=WEEKS.map(w=>a.weeks[w]);
+    const validScores=scores.filter(s=>s!=null);
+    const avgC=a.overall_avg>=98?'#22c55e':a.overall_avg>=95?'#4f6ef7':a.overall_avg>=90?'#f59e0b':'#ef4444';
+    const _ap=D.agent_stats.find(x=>x.agent_name===a.agent_name);
+    const priority=(_ap&&_ap.coaching_priority)||'Monitor';
+    const pb=`<span class="pb p-${priority}">${priority}</span>`;
+
+    // Sparkline SVG
+    const W=80, H=24, pad=3;
+    const min=Math.min(...validScores,90), max=Math.max(...validScores,100);
+    const range=max-min||1;
+    const pts=WEEKS.map((w,i)=>{
+      const s=a.weeks[w];
+      if(s==null) return null;
+      const x=pad+(i/(WEEKS.length-1))*(W-pad*2);
+      const y=H-pad-((s-min)/range)*(H-pad*2);
+      return [x,y,s];
+    }).filter(Boolean);
+    let spark='';
+    if(pts.length>1){
+      const d=pts.map((p,i)=>`${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+      const firstS=pts[0][2], lastS=pts[pts.length-1][2];
+      const lineColor=lastS>=firstS?'#22c55e':'#ef4444';
+      spark=`<svg width="${W}" height="${H}" style="overflow:visible"><path d="${d}" fill="none" stroke="${lineColor}" stroke-width="1.5"/>${pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2" fill="${lineColor}"/>`).join('')}</svg>`;
+    }
+
+    const cells=WEEKS.map(w=>{
+      const s=a.weeks[w];
+      if(s==null) return `<td style="color:#4a5568">—</td>`;
+      const c=s>=98?'#22c55e':s>=95?'#4f6ef7':s>=90?'#f59e0b':'#ef4444';
+      return `<td style="color:${c};font-weight:600">${s}</td>`;
+    }).join('');
+
+    return`<tr>
+      <td style="font-weight:500;color:#e2e8f0">${a.display_name}</td>
+      <td style="color:#94a3b8">${a.team}</td>
+      ${cells}
+      <td style="color:${avgC};font-weight:700">${a.overall_avg}</td>
+      <td>${spark}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── SOLUTION FAILS ─────────────────────────────────────────────
+let solSort='fail_cases', solDir=-1;
+
+function sortSol(key){
+  if(solSort===key)solDir*=-1;else{solSort=key;solDir=-1;}
+  renderSolution();
+}
+
+function renderSolution(){
+  const selW=getSelectedWeek();
+  const wStr=selW?String(selW):null;
+  const ct=getSelectedCard();
+
+  // Filter by card type first, then re-compute stats per week if needed
+  let data=E.sol_kb.filter(item=> !ct || item.card_type===ct).map(item=>{
+    if(!wStr) return item;
+    const weekFails=item.by_week[wStr]||0;
+    if(!weekFails) return null;
+    // top agents for this week
+    const wa=item.week_agents?.[wStr]||[];
+    return {
+      ...item,
+      fail_cases: weekFails,
+      fail_rate: item.total_cases>0?Math.round(weekFails/item.total_cases*1000)/10:0,
+      top_agents: wa.map(([name,count])=>({name:name.split('. ').pop(),count}))
+    };
+  }).filter(Boolean).sort((a,b)=>{
+    let av=a[solSort], bv=b[solSort];
+    if(typeof av==='string') return av.localeCompare(bv)*solDir;
+    return(av-bv)*solDir;
+  });
+
+  const WEEKS=ALL_WEEKS.length?ALL_WEEKS:['23','24','25','26','27'];
+  const maxFails=data[0]?.fail_cases||1;
+
+  if(!data.length){
+    document.getElementById('solBody').innerHTML=`<tr><td colspan="7" style="color:#64748b;text-align:center;padding:20px">No solution fails${selW?' in W'+selW:''}</td></tr>`;
+    return;
+  }
+
+  document.getElementById('solBody').innerHTML=data.map(item=>{
+    const rateC=item.fail_rate>=20?'#ef4444':item.fail_rate>=10?'#f59e0b':'#4f6ef7';
+    const barW=Math.round(item.fail_cases/maxFails*100);
+
+    const weekCells=wStr
+      ? `<span class="w-tag">W${selW}: ${item.fail_cases}</span>`
+      : WEEKS.map(w=>{
+          const cnt=item.by_week[w]||0;
+          if(!cnt) return `<span style="color:#4a5568;margin-right:4px">—</span>`;
+          return `<span class="w-tag" style="margin-right:3px">W${w}:${cnt}</span>`;
+        }).join('');
+
+    const agentList=item.top_agents.map(a=>`<div style="color:#94a3b8;font-size:11px;white-space:nowrap">${a.name} <span style="color:#64748b">(${a.count})</span></div>`).join('');
+
+    const cardBadge=item.card_type?`<span style="font-size:9px;color:#64748b;background:rgba(148,163,184,.12);padding:1px 4px;border-radius:2px;margin-left:4px">${item.card_type}</span>`:'';
+
+    return`<tr>
+      <td><span style="font-family:monospace;font-size:12px;color:#a5b4fc;background:rgba(79,110,247,.1);padding:2px 6px;border-radius:3px">${item.kb}</span>${cardBadge}</td>
+      <td style="color:#94a3b8">${item.l1}</td>
+      <td>
+        <span style="color:#e2e8f0;font-weight:700">${item.fail_cases}</span>
+        <div class="sbar" style="width:${barW}px"><div class="sbar-f" style="width:100%;background:#ef4444"></div></div>
+      </td>
+      <td style="color:#94a3b8">${item.total_cases}</td>
+      <td style="color:${rateC};font-weight:600">${item.fail_rate}%</td>
+      <td>${weekCells}</td>
+      <td>${agentList}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderZTP(){
+  const sel=getSelectedWeek();
+  const filteredZtp = D.ztp_detail || [];
+
+  if(window._ztpW)window._ztpW.destroy();
+  const ctx1=document.getElementById('cZtpW').getContext('2d');
+  const barColors=D.week_trend.map(w=>sel&&w.week===sel?'#dc2626':w.ztp_count>=10?'#ef4444':'rgba(239,68,68,.5)');
+  window._ztpW=new Chart(ctx1,{type:'bar',data:{labels:D.week_trend.map(w=>w.label),datasets:[{label:'ZTP',data:D.week_trend.map(w=>w.ztp_count),backgroundColor:barColors,borderRadius:4}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130'}},scales:{x:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}}}}});
+
+  const byAgent={};
+  filteredZtp.forEach(z=>{byAgent[z.agent_name]=(byAgent[z.agent_name]||0)+1;});
+  const sorted=Object.entries(byAgent).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  if(window._ztpA)window._ztpA.destroy();
+  const ctx2=document.getElementById('cZtpA').getContext('2d');
+  if(sorted.length>0){
+    window._ztpA=new Chart(ctx2,{type:'bar',data:{
+      labels:sorted.map(x=>x[0].length>22?x[0].slice(0,22)+'...':x[0]),
+      datasets:[{label:'ZTP Cases',data:sorted.map(x=>x[1]),backgroundColor:sorted.map(x=>x[1]>=5?'#dc2626':x[1]>=2?'#f59e0b':'#4f6ef7'),borderRadius:4}]
+    },options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130'}},
+      scales:{x:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#94a3b8',font:{size:11}},grid:{display:false}}}}});
+  } else {
+    ctx2.clearRect(0,0,ctx2.canvas.width,ctx2.canvas.height);
+    ctx2.fillStyle='#64748b';ctx2.font='13px sans-serif';ctx2.textAlign='center';
+    ctx2.fillText('No ZTP cases'+(sel?' in W'+sel:''),ctx2.canvas.width/2,ctx2.canvas.height/2);
+  }
+
+  // Use enriched ztp_detail_new from E
+  // Use enriched E data if available, else fall back to D.ztp_detail
+  const ztpBase = E.ztp_detail_new && E.ztp_detail_new.length > 0
+    ? (sel ? E.ztp_detail_new.filter(z=>z.week===sel) : E.ztp_detail_new)
+    : (D.ztp_detail||[]).map(z=>{
+        const ok_qs=(z.errors_raw||'').split('|').map(s=>s.trim()).filter(Boolean).map(s=>{
+          const m=s.match(/(?:ZTP\s+)?(Q\d+):\s*(.+)$/);
+          const prefix=s.startsWith('ZTP')?'ZTP ':'';
+          return m?{q:prefix+m[1],label:m[2].trim()}:{q:'ZTP',label:s};
+        }).filter(q=>q.q);
+        return {
+          case_id: z.case_id||'',
+          agent_name: z.agent_name,
+          week: z.week,
+          kb_code: z.level2_case_category_name||'',
+          level1_case_category_name: z.level1_case_category_name||'',
+          error_qs: [],
+          ok_qs,
+        };
+      });
+  const filteredZtpNew = ztpBase;
+
+  document.getElementById('ztpBody').innerHTML=filteredZtpNew.length
+    ? filteredZtpNew.map(z=>{
+        // Pass = mắc lỗi (red, hiện tên), Fail = không mắc (chỉ Q number, xanh)
+        const errorTags=z.ok_qs.map(q=>`<span style="display:inline-block;background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);padding:1px 5px;border-radius:3px;font-size:10px;margin:1px">${q.q}: ${q.label}</span>`).join('');
+        const okTags=z.error_qs.map(q=>`<span style="display:inline-block;background:rgba(34,197,94,.1);color:#86efac;border:1px solid rgba(34,197,94,.25);padding:1px 5px;border-radius:3px;font-size:10px;margin:1px">${q.q}</span>`).join('');
+        const kb=z.kb_code?`<span style="font-family:monospace;font-size:11px;color:#a5b4fc;background:rgba(79,110,247,.1);padding:2px 5px;border-radius:3px">${z.kb_code}</span>`:`<span style="color:#4a5568">—</span>`;
+        const caseId=`<span style="font-family:monospace;font-size:10px;color:#64748b">${z.case_id}</span>`;
+        return`<tr>
+          <td>${caseId}</td>
+          <td style="font-weight:500;color:#e2e8f0">${z.agent_name}</td>
+          <td><span class="w-tag">W${z.week}</span></td>
+          <td style="color:#94a3b8">${z.level1_case_category_name}</td>
+          <td>${kb}</td>
+          <td style="max-width:400px;line-height:1.8">${errorTags||'<span style="color:#4a5568">—</span>'}</td>
+          <td style="max-width:160px">${okTags||'<span style="color:#4a5568">—</span>'}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="7" style="color:#64748b;text-align:center;padding:20px">No ZTP cases${sel?' in W'+sel:''}</td></tr>`;
+
+  // ZTP error frequency chart (Pass = mắc lỗi)
+  if(window._ztpErr)window._ztpErr.destroy();
+  const errCounter={};
+  filteredZtpNew.forEach(z=>z.ok_qs.forEach(q=>{
+    const key=`${q.q}: ${q.label}`;
+    errCounter[key]=(errCounter[key]||0)+1;
+  }));
+  const errSorted=Object.entries(errCounter).sort((a,b)=>b[1]-a[1]);
+  const ctxErr=document.getElementById('cZtpErr').getContext('2d');
+  if(errSorted.length>0){
+    const errColors=errSorted.map((_,i)=>i===0?'#dc2626':i===1?'#ef4444':'#f59e0b');
+    window._ztpErr=new Chart(ctxErr,{type:'bar',data:{
+      labels:errSorted.map(e=>e[0].length>45?e[0].slice(0,45)+'...':e[0]),
+      datasets:[{label:'Số cases',data:errSorted.map(e=>e[1]),backgroundColor:errColors,borderRadius:4}]
+    },options:{indexAxis:'y',responsive:true,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130',callbacks:{title:c=>errSorted[c[0].dataIndex][0]}}},
+      scales:{x:{ticks:{color:'#64748b',stepSize:1},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#94a3b8',font:{size:11}},grid:{display:false}}}
+    }});
+  } else {
+    ctxErr.clearRect(0,0,ctxErr.canvas.width,ctxErr.canvas.height);
+    ctxErr.fillStyle='#64748b';ctxErr.font='13px sans-serif';ctxErr.textAlign='center';
+    ctxErr.fillText('No ZTP errors'+(sel?' in W'+sel:''),ctxErr.canvas.width/2,40);
+  }
+
+  // update ZTP kpi cards in ZTP tab
+  const ztpKpis=document.querySelectorAll('#panel-ztp .kpi');
+  if(ztpKpis.length>=4){
+    const total=(D.meta&&D.meta.ztp)||filteredZtp.length;
+    const agents=new Set(filteredZtp.map(z=>z.agent_name)).size;
+    ztpKpis[0].querySelector('.kv').textContent=total;
+    ztpKpis[0].querySelector('.ks').textContent='Target: 0'+(sel?' | W'+sel:'');
+    ztpKpis[1].querySelector('.kv').textContent=agents;
+    if(sel){
+      ztpKpis[2].querySelector('.kl').textContent='W'+sel+' ZTP';
+      ztpKpis[2].querySelector('.kv').textContent=total;
+      const pct=D.meta.ztp>0?(total/D.meta.ztp*100).toFixed(1):0;
+      ztpKpis[2].querySelector('.ks').textContent=pct+'% of total ZTP';
+    }
+    if(agents>0){
+      const topEntry=sorted[0];
+      ztpKpis[3].querySelector('.kv').textContent=topEntry[0].length>20?topEntry[0].slice(0,20)+'...':topEntry[0];
+      ztpKpis[3].querySelector('.ks').textContent=topEntry[1]+' ZTP'+(sel?' | W'+sel:'');
+    }
+  }
+}
+</script>
+</body>
+</html>
