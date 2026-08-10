@@ -140,7 +140,19 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="kpi bl"><div class="kl">Total Cases</div><div class="kv" id="kpiCases">59,174</div><div class="ks" id="kpiCasesSub">W23-W27 2026</div></div>
     <div class="kpi gr"><div class="kl">Avg CQM Score</div><div class="kv" id="kpiScore">97.75%</div><div class="ks">Target >= 98.0%</div></div>
     <div class="kpi rd"><div class="kl">ZTP Cases</div><div class="kv" id="kpiZtp">27</div><div class="ks" id="kpiZtpSub">Target: 0 | W27 spike: 22</div></div>
-    <div class="kpi rd"><div class="kl">Critical Agents</div><div class="kv" id="kpiCrit">12</div><div class="ks">ZTP hoac score &lt;90</div></div>
+    <div class="kpi rd"><div class="kl">Critical Agents</div><div class="kv" id="kpiCrit">0</div><div class="ks">ZTP hoac score &lt;90</div></div>
+  </div>
+  <div class="card" style="margin-bottom:var(--g)">
+    <div class="ct"><span id="coachTitle">🎯 Coaching Priority tuần này</span>
+      <span class="hint" id="coachHint">Ai cần coach · vì sao · ZTP xu hướng</span>
+    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th>#</th><th>Agent</th><th>Team</th><th>Score</th><th>ZTP</th><th>Vì sao (lỗi nhiều nhất)</th><th>Ưu tiên</th>
+      </tr></thead>
+      <tbody id="coachBody"></tbody>
+    </table></div>
+    <div id="coachEmpty" style="display:none;color:#64748b;text-align:center;padding:16px">Không có agent nào cần coaching 🎉</div>
   </div>
   <div class="card" style="margin-bottom:var(--g)"><div class="ct">Weekly Score Trend <span class="hint">avg score | ZTP</span></div><canvas id="cWeek"></canvas></div>
   <div class="g2">
@@ -240,7 +252,6 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- ZTP -->
 <div class="panel" id="panel-ztp">
-  <div id="ztpAlert"></div>
   <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
     <div class="kpi rd"><div class="kl">Total ZTP</div><div class="kv">0</div><div class="ks">Target: 0</div></div>
     <div class="kpi rd"><div class="kl">Agents co ZTP</div><div class="kv">0</div><div class="ks">can 1:1 ngay</div></div>
@@ -302,7 +313,7 @@ function buildD(week, cardType) {
       perfect_rate: 0,
       total_fail_instances: 0,
       fail_per_case: a.fail_per_case,
-      top_fail_attr: '',
+      top_fail_attr: a.top_fail_attr||'',
       needs_coaching: a.avg_score < 98 || a.ztp > 0,
       coaching_priority: a.avg_score < 90 || a.ztp > 0 ? 'Critical' : a.avg_score < 95 ? 'High' : a.avg_score < 97 ? 'Medium' : 'Monitor',
     })),
@@ -478,6 +489,9 @@ function applyGlobalFilter(){
       ztpDelta=` | <span style="color:${col}">W${last.week} ${arrow}${d>0?'+':''}${d} vs W${prev.week}</span>`;
     }
     if(el('kpiZtpSub')) el('kpiZtpSub').innerHTML = 'Target: 0'+(w?' | W'+w:ztpDelta);
+    // critical agents count in the current view
+    const critN=(D.agent_stats||[]).filter(a=>a.coaching_priority==='Critical').length;
+    if(el('kpiCrit')) el('kpiCrit').textContent = critN;
   }
 
   updateZtpBadge(w);
@@ -500,9 +514,59 @@ function updateZtpBadge(w){
 }
 
 function renderOverview(){
+  renderCoaching();
   renderWeekChart();
   renderDistChart();
   renderCatChart();
+}
+
+// The "30-second answer": who to coach, why, and is ZTP getting worse.
+function renderCoaching(){
+  const body=document.getElementById('coachBody');
+  const empty=document.getElementById('coachEmpty');
+  if(!body) return;
+  const pmap={Critical:0,High:1,Medium:2,Monitor:3};
+  const list=(D.agent_stats||[]).slice().sort((a,b)=>{
+    const pa=pmap[a.coaching_priority]??3, pb=pmap[b.coaching_priority]??3;
+    if(pa!==pb) return pa-pb;                 // Critical first
+    if(b.ztp_count!==a.ztp_count) return b.ztp_count-a.ztp_count;  // then most ZTP
+    return a.avg_score-b.avg_score;           // then lowest score
+  }).slice(0,10);
+
+  // title reflects filter + ZTP direction
+  const w=getSelectedWeek(), ct=getSelectedCard();
+  const scope=[ct||'All Cards', w?('W'+w):(ALL_WEEKS.length?('W'+ALL_WEEKS[ALL_WEEKS.length-1]):'')].filter(Boolean).join(' · ');
+  const wt=D.week_trend||[];
+  let dir='';
+  if(wt.length>=2){
+    const d=wt[wt.length-1].ztp_count-wt[wt.length-2].ztp_count;
+    dir = d>0 ? `<span style="color:#ef4444">ZTP ▲ tệ hơn (+${d})</span>`
+        : d<0 ? `<span style="color:#22c55e">ZTP ▼ tốt hơn (${d})</span>`
+              : `<span style="color:#94a3b8">ZTP ▬ không đổi</span>`;
+  }
+  const title=document.getElementById('coachTitle');
+  const hint=document.getElementById('coachHint');
+  if(title) title.textContent='🎯 Coaching Priority — '+scope;
+  if(hint) hint.innerHTML=dir||'Ai cần coach · vì sao';
+
+  if(!list.length){ body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  body.innerHTML=list.map((a,i)=>{
+    const sc=a.avg_score>=98?'#22c55e':a.avg_score>=95?'#4f6ef7':a.avg_score>=90?'#f59e0b':'#ef4444';
+    const zs=a.ztp_count>0?`<span class="ztp-tag">ZTP x${a.ztp_count}</span>`:'<span style="color:#64748b">—</span>';
+    const why=a.top_fail_attr?a.top_fail_attr:(a.ztp_count>0?'ZTP violation':'—');
+    const whyShort=why.length>42?why.slice(0,42)+'…':why;
+    const pb=`<span class="pb p-${a.coaching_priority}">${a.coaching_priority}</span>`;
+    return`<tr>
+      <td style="color:#64748b">${i+1}</td>
+      <td style="font-weight:600;color:#e2e8f0">${a.display_name}</td>
+      <td style="color:#94a3b8">${a.team}</td>
+      <td style="color:${sc};font-weight:700">${a.avg_score}</td>
+      <td>${zs}</td>
+      <td style="color:#cbd5e1" title="${why}">${whyShort}</td>
+      <td>${pb}</td>
+    </tr>`;
+  }).join('');
 }
 
 function renderWeekChart(){
@@ -957,14 +1021,6 @@ function renderZTP(){
       ztpKpis[3].querySelector('.kv').textContent='—';
       ztpKpis[3].querySelector('.ks').textContent='—';
     }
-  }
-  // dynamic spike alert inside the ZTP panel (mirrors the latest week)
-  const ztpAlert=document.getElementById('ztpAlert');
-  if(ztpAlert){
-    const latest=(D.week_trend&&D.week_trend.length)?D.week_trend[D.week_trend.length-1]:null;
-    ztpAlert.innerHTML=(latest&&latest.ztp_count>=10)
-      ? `<div class="alert"><div class="al"><strong>W${latest.week} ZTP Spike:</strong> ${latest.ztp_count} ZTP cases trong 1 tuan - can dieu tra truoc khi ket luan behavioral issue.</div></div>`
-      : '';
   }
 }
 </script>
