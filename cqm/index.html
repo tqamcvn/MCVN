@@ -319,7 +319,7 @@ function buildD(week, cardType) {
     })),
     team_stats: [],
     week_trend: wt,
-    cat_stats: [],
+    cat_stats: (s.cat_stats||[]),
     fail_attrs: (s.attr_rows||[]).map(a => ({
       question: a.label,
       label: a.label,
@@ -575,6 +575,7 @@ function renderWeekChart(){
   const W=D.week_trend;
   const sel=getSelectedWeek();
   const barColors=W.map(w=>sel&&w.week===sel?'rgba(79,110,247,1)':'rgba(79,110,247,.45)');
+  const maxZtp=Math.max(1,...W.map(w=>w.ztp_count));
   window._wc=new Chart(ctx,{type:'bar',data:{labels:W.map(w=>w.label),datasets:[
     {label:'Avg Score',data:W.map(w=>w.avg_score),backgroundColor:barColors,yAxisID:'y'},
 
@@ -585,10 +586,35 @@ function renderWeekChart(){
       x:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},
       y:{position:'left',min:94,max:100,ticks:{color:'#64748b'},grid:{color:'#2a2d3e'},title:{display:true,text:'Score',color:'#64748b',font:{size:10}}},
 
-      y3:{position:'right',max:30,display:false}
+      y3:{position:'right',suggestedMax:Math.ceil(maxZtp*1.25),beginAtZero:true,display:false}
     }
-  }});
+  },plugins:[barValueLabels]});
 }
+
+// Inline plugin: draw the numeric value on top of each bar (no external lib).
+const barValueLabels={
+  id:'barValueLabels',
+  afterDatasetsDraw(chart){
+    const {ctx}=chart;
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden) return;
+      meta.data.forEach((bar,i)=>{
+        const v=ds.data[i];
+        if(v==null) return;
+        const isScore=ds.yAxisID==='y';
+        if(!isScore && v===0) return; // don't clutter with ZTP 0
+        ctx.save();
+        ctx.font='700 10px -apple-system,Segoe UI,sans-serif';
+        ctx.fillStyle=isScore?'#c7d2fe':'#fca5a5';
+        ctx.textAlign='center';
+        ctx.textBaseline='bottom';
+        ctx.fillText(isScore?v:('ZTP '+v), bar.x, bar.y-3);
+        ctx.restore();
+      });
+    });
+  }
+};
 
 
 
