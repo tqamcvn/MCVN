@@ -123,6 +123,8 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<div id="alertBanner"></div>
+
 <div class="tabs">
   <div class="tab active" onclick="switchTab('overview')">Overview</div>
   <div class="tab" onclick="switchTab('agents')">Agent Monitor</div>
@@ -134,7 +136,6 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- OVERVIEW -->
 <div class="panel active" id="panel-overview">
-  <div id="alertBanner"></div>
   <div class="kpi-row">
     <div class="kpi bl"><div class="kl">Total Cases</div><div class="kv" id="kpiCases">59,174</div><div class="ks" id="kpiCasesSub">W23-W27 2026</div></div>
     <div class="kpi gr"><div class="kl">Avg CQM Score</div><div class="kv" id="kpiScore">97.75%</div><div class="ks">Target >= 98.0%</div></div>
@@ -195,13 +196,13 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- WEEKLY TREND -->
 <div class="panel" id="panel-trend">
   <div class="card" style="margin-bottom:var(--g)">
-    <div class="ct">Agent Score Trend — W23 to W27
+    <div class="ct"><span id="trendTitleTxt">Agent Score Trend</span>
       <div style="display:flex;gap:8px">
         <input class="srch" id="trendSrch" placeholder="Tim agent..." oninput="renderTrend()">
       </div>
     </div>
     <div class="tw">
-      <table><thead><tr>
+      <table><thead><tr id="trendHead">
         <th onclick="sortTrend('display_name')">Agent</th>
         <th onclick="sortTrend('team')">Team</th>
         <th>W23</th><th>W24</th><th>W25</th><th>W26</th><th>W27</th>
@@ -239,24 +240,22 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- ZTP -->
 <div class="panel" id="panel-ztp">
-  <div class="alert">
-    <div class="al"><strong>W27 ZTP Spike:</strong> 21 ZTP cases trong 1 tuan - cluster tai 6 agents Chat-Buyer. Can dieu tra truoc khi ket luan behavioral issue.</div>
-  </div>
+  <div id="ztpAlert"></div>
   <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
-    <div class="kpi rd"><div class="kl">Total ZTP</div><div class="kv">26</div><div class="ks">Target: 0</div></div>
-    <div class="kpi rd"><div class="kl">Agents co ZTP</div><div class="kv">8</div><div class="ks">can 1:1 ngay</div></div>
-    <div class="kpi yw"><div class="kl">W27 ZTP</div><div class="kv">21</div><div class="ks">80.8% tong ZTP trong 1 tuan</div></div>
-    <div class="kpi bl"><div class="kl">Top ZTP Agent</div><div class="kv" style="font-size:13px">Luu Vu Ngoc Han</div><div class="ks">7 ZTP - W27</div></div>
+    <div class="kpi rd"><div class="kl">Total ZTP</div><div class="kv">0</div><div class="ks">Target: 0</div></div>
+    <div class="kpi rd"><div class="kl">Agents co ZTP</div><div class="kv">0</div><div class="ks">can 1:1 ngay</div></div>
+    <div class="kpi yw"><div class="kl">Latest Week ZTP</div><div class="kv">0</div><div class="ks">—</div></div>
+    <div class="kpi bl"><div class="kl">Top ZTP Agent</div><div class="kv" style="font-size:13px">—</div><div class="ks">—</div></div>
   </div>
   <div class="g2">
     <div class="card"><div class="ct">ZTP by Week</div><canvas id="cZtpW"></canvas></div>
     <div class="card"><div class="ct">ZTP by Agent</div><canvas id="cZtpA"></canvas></div>
   </div>
-  <div class="card" style="margin-bottom:var(--g)"><div class="ct">Lỗi ZTP mắc phải nhiều nhất <span class="hint">Pass = mắc lỗi</span></div><canvas id="cZtpErr" style="max-height:200px"></canvas></div>
+  <div class="card" style="margin-bottom:var(--g)"><div class="ct">Vi phạm ZTP nhiều nhất <span class="hint">Pass = vi phạm</span></div><canvas id="cZtpErr" style="max-height:200px"></canvas></div>
   <div class="card">
-    <div class="ct">ZTP Case Detail <span class="hint">Pass = mắc lỗi | Fail = không mắc</span></div>
+    <div class="ct">ZTP Case Detail <span class="hint">Pass = vi phạm | Fail = không vi phạm</span></div>
     <div class="tw"><table><thead><tr>
-      <th>Case ID</th><th>Agent</th><th>Week</th><th>Category</th><th>KB Code</th><th>Lỗi mắc phải (Pass)</th><th>Không mắc (Fail)</th>
+      <th>Case ID</th><th>Agent</th><th>Week</th><th>Category</th><th>KB Code</th><th>Vi phạm ghi nhận <span class="hint">(Pass = vi phạm)</span></th><th>Không vi phạm <span class="hint">(Fail)</span></th>
     </tr></thead><tbody id="ztpBody"></tbody></table></div>
   </div>
 </div>
@@ -464,10 +463,21 @@ function applyGlobalFilter(){
     const m = D.meta;
     const el = (id) => document.getElementById(id);
     if(el('kpiCases')) el('kpiCases').textContent = m.total_cases.toLocaleString();
-    if(el('kpiCasesSub')) el('kpiCasesSub').textContent = parts.length ? parts.join(' | ') : 'W23-W27 2026';
+    const wkRange = ALL_WEEKS.length ? ('W'+ALL_WEEKS[0]+'-W'+ALL_WEEKS[ALL_WEEKS.length-1]+' 2026') : '';
+    if(el('kpiCasesSub')) el('kpiCasesSub').textContent = parts.length ? parts.join(' | ') : wkRange;
     if(el('kpiScore')) el('kpiScore').textContent = m.avg_score+'%';
     if(el('kpiZtp')) el('kpiZtp').textContent = m.ztp;
-    if(el('kpiZtpSub')) el('kpiZtpSub').textContent = 'Target: 0'+(w?' | W'+w:'');
+    // week-over-week ZTP delta on the KPI card
+    let ztpDelta='';
+    const wtA=(D.week_trend||[]);
+    if(wtA.length>=2){
+      const last=wtA[wtA.length-1], prev=wtA[wtA.length-2];
+      const d=last.ztp_count-prev.ztp_count;
+      const arrow=d>0?'▲':d<0?'▼':'▬';
+      const col=d>0?'#ef4444':d<0?'#22c55e':'#94a3b8';
+      ztpDelta=` | <span style="color:${col}">W${last.week} ${arrow}${d>0?'+':''}${d} vs W${prev.week}</span>`;
+    }
+    if(el('kpiZtpSub')) el('kpiZtpSub').innerHTML = 'Target: 0'+(w?' | W'+w:ztpDelta);
   }
 
   updateZtpBadge(w);
@@ -695,6 +705,16 @@ function renderTrend(){
   });
 
   const WEEKS=ALL_WEEKS.length?ALL_WEEKS:['23','24','25','26','27'];
+  // rebuild dynamic week columns + title from the actual weeks in the data
+  const headEl=document.getElementById('trendHead');
+  if(headEl){
+    headEl.innerHTML=`<th onclick="sortTrend('display_name')">Agent</th>`+
+      `<th onclick="sortTrend('team')">Team</th>`+
+      WEEKS.map(w=>`<th>W${w}</th>`).join('')+
+      `<th onclick="sortTrend('overall_avg')">Avg</th><th>Trend</th>`;
+  }
+  const titleEl=document.getElementById('trendTitleTxt');
+  if(titleEl) titleEl.textContent=WEEKS.length?`Agent Score Trend — W${WEEKS[0]} to W${WEEKS[WEEKS.length-1]}`:'Agent Score Trend';
   const start=trendPage*TREND_PS;
   const page=trendFiltered.slice(start,start+TREND_PS);
   document.getElementById('trendPgInfo').textContent=`${start+1}-${Math.min(start+TREND_PS,trendFiltered.length)} / ${trendFiltered.length}`;
@@ -915,17 +935,36 @@ function renderZTP(){
     ztpKpis[0].querySelector('.kv').textContent=total;
     ztpKpis[0].querySelector('.ks').textContent='Target: 0'+(sel?' | W'+sel:'');
     ztpKpis[1].querySelector('.kv').textContent=agents;
+    // card 3: selected week's ZTP, or the most recent week when no filter
+    const latest=(D.week_trend&&D.week_trend.length)?D.week_trend[D.week_trend.length-1]:null;
     if(sel){
       ztpKpis[2].querySelector('.kl').textContent='W'+sel+' ZTP';
       ztpKpis[2].querySelector('.kv').textContent=total;
       const pct=D.meta.ztp>0?(total/D.meta.ztp*100).toFixed(1):0;
       ztpKpis[2].querySelector('.ks').textContent=pct+'% of total ZTP';
+    } else if(latest){
+      ztpKpis[2].querySelector('.kl').textContent='W'+latest.week+' ZTP (latest)';
+      ztpKpis[2].querySelector('.kv').textContent=latest.ztp_count;
+      const pct=total>0?(latest.ztp_count/total*100).toFixed(1):0;
+      ztpKpis[2].querySelector('.ks').textContent=pct+'% of total ZTP';
     }
+    // card 4: top ZTP agent
     if(agents>0){
       const topEntry=sorted[0];
       ztpKpis[3].querySelector('.kv').textContent=topEntry[0].length>20?topEntry[0].slice(0,20)+'...':topEntry[0];
       ztpKpis[3].querySelector('.ks').textContent=topEntry[1]+' ZTP'+(sel?' | W'+sel:'');
+    } else {
+      ztpKpis[3].querySelector('.kv').textContent='—';
+      ztpKpis[3].querySelector('.ks').textContent='—';
     }
+  }
+  // dynamic spike alert inside the ZTP panel (mirrors the latest week)
+  const ztpAlert=document.getElementById('ztpAlert');
+  if(ztpAlert){
+    const latest=(D.week_trend&&D.week_trend.length)?D.week_trend[D.week_trend.length-1]:null;
+    ztpAlert.innerHTML=(latest&&latest.ztp_count>=10)
+      ? `<div class="alert"><div class="al"><strong>W${latest.week} ZTP Spike:</strong> ${latest.ztp_count} ZTP cases trong 1 tuan - can dieu tra truoc khi ket luan behavioral issue.</div></div>`
+      : '';
   }
 }
 </script>
