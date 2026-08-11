@@ -264,7 +264,9 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
   <div class="card" style="margin-bottom:var(--g)"><div class="ct">Vi phạm ZTP nhiều nhất <span class="hint">Pass = vi phạm</span></div><canvas id="cZtpErr" style="max-height:200px"></canvas></div>
   <div class="card">
-    <div class="ct">ZTP Case Detail <span class="hint">Pass = vi phạm | Fail = không vi phạm</span></div>
+    <div class="ct">ZTP Case Detail <span class="hint">Pass = vi phạm | Fail = không vi phạm</span>
+      <input class="srch" id="ztpSrch" placeholder="Tim agent..." oninput="renderZTP()">
+    </div>
     <div class="tw"><table><thead><tr>
       <th>Case ID</th><th>Agent</th><th>Week</th><th>Category</th><th>KB Code</th><th>Vi phạm ghi nhận <span class="hint">(Pass = vi phạm)</span></th><th>Không vi phạm <span class="hint">(Fail)</span></th>
     </tr></thead><tbody id="ztpBody"></tbody></table></div>
@@ -972,7 +974,10 @@ function renderZTP(){
           ok_qs,
         };
       });
-  const filteredZtpNew = ztpBase;
+  const ztpSrch=(document.getElementById('ztpSrch')?.value||'').toLowerCase();
+  const filteredZtpNew = ztpSrch
+    ? ztpBase.filter(z=>String(z.agent_name||'').toLowerCase().includes(ztpSrch))
+    : ztpBase;
 
   document.getElementById('ztpBody').innerHTML=filteredZtpNew.length
     ? filteredZtpNew.map(z=>{
