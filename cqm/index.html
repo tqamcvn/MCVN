@@ -323,6 +323,8 @@ function buildD(week, cardType) {
     team_stats: [],
     week_trend: wt,
     cat_stats: (s.cat_stats||[]),
+    _attr_by_team: (s.attr_by_team||{}),
+    _cat_by_team: (s.cat_by_team||{}),
     fail_attrs: (s.attr_rows||[]).map(a => ({
       question: a.label,
       label: a.label,
@@ -498,6 +500,10 @@ function applyTeamFilter(){
   const below90=ag.reduce((s,a)=>s+(a.below_90||0),0);
   const avg=cases?round2(ag.reduce((s,a)=>s+a.avg_score*a.total_cases,0)/cases):0;
   D.meta={total_cases:cases, avg_score:avg, ztp:ztp, below_90:below90, agents:ag.length};
+  // swap the attribute + category data to the per-team breakdown
+  D.cat_stats = (D._cat_by_team && D._cat_by_team[tg]) || [];
+  const at = (D._attr_by_team && D._attr_by_team[tg]) || [];
+  D.fail_attrs = at.map(a=>({question:a.label,label:a.label,fail_count:a.fail,total_applicable:a.total,fail_rate:a.rate}));
 }
 
 // Export the current view as a CSV (opens in Excel; UTF-8 BOM for Vietnamese).
