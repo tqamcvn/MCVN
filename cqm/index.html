@@ -118,7 +118,8 @@ tbody tr:last-child td{border-bottom:none;}
       <option value="Senior">Senior</option>
     </select>
     <select class="fs" id="fWeek" onchange="applyGlobalFilter()"><option value="">All Weeks</option></select>
-    <a href="#" onclick="exportReport(event)" style="background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px">⬇ Export Excel</a>
+    <select class="fs" id="fTeam" onchange="applyGlobalFilter()"><option value="">All Teams</option></select>
+    <a href="#" onclick="exportReport(event)" style="display:none;background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;align-items:center;gap:5px">⬇ Export Excel</a>
     <span class="badge red" id="ztpBadge">ZTP: 26</span>
   </div>
 </div>
@@ -310,7 +311,7 @@ function buildD(week, cardType) {
       total_cases: a.cases,
       avg_score: a.avg_score,
       ztp_count: a.ztp,
-      below_90: 0,
+      below_90: a.below90||0,
       below_90_rate: a.below_90_pct,
       perfect_rate: 0,
       total_fail_instances: 0,
@@ -332,6 +333,7 @@ function buildD(week, cardType) {
     ztp_detail: (s.ztp_detail||[]).map(z => ({
       case_id: z.case_id||'',
       agent_name: z.agent,
+      team: z.team||'',
       week: z.week,
       level1_case_category_name: z.l1,
       level2_case_category_name: z.kb||z.l1,
@@ -420,6 +422,22 @@ function populateSelects(){
     sel.appendChild(o);
   });
   sel.value=cur;
+
+  // team groups present in the data
+  const tsel=document.getElementById('fTeam');
+  if(tsel){
+    const curT=tsel.value;
+    const order=['Chat','Call','Multi','Senior','Other'];
+    const present={};
+    (AGENT_TRENDS||[]).forEach(a=>{present[teamGroupOf(a.team)]=true;});
+    tsel.innerHTML='<option value="">All Teams</option>';
+    order.filter(g=>present[g]).forEach(g=>{
+      const o=document.createElement('option');
+      o.value=g;o.textContent=g;
+      tsel.appendChild(o);
+    });
+    tsel.value=curT;
+  }
 }
 
 function checkAlerts(){
@@ -452,6 +470,36 @@ function getSelectedCard(){
   return document.getElementById('fCard')?.value || '';
 }
 
+function getSelectedTeam(){
+  return document.getElementById('fTeam')?.value || '';
+}
+
+// Map a full team label to its group: "Chat - Seller" -> "Chat", "Multi-Channel" -> "Multi".
+function teamGroupOf(t){
+  t=String(t||'');
+  if(t.indexOf('Chat')===0) return 'Chat';
+  if(t.indexOf('Call')===0) return 'Call';
+  if(t.indexOf('Multi')===0) return 'Multi';
+  if(t.indexOf('Senior')===0) return 'Senior';
+  return 'Other';
+}
+
+const round2=x=>Math.round(x*100)/100;
+
+// Apply the selected team group to D: filter agent + ZTP lists and recompute KPIs.
+function applyTeamFilter(){
+  const tg=getSelectedTeam();
+  if(!D || !tg) return;
+  D.agent_stats=(D.agent_stats||[]).filter(a=>teamGroupOf(a.team)===tg);
+  D.ztp_detail=(D.ztp_detail||[]).filter(z=>teamGroupOf(z.team)===tg);
+  const ag=D.agent_stats;
+  const cases=ag.reduce((s,a)=>s+a.total_cases,0);
+  const ztp=ag.reduce((s,a)=>s+a.ztp_count,0);
+  const below90=ag.reduce((s,a)=>s+(a.below_90||0),0);
+  const avg=cases?round2(ag.reduce((s,a)=>s+a.avg_score*a.total_cases,0)/cases):0;
+  D.meta={total_cases:cases, avg_score:avg, ztp:ztp, below_90:below90, agents:ag.length};
+}
+
 // Export the current view as a CSV (opens in Excel; UTF-8 BOM for Vietnamese).
 function exportReport(e){
   if(e) e.preventDefault();
@@ -477,15 +525,18 @@ function exportReport(e){
 function applyGlobalFilter(){
   const w = getSelectedWeek();
   const ct = getSelectedCard();
+  const tg = getSelectedTeam();
   const wKey = w ? String(w) : 'ALL';
   const ctKey = ct || 'ALL';
 
   D = buildD(wKey, ctKey);
+  applyTeamFilter();
 
   const lbl = document.getElementById('filterLabel');
   const lblTxt = document.getElementById('filterLabelText');
   const parts = [];
   if(ct) parts.push(ct);
+  if(tg) parts.push(tg);
   if(w) parts.push('W'+w);
   if(parts.length){
     lbl.style.display='inline';
@@ -807,9 +858,11 @@ function trendPg(d){
 function renderTrend(){
   const srch=(document.getElementById('trendSrch')?.value||'').toLowerCase();
   const ct=getSelectedCard();
+  const tg=getSelectedTeam();
 
   trendFiltered=E.agent_trends.filter(a=>{
     if(ct && a.card_type !== ct) return false;
+    if(tg && teamGroupOf(a.team)!==tg) return false;
     if(srch && !a.display_name.toLowerCase().includes(srch)) return false;
     return true;
   }).sort((a,b)=>{
