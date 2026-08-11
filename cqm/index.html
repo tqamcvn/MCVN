@@ -118,7 +118,7 @@ tbody tr:last-child td{border-bottom:none;}
       <option value="Senior">Senior</option>
     </select>
     <select class="fs" id="fWeek" onchange="applyGlobalFilter()"><option value="">All Weeks</option></select>
-    <a href="MCVN_CQM_Weekly_Report.xlsx" download style="background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px">⬇ Export Excel</a>
+    <a href="#" onclick="exportReport(event)" style="background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px">⬇ Export Excel</a>
     <span class="badge red" id="ztpBadge">ZTP: 26</span>
   </div>
 </div>
@@ -450,6 +450,28 @@ function getSelectedWeek(){
 
 function getSelectedCard(){
   return document.getElementById('fCard')?.value || '';
+}
+
+// Export the current view as a CSV (opens in Excel; UTF-8 BOM for Vietnamese).
+function exportReport(e){
+  if(e) e.preventDefault();
+  const ct=getSelectedCard();
+  const weeks=ALL_WEEKS.length?ALL_WEEKS:[];
+  const list=(E.agent_trends||[]).filter(a=>!ct||a.card_type===ct)
+    .slice().sort((a,b)=>a.overall_avg-b.overall_avg);
+  if(!list.length){ alert('Chưa có dữ liệu để xuất.'); return; }
+  const esc=v=>{v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const headers=['Agent','Team','Card',...weeks.map(w=>'W'+w),'Overall Avg','Total Cases'];
+  const rows=list.map(a=>[a.display_name,a.team,a.card_type,
+    ...weeks.map(w=>a.weeks[w]!=null?a.weeks[w]:''),a.overall_avg,a.total_cases]);
+  const csv=[headers,...rows].map(r=>r.map(esc).join(',')).join('\r\n');
+  const scope=(ct||'AllCards')+(weeks.length?('_W'+weeks[0]+'-W'+weeks[weeks.length-1]):'');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='MCVN_CQM_Weekly_Report_'+scope+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 function applyGlobalFilter(){
