@@ -369,7 +369,7 @@ function fetchData(){
     const sep=WEB_APP_URL.indexOf('?')>=0?'&':'?';
     s.src=WEB_APP_URL+sep+'callback='+cb+'&t='+Date.now();
     document.body.appendChild(s);
-    setTimeout(()=>{ if(!done){ cleanup(); reject(new Error('Hết thời gian chờ dữ liệu (timeout).')); } }, 60000);
+    setTimeout(()=>{ if(!done){ cleanup(); reject(new Error('Hết thời gian chờ dữ liệu (timeout).')); } }, 120000);
   });
 }
 
