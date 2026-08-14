@@ -1493,6 +1493,29 @@ function fetchFromSheet(which){   // which: 'agent' | 'csat' — dùng chung 1 U
 // ================================================================
 const DEFAULT_SHEET_URL='https://script.google.com/a/macros/shopeemobile-external.com/s/AKfycbw6KojLCBxDYW6eM6HaRTcUaDUKF4ZYFhMBUAt6mTPYM8kGmF5YHKwcQhzF9TC7ih4QhQ/exec';
 
+// ==== Cache backup: hiển thị ngay data lần trước, làm mới nền, tự refresh mỗi 30 phút ====
+const CACHE_KEY='repeat_data_cache_v1';
+const REFRESH_MS=30*60*1000;   // 30 phút
+function saveCache(agentTsv,csatTsv){
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(),agent:agentTsv,csat:csatTsv})); }catch(e){}
+}
+function loadCache(){
+  try{ const r=JSON.parse(localStorage.getItem(CACHE_KEY)||'null'); return (r&&r.agent!=null)?r:null; }catch(e){ return null; }
+}
+function fmtTime(t){
+  const d=new Date(t),p=n=>String(n).padStart(2,'0');
+  return p(d.getHours())+':'+p(d.getMinutes())+' '+p(d.getDate())+'/'+p(d.getMonth()+1);
+}
+// Hiển thị ngay từ cache (không gọi mạng). Trả true nếu render được.
+function renderFromCache(){
+  const c=loadCache(); if(!c) return false;
+  document.getElementById('input-agent').value=c.agent||'';
+  document.getElementById('input-csat').value=c.csat||'';
+  try{ parseAndApply(); }catch(e){ return false; }
+  if(G.ready){ setLoadState('📦 Data lúc '+fmtTime(c.t)+' · đang cập nhật…'); return true; }
+  return false;
+}
+
 function setLoadState(msg,kind){
   const el=document.getElementById('load-status');
   if(el){ el.innerHTML=msg||''; el.style.color = kind==='err'?'#e05252':kind==='ok'?'#3ec989':'var(--t2)'; }
@@ -1511,9 +1534,11 @@ function jsonpGet(which){   // JSONP để tránh CORS; cookie đăng nhập Sho
   });
 }
 
-async function autoLoadData(){
+async function autoLoadData(opts){
+  opts=opts||{};
   const btn=document.getElementById('reload-btn'); if(btn) btn.disabled=true;
-  setLoadState('⏳ Đang tải Agent List + CSAT Weekly…');
+  // Nếu đang có cache hiển thị thì cập nhật ở nền, không xoá bảng bằng trạng thái chờ
+  if(!opts.silent) setLoadState('⏳ Đang tải Agent List + CSAT Weekly…');
   try{
     // Gọi song song 2 nguồn để giảm ~1 nửa thời gian chờ
     const [a,c]=await Promise.all([jsonpGet('agent'),jsonpGet('csat')]);
@@ -1521,13 +1546,19 @@ async function autoLoadData(){
     if(!c||!c.ok) throw new Error('CSAT Weekly: '+((c&&c.error)||'không đọc được'));
     document.getElementById('input-agent').value=a.tsv||'';
     document.getElementById('input-csat').value=c.tsv||'';
-    setLoadState('⏳ Đang xử lý…');
+    if(!opts.silent) setLoadState('⏳ Đang xử lý…');
     parseAndApply();
     if(!G.ready) throw new Error('Tải được data nhưng parse lỗi — kiểm tra cột/format sheet');
-    setLoadState('✓ Đã tải data mới nhất ('+G.curAgents.length+' agents)','ok');
+    saveCache(a.tsv||'',c.tsv||'');   // lưu backup cho lần mở sau
+    setLoadState('✓ Đã cập nhật lúc '+fmtTime(Date.now())+' ('+G.curAgents.length+' agents)','ok');
     setTimeout(()=>setLoadState(''),5000);
   }catch(err){
-    if(err.message==='auth'){
+    const cache=loadCache();
+    if(cache && G.ready){
+      // Vẫn giữ data backup đang hiển thị, chỉ báo nhẹ
+      const why = err.message==='auth' ? 'chưa đăng nhập' : err.message;
+      setLoadState('⚠️ Chưa tải được data mới ('+why+') · đang dùng backup lúc '+fmtTime(cache.t)+'. Bấm ⟳ để thử lại.','err');
+    } else if(err.message==='auth'){
       setLoadState('❌ Chưa đăng nhập Shopee / bị chặn cookie. <a href="'+DEFAULT_SHEET_URL+'" target="_blank" style="color:#5b9cf6">Mở đăng nhập</a> rồi bấm ⟳','err');
     } else {
       setLoadState('❌ '+err.message+' — bấm ⟳ để thử lại','err');
@@ -1536,7 +1567,9 @@ async function autoLoadData(){
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  autoLoadData();   // tự kéo data ngay khi mở trang
+  const fromCache=renderFromCache();      // hiển thị ngay từ backup nếu có (tức thì)
+  autoLoadData({silent:fromCache});       // rồi cập nhật data mới ở nền
+  setInterval(()=>autoLoadData({silent:true}), REFRESH_MS);  // tự làm mới mỗi 30 phút khi tab mở
 });
 </script>
 </body>
