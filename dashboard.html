@@ -444,6 +444,51 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
   font-size: 14px; text-align: center;
 }
 .tool-empty.visible { display: flex; }
+
+/* ---- Nút đổi giao diện sáng / tối ---- */
+.theme-toggle {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 8px; margin-bottom: 10px;
+  background: none; border: 1px solid var(--gray-200); border-radius: var(--radius);
+  color: var(--gray-700); font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: inherit; transition: background 0.1s, border-color 0.1s;
+}
+.theme-toggle:hover { background: var(--gray-50); border-color: var(--gray-300); }
+.theme-toggle svg { width: 16px; height: 16px; flex-shrink: 0; }
+.theme-toggle .ic-sun { display: none; }
+body.theme-dark .theme-toggle .ic-sun { display: block; }
+body.theme-dark .theme-toggle .ic-moon { display: none; }
+body.sb-collapsed .theme-toggle { justify-content: center; padding: 8px 0; }
+
+/* Mũi tên thu gọn xoay khi ở trạng thái thu ---- */
+.sb-toggle svg { transition: transform 0.16s ease; }
+body.sb-collapsed .sb-toggle svg { transform: rotate(180deg); }
+
+/* =========================================================
+   GIAO DIỆN TỐI — chỉ đổi bảng màu qua biến CSS
+   ========================================================= */
+body.theme-dark {
+  --white: #1e2023;
+  --gray-50: #141517;
+  --gray-100: #202327;
+  --gray-200: #2b2f34;
+  --gray-300: #363b41;
+  --gray-400: #454b52;
+  --gray-500: #7f868e;
+  --gray-600: #99a0a7;
+  --gray-700: #bcc2c8;
+  --gray-900: #eaeef2;
+  --accent: #5b9bff;
+  --accent-light: #1b2740;
+  --accent-border: #2c3d5c;
+  --accent-dark: #9dc0ff;
+  --success: #4ac06a; --success-light: #16281c;
+  --danger:  #ff6b60; --danger-light:  #34201e;
+  --warning: #e59a3a; --warning-light: #2c2415;
+  --purple:  #a98be6; --purple-light:  #241d33;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
+}
 </style>
 </head>
 <body>
@@ -455,8 +500,8 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
       <div class="brand-name">Team QA MCVN</div>
       <div class="brand-sub">Shopee Vietnam CS</div>
     </div>
-    <button class="sb-toggle" id="sb-toggle" title="Thu gọn / mở rộng" aria-label="Thu gọn / mở rộng">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <button class="sb-toggle" id="sb-toggle" title="Thu gọn thanh menu" aria-label="Thu gọn / mở rộng thanh menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
     </button>
   </div>
 
@@ -464,7 +509,7 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <span class="nav-text">Home</span>
   </a>
-  <a class="nav-item" href="#" data-view="home" title="CSAT reports">
+  <a class="nav-item" href="#" data-tool="csat" data-src="" data-title="CSAT reports" title="CSAT reports">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span class="nav-text">CSAT reports</span>
   </a>
@@ -488,6 +533,11 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
   </a>
 
   <div class="sidebar-footer">
+    <button class="theme-toggle" id="theme-toggle" title="Đổi giao diện sáng / tối">
+      <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <span class="nav-text theme-label">Giao diện tối</span>
+    </button>
     <div class="user-chip" title="Đăng xuất">
       <div class="user-avatar-sm" id="sidebar-av">··</div>
       <div class="user-info">
@@ -511,7 +561,6 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
       <div class="quote-text" id="qt"></div>
       <div class="quote-footer">
         <div class="quote-author" id="qa"></div>
-        <span class="quote-tag" id="qtag"></span>
       </div>
     </div>
   </div>
@@ -606,7 +655,7 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
     <iframe id="tool-frame" title="Tool" referrerpolicy="no-referrer"></iframe>
     <div class="tool-empty" id="tool-empty">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <div>Tính năng <strong>ZTP Governance</strong> đang được phát triển.</div>
+      <div>Tính năng <strong id="tool-empty-name">này</strong> đang được phát triển.</div>
     </div>
   </section>
 </main>
@@ -666,7 +715,8 @@ async function renderUser() {
   const meta = u.user_metadata || {};
   let name = meta.full_name || meta.name || email.split('@')[0];
   const picture = meta.avatar_url || meta.picture || '';
-  let role = 'Team QA · MCVN';
+  // @shopee.com mặc định là IH; email ngoài chưa có trong bảng -> Member.
+  let role = domainOf(email) === 'shopee.com' ? 'IH' : 'Member';
 
   // Lấy vai trò từ bảng app_users (RLS chỉ cho đọc dòng của chính mình).
   try {
@@ -757,9 +807,6 @@ function loadQuote() {
   const q = quotes[Math.floor(Math.random() * quotes.length)];
   document.getElementById('qt').textContent = '“' + q.vn + '”';
   document.getElementById('qa').textContent = '— ' + q.author + ' —';
-  const tagEl = document.getElementById('qtag');
-  tagEl.textContent = tagLabel[q.tag];
-  tagEl.className = 'quote-tag tag-' + q.tag;
 }
 
 function sw(id, el) {
@@ -800,6 +847,7 @@ function showTool(src, title) {
     toolFrame.style.display = 'none';
     toolFrame.src = 'about:blank';
     toolNewtab.style.display = 'none';
+    document.getElementById('tool-empty-name').textContent = '"' + title + '"';
     toolEmpty.classList.add('visible');
   }
   toolView.classList.add('visible');
@@ -828,11 +876,32 @@ document.getElementById('tool-reload').addEventListener('click', () => {
 
 /* ---- Thu gọn / mở rộng sidebar (nhớ trạng thái) ---- */
 const SB_KEY = 'tqa_sb_collapsed';
+const sbToggle = document.getElementById('sb-toggle');
+function syncSbTitle() {
+  sbToggle.title = document.body.classList.contains('sb-collapsed') ? 'Mở rộng thanh menu' : 'Thu gọn thanh menu';
+}
 if (localStorage.getItem(SB_KEY) === '1') document.body.classList.add('sb-collapsed');
-document.getElementById('sb-toggle').addEventListener('click', () => {
+sbToggle.addEventListener('click', () => {
   document.body.classList.toggle('sb-collapsed');
   localStorage.setItem(SB_KEY, document.body.classList.contains('sb-collapsed') ? '1' : '0');
+  syncSbTitle();
 });
+syncSbTitle();
+
+/* ---- Giao diện sáng / tối (nhớ lựa chọn) ---- */
+const THEME_KEY = 'tqa_theme';
+function applyTheme() {
+  const dark = localStorage.getItem(THEME_KEY) === 'dark';
+  document.body.classList.toggle('theme-dark', dark);
+  const label = document.querySelector('.theme-label');
+  if (label) label.textContent = dark ? 'Giao diện sáng' : 'Giao diện tối';
+}
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const dark = !document.body.classList.contains('theme-dark');
+  localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+  applyTheme();
+});
+applyTheme();
 
 document.getElementById('logout-btn').addEventListener('click', function (e) {
   e.stopPropagation();

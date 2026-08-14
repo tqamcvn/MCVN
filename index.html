@@ -283,7 +283,12 @@ async function sendLink() {
 
   if (error) {
     show('login-form');
-    showError('Không gửi được link: ' + error.message);
+    const m = (error.message || '').toLowerCase();
+    if (m.includes('cap quyen') || m.includes('not allowed') || m.includes('database error')) {
+      showError('Email này chưa được cấp quyền truy cập. Vui lòng liên hệ team TQA để được thêm vào danh sách.');
+    } else {
+      showError('Không gửi được link: ' + error.message);
+    }
     return;
   }
   $('sent-label').textContent =
