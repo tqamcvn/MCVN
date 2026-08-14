@@ -7,8 +7,8 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Repeated Agent Dashboard — MCVN QA</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<!-- SheetJS nạp lazy khi bấm Download (xem ensureXLSX) để không chặn tải trang -->
 <style>
 :root{
   --bg:#0d1018;--surf:#141720;--s2:#1a1f2e;--s3:#212840;
@@ -1213,10 +1213,26 @@ function renderTable(){
 }
 function filterTbl(v){renderTable();}
 function srt(col){if(sortCol===col)sortDir=sortDir==='asc'?'desc':'asc';else{sortCol=col;sortDir='asc';}renderTable();}
-// Xuất grid: dùng Excel .xlsx thật nếu SheetJS đã nạp, nếu không thì fallback CSV (BOM UTF-8)
-function exportGrid(baseName,headers,rows2d){
+// Nạp SheetJS lazy chỉ khi cần (bấm Download) — không chặn tải trang
+let _xlsxPromise=null;
+function ensureXLSX(){
+  if(window.XLSX) return Promise.resolve(true);
+  if(_xlsxPromise) return _xlsxPromise;
+  _xlsxPromise=new Promise(res=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.crossOrigin='anonymous';
+    s.onload=()=>res(true);
+    s.onerror=()=>res(false);   // lỗi mạng → để exportGrid fallback CSV
+    document.head.appendChild(s);
+  });
+  return _xlsxPromise;
+}
+// Xuất grid: dùng Excel .xlsx thật nếu nạp được SheetJS, nếu không thì fallback CSV (BOM UTF-8)
+async function exportGrid(baseName,headers,rows2d){
   const d=new Date(),pad=n=>String(n).padStart(2,'0');
   const stamp=`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  await ensureXLSX();
   if(window.XLSX){
     const ws=XLSX.utils.aoa_to_sheet([headers,...rows2d]);
     ws['!cols']=headers.map((h,i)=>{
@@ -1487,14 +1503,13 @@ function jsonpGet(which){   // JSONP để tránh CORS; cookie đăng nhập Sho
 
 async function autoLoadData(){
   const btn=document.getElementById('reload-btn'); if(btn) btn.disabled=true;
-  setLoadState('⏳ Đang tải Agent List…');
+  setLoadState('⏳ Đang tải Agent List + CSAT Weekly…');
   try{
-    const a=await jsonpGet('agent');
+    // Gọi song song 2 nguồn để giảm ~1 nửa thời gian chờ
+    const [a,c]=await Promise.all([jsonpGet('agent'),jsonpGet('csat')]);
     if(!a||!a.ok) throw new Error('Agent List: '+((a&&a.error)||'không đọc được'));
-    document.getElementById('input-agent').value=a.tsv||'';
-    setLoadState('⏳ Đang tải CSAT Weekly…');
-    const c=await jsonpGet('csat');
     if(!c||!c.ok) throw new Error('CSAT Weekly: '+((c&&c.error)||'không đọc được'));
+    document.getElementById('input-agent').value=a.tsv||'';
     document.getElementById('input-csat').value=c.tsv||'';
     setLoadState('⏳ Đang xử lý…');
     parseAndApply();
