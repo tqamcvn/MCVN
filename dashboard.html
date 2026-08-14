@@ -833,15 +833,23 @@ function showHome() {
   contentEl.style.display = 'block';
 }
 
+function currentTheme() {
+  return document.body.classList.contains('theme-dark') ? 'dark' : 'light';
+}
+function withTheme(src) {
+  return src + (src.includes('?') ? '&' : '?') + 'theme=' + currentTheme();
+}
+
 function showTool(src, title) {
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   toolTitle.textContent = title;
   if (src) {
+    const url = withTheme(src);
     toolEmpty.classList.remove('visible');
     toolFrame.style.display = 'block';
-    toolFrame.src = src;
-    toolNewtab.href = src;
+    toolFrame.src = url;
+    toolNewtab.href = url;
     toolNewtab.style.display = 'inline-flex';
   } else {
     toolFrame.style.display = 'none';
@@ -895,6 +903,12 @@ function applyTheme() {
   document.body.classList.toggle('theme-dark', dark);
   const label = document.querySelector('.theme-label');
   if (label) label.textContent = dark ? 'Giao diện sáng' : 'Giao diện tối';
+  // Đồng bộ theme vào tool đang mở (nếu có).
+  try {
+    if (toolFrame && toolFrame.src && toolFrame.src !== 'about:blank' && toolFrame.contentWindow) {
+      toolFrame.contentWindow.postMessage({ type: 'tqa-theme', theme: dark ? 'dark' : 'light' }, '*');
+    }
+  } catch (e) { /* iframe chưa sẵn sàng */ }
 }
 document.getElementById('theme-toggle').addEventListener('click', () => {
   const dark = !document.body.classList.contains('theme-dark');
