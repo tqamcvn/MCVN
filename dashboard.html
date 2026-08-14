@@ -387,6 +387,63 @@ body {
 .spark { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
 .b { width: 10px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.2; }
 .b.hi { opacity: 1; }
+
+/* ---- Nút thu gọn / mở rộng sidebar ---- */
+.sb-toggle {
+  margin-left: auto; flex-shrink: 0;
+  width: 30px; height: 30px;
+  border: none; background: none; cursor: pointer;
+  border-radius: 8px; color: var(--gray-600);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s, color 0.1s;
+}
+.sb-toggle:hover { background: var(--gray-100); color: var(--gray-900); }
+.sb-toggle svg { width: 18px; height: 18px; }
+
+.sidebar { transition: width 0.16s ease; }
+.main { transition: margin-left 0.16s ease; }
+.nav-text { white-space: nowrap; }
+
+/* Trạng thái thu gọn */
+body.sb-collapsed .sidebar { width: 64px; }
+body.sb-collapsed .main { margin-left: 64px; }
+body.sb-collapsed .brand-block,
+body.sb-collapsed .nav-text,
+body.sb-collapsed .nav-label,
+body.sb-collapsed .user-info,
+body.sb-collapsed .logout-btn { display: none; }
+body.sb-collapsed .logo-mark { display: none; }
+body.sb-collapsed .sidebar-logo { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
+body.sb-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; border-left-width: 0; }
+body.sb-collapsed .user-chip { justify-content: center; margin: 0; }
+body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
+
+/* ---- Khu vực nhúng tool ---- */
+.tool-view { display: none; flex: 1; flex-direction: column; height: 100vh; background: var(--gray-50); }
+.tool-view.visible { display: flex; }
+.tool-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; background: var(--white);
+  border-bottom: 1px solid var(--gray-200); flex-shrink: 0;
+}
+.tool-bar-title { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+.tool-bar-actions { margin-left: auto; display: flex; gap: 8px; }
+.tool-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 500; color: var(--gray-700);
+  padding: 6px 10px; border: 1px solid var(--gray-300);
+  border-radius: 8px; background: var(--white); cursor: pointer;
+  text-decoration: none; transition: background 0.1s, border-color 0.1s; font-family: inherit;
+}
+.tool-btn:hover { background: var(--gray-50); border-color: var(--gray-500); }
+.tool-btn svg { width: 14px; height: 14px; }
+#tool-frame { flex: 1; width: 100%; border: 0; background: var(--white); }
+.tool-empty {
+  flex: 1; display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px; color: var(--gray-500);
+  font-size: 14px; text-align: center;
+}
+.tool-empty.visible { display: flex; }
 </style>
 </head>
 <body>
@@ -394,47 +451,50 @@ body {
 <aside class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-mark">TQA</div>
-    <div>
+    <div class="brand-block">
       <div class="brand-name">Team QA MCVN</div>
       <div class="brand-sub">Shopee Vietnam CS</div>
     </div>
+    <button class="sb-toggle" id="sb-toggle" title="Thu gọn / mở rộng" aria-label="Thu gọn / mở rộng">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
   </div>
 
-  <a class="nav-item active" href="#">
+  <a class="nav-item active" href="#" data-view="home" title="Home">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    Home
+    <span class="nav-text">Home</span>
   </a>
-  <a class="nav-item" href="#">
+  <a class="nav-item" href="#" data-view="home" title="CSAT reports">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    CSAT reports
+    <span class="nav-text">CSAT reports</span>
   </a>
 
   <div class="nav-label">Tools</div>
-  <a class="nav-item" href="https://teamqamcvn.com/cqm/">
+  <a class="nav-item" href="/cqm/" data-tool="cqm" data-src="/cqm/" data-title="CQM Monitor" title="CQM Monitor">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-    CQM Monitor
+    <span class="nav-text">CQM Monitor</span>
   </a>
-  <a class="nav-item" href="https://teamqamcvn.com/repeatagent/">
+  <a class="nav-item" href="/repeatagent/" data-tool="repeatagent" data-src="/repeatagent/" data-title="Repeated Agent" title="Repeated Agent">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    Repeated Agent
+    <span class="nav-text">Repeated Agent</span>
   </a>
-  <a class="nav-item" href="https://teamqamcvn.com/form-an-danh/">
+  <a class="nav-item" href="/form-an-danh/" data-tool="form" data-src="/form-an-danh/" data-title="Form ẩn danh" title="Form ẩn danh">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    Form ẩn danh
+    <span class="nav-text">Form ẩn danh</span>
   </a>
-  <a class="nav-item" href="#">
+  <a class="nav-item" href="#" data-tool="ztp" data-src="" data-title="ZTP Governance" title="ZTP Governance">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    ZTP Governance
+    <span class="nav-text">ZTP Governance</span>
   </a>
 
   <div class="sidebar-footer">
-    <div class="user-chip" title="Sign out">
+    <div class="user-chip" title="Đăng xuất">
       <div class="user-avatar-sm" id="sidebar-av">··</div>
-      <div>
+      <div class="user-info">
         <div class="user-name" id="sidebar-name">—</div>
         <div class="user-role-txt" id="sidebar-role">MCVN</div>
       </div>
-      <button class="logout-btn" id="logout-btn" title="Sign out" aria-label="Sign out">
+      <button class="logout-btn" id="logout-btn" title="Đăng xuất" aria-label="Đăng xuất">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
@@ -527,6 +587,28 @@ body {
       </div>
     </div>
   </div>
+
+  <!-- Khu vực hiển thị tool: trang tương ứng được nhúng vào đây -->
+  <section class="tool-view" id="tool-view">
+    <div class="tool-bar">
+      <div class="tool-bar-title" id="tool-title">Tool</div>
+      <div class="tool-bar-actions">
+        <button class="tool-btn" id="tool-reload" title="Tải lại">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Tải lại
+        </button>
+        <a class="tool-btn" id="tool-newtab" target="_blank" rel="noopener" title="Mở tab mới">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Mở tab mới
+        </a>
+      </div>
+    </div>
+    <iframe id="tool-frame" title="Tool" referrerpolicy="no-referrer"></iframe>
+    <div class="tool-empty" id="tool-empty">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div>Tính năng <strong>ZTP Governance</strong> đang được phát triển.</div>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -688,11 +770,68 @@ function sw(id, el) {
   el.classList.add('active');
 }
 
+/* ---- App shell: chuyển giữa Home và các tool nhúng ---- */
+const heroEl = document.querySelector('.hero');
+const contentEl = document.querySelector('.content');
+const toolView = document.getElementById('tool-view');
+const toolFrame = document.getElementById('tool-frame');
+const toolEmpty = document.getElementById('tool-empty');
+const toolTitle = document.getElementById('tool-title');
+const toolNewtab = document.getElementById('tool-newtab');
+
+function showHome() {
+  toolView.classList.remove('visible');
+  toolFrame.src = 'about:blank';
+  heroEl.style.display = 'flex';
+  contentEl.style.display = 'block';
+}
+
+function showTool(src, title) {
+  heroEl.style.display = 'none';
+  contentEl.style.display = 'none';
+  toolTitle.textContent = title;
+  if (src) {
+    toolEmpty.classList.remove('visible');
+    toolFrame.style.display = 'block';
+    toolFrame.src = src;
+    toolNewtab.href = src;
+    toolNewtab.style.display = 'inline-flex';
+  } else {
+    toolFrame.style.display = 'none';
+    toolFrame.src = 'about:blank';
+    toolNewtab.style.display = 'none';
+    toolEmpty.classList.add('visible');
+  }
+  toolView.classList.add('visible');
+}
+
 document.querySelectorAll('.nav-item').forEach(el => {
-  el.addEventListener('click', function () {
+  el.addEventListener('click', function (e) {
+    e.preventDefault();
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     this.classList.add('active');
+    if (this.dataset.tool !== undefined) {
+      showTool(this.dataset.src, this.dataset.title || 'Tool');
+    } else {
+      showHome();
+    }
+    if (window.innerWidth < 768) document.body.classList.add('sb-collapsed');
   });
+});
+
+document.getElementById('tool-reload').addEventListener('click', () => {
+  if (toolFrame.src && toolFrame.src !== 'about:blank') {
+    // eslint-disable-next-line no-self-assign
+    toolFrame.src = toolFrame.src;
+  }
+});
+
+/* ---- Thu gọn / mở rộng sidebar (nhớ trạng thái) ---- */
+const SB_KEY = 'tqa_sb_collapsed';
+if (localStorage.getItem(SB_KEY) === '1') document.body.classList.add('sb-collapsed');
+document.getElementById('sb-toggle').addEventListener('click', () => {
+  document.body.classList.toggle('sb-collapsed');
+  localStorage.setItem(SB_KEY, document.body.classList.contains('sb-collapsed') ? '1' : '0');
 });
 
 document.getElementById('logout-btn').addEventListener('click', function (e) {
