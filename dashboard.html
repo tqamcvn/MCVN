@@ -546,6 +546,10 @@ body.theme-dark {
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     <span class="nav-text">ZTP Governance</span>
   </a>
+  <a class="nav-item" href="https://link.teamqamcvn.com/" target="_blank" rel="noopener" data-external title="Short Link (mở tab mới)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    <span class="nav-text">Short Link</span>
+  </a>
 
   <a class="nav-item" href="#" data-view="settings" title="Cài đặt">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -878,16 +882,24 @@ function showSettings() {
   settingsView.classList.add('visible');
 }
 
+function currentTheme() {
+  return document.body.classList.contains('theme-dark') ? 'dark' : 'light';
+}
+function withTheme(src) {
+  return src + (src.includes('?') ? '&' : '?') + 'theme=' + currentTheme();
+}
+
 function showTool(src, title) {
   settingsView.classList.remove('visible');
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   toolTitle.textContent = title;
   if (src) {
+    const url = withTheme(src);
     toolEmpty.classList.remove('visible');
     toolFrame.style.display = 'block';
-    toolFrame.src = src;
-    toolNewtab.href = src;
+    toolFrame.src = url;
+    toolNewtab.href = url;
     toolNewtab.style.display = 'inline-flex';
   } else {
     toolFrame.style.display = 'none';
@@ -901,6 +913,7 @@ function showTool(src, title) {
 
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', function (e) {
+    if (this.dataset.external !== undefined) return;  // link ngoài -> mở tab mới bình thường
     e.preventDefault();
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     this.classList.add('active');
@@ -943,6 +956,12 @@ function applyTheme() {
   document.body.classList.toggle('theme-dark', dark);
   const label = document.querySelector('.theme-label');
   if (label) label.textContent = dark ? 'Giao diện sáng' : 'Giao diện tối';
+  // Báo cho tool đang mở đổi theme theo (nếu có).
+  try {
+    if (toolFrame && toolFrame.src && toolFrame.src !== 'about:blank' && toolFrame.contentWindow) {
+      toolFrame.contentWindow.postMessage({ type: 'tqa-theme', theme: dark ? 'dark' : 'light' }, '*');
+    }
+  } catch (e) { /* iframe khác origin hoặc chưa sẵn sàng */ }
 }
 document.getElementById('theme-toggle').addEventListener('click', () => {
   const dark = !document.body.classList.contains('theme-dark');

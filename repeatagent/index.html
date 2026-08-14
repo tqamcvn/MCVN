@@ -177,7 +177,17 @@ table.at tbody tr:last-child td{border-bottom:none}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 @media(max-width:900px){.g2,.g3,.data-col{grid-template-columns:1fr}.kpi-row{grid-template-columns:repeat(2,1fr)}}
+/* Đồng bộ sáng/tối theo dashboard — đảo màu tự động, không đụng chức năng */
+html[data-tqa="light"]{ background:#f4f6fa; filter: invert(1) hue-rotate(180deg); }
+html[data-tqa="light"] img { filter: invert(1) hue-rotate(180deg); }
 </style>
+<script>
+(function(){
+  function apply(t){ document.documentElement.setAttribute('data-tqa', t === 'light' ? 'light' : 'dark'); }
+  try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){}
+  window.addEventListener('message', function(e){ if (e.data && e.data.type === 'tqa-theme') apply(e.data.theme); });
+})();
+</script>
 </head>
 <body>
 <div class="shell">

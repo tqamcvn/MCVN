@@ -603,7 +603,17 @@ body{
 /* keep card overflow visible during spotlight */
 .card.spotlight-active{overflow:visible !important;}
 
+/* Đồng bộ sáng/tối theo dashboard — đảo màu tự động, không đụng chức năng */
+html[data-tqa="dark"]{ background:#141517; filter: invert(1) hue-rotate(180deg); }
+html[data-tqa="dark"] img { filter: invert(1) hue-rotate(180deg); }
 </style>
+<script>
+(function(){
+  function apply(t){ document.documentElement.setAttribute('data-tqa', t === 'light' ? 'light' : 'dark'); }
+  try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){}
+  window.addEventListener('message', function(e){ if (e.data && e.data.type === 'tqa-theme') apply(e.data.theme); });
+})();
+</script>
 </head>
 <body>
 
