@@ -3,230 +3,308 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Team QA MCVN — Coming Soon</title>
+<title>TQA MCVN — Đăng nhập</title>
+
+<!-- Supabase JS (đăng nhập + session) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-  body{
-    min-height:100vh;background:#04080f;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    overflow:hidden;cursor:none;
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --white: #ffffff;
+    --gray-50: #f8f9fa;
+    --gray-100: #f1f3f5;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-500: #adb5bd;
+    --gray-700: #495057;
+    --gray-900: #212529;
+    --accent: #1a73e8;
+    --accent-light: #e8f0fe;
+    --accent-border: #c5d8fc;
+    --accent-dark: #1558b0;
+    --danger: #d93025;
+    --danger-light: #fce8e6;
+    --danger-border: #f6c9c4;
+    --radius: 10px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
   }
-  canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
-  .cursor{
-    position:fixed;width:8px;height:8px;background:#fff;border-radius:50%;
-    pointer-events:none;z-index:100;transform:translate(-50%,-50%);opacity:0.4;
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--gray-50);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
   }
-  .content{position:relative;z-index:10;text-align:center;padding:2rem;user-select:none}
-  .logo-label{
-    font-size:11px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;
-    color:rgba(160,200,255,0.45);margin-bottom:2.5rem;
+
+  .card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 36px 32px;
+    box-shadow: var(--shadow-md);
   }
-  .title{
-    font-size:clamp(52px,10vw,96px);font-weight:700;
-    letter-spacing:-0.03em;line-height:1;margin-bottom:0.4rem;
-    background:linear-gradient(160deg,#fff 30%,#7ab8f5 70%,#3a80d2 100%);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    filter:drop-shadow(0 0 40px rgba(100,180,255,0.5));
+
+  .card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+
+  .logo-mark {
+    width: 38px; height: 38px; border-radius: 9px; background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600; letter-spacing: -0.3px; flex-shrink: 0;
   }
-  .title-sub{
-    font-size:clamp(20px,4vw,36px);font-weight:700;letter-spacing:-0.02em;
-    background:linear-gradient(160deg,#fff 40%,#7ab8f5 100%);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    margin-bottom:1.5rem;filter:drop-shadow(0 0 24px rgba(100,180,255,0.4));
+
+  .brand-name { font-size: 14px; font-weight: 600; color: var(--gray-900); line-height: 1.3; }
+  .brand-sub { font-size: 11px; color: var(--gray-500); font-weight: 400; }
+
+  .divider { height: 1px; background: var(--gray-200); margin-bottom: 28px; }
+
+  .card-title { font-size: 20px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; letter-spacing: -0.3px; }
+  .card-sub { font-size: 13px; color: var(--gray-700); margin-bottom: 20px; line-height: 1.5; }
+
+  .field-label { font-size: 12px; font-weight: 500; color: var(--gray-700); margin-bottom: 6px; display: block; }
+
+  .email-input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--gray-900);
+    margin-bottom: 14px;
+    transition: border-color 0.12s, box-shadow 0.12s;
   }
-  .divider{width:40px;height:1px;background:rgba(120,170,255,0.25);margin:0 auto 1.5rem}
-  .sub{
-    font-size:14px;color:rgba(160,200,255,0.45);line-height:1.9;
-    max-width:300px;margin:0 auto;letter-spacing:0.02em;
+  .email-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
   }
-  .footer{
-    position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);
-    font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
-    color:rgba(120,160,220,0.18);z-index:10;white-space:nowrap;
+
+  .primary-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 11px 16px;
+    background: var(--accent); border: 1.5px solid var(--accent);
+    border-radius: var(--radius);
+    font-size: 14px; font-weight: 500; color: #fff; cursor: pointer;
+    transition: background 0.12s, box-shadow 0.12s; font-family: inherit;
+    box-shadow: var(--shadow-sm);
   }
+  .primary-btn:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .primary-btn:active { transform: scale(0.99); }
+  .primary-btn:disabled { opacity: 0.55; cursor: default; }
+
+  .org-note {
+    margin-top: 14px; padding: 10px 12px;
+    background: var(--accent-light); border: 1px solid var(--accent-border);
+    border-radius: var(--radius); font-size: 12px; color: var(--accent-dark);
+    line-height: 1.6; display: flex; gap: 8px; align-items: flex-start;
+  }
+  .info-icon { width: 14px; height: 14px; margin-top: 1px; flex-shrink: 0; color: var(--accent); }
+
+  .error-note {
+    margin-top: 14px; padding: 10px 12px;
+    background: var(--danger-light); border: 1px solid var(--danger-border);
+    border-radius: var(--radius); font-size: 12px; color: var(--danger);
+    line-height: 1.6; display: none;
+  }
+  .error-note.visible { display: block; }
+
+  .footer-note { margin-top: 24px; text-align: center; font-size: 11px; color: var(--gray-500); }
+
+  .state-panel {
+    display: none; flex-direction: column; align-items: center; gap: 14px;
+    padding: 16px 0; text-align: center;
+  }
+  .state-panel.visible { display: flex; }
+
+  .spinner {
+    width: 28px; height: 28px; border: 2.5px solid var(--gray-200);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .state-label { font-size: 13px; color: var(--gray-700); line-height: 1.6; }
+
+  .mail-icon {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--accent-light);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mail-icon svg { width: 22px; height: 22px; color: var(--accent); }
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<div class="cursor" id="cursor"></div>
-<div class="content">
-  <p class="logo-label">Team QA &nbsp;&middot;&nbsp; MCVN &nbsp;&middot;&nbsp; Shopee Vietnam</p>
-  <h1 class="title">Coming</h1>
-  <h1 class="title-sub">Soon</h1>
+
+<div class="card">
+  <div class="card-brand">
+    <div class="logo-mark">TQA</div>
+    <div>
+      <div class="brand-name">Team QA MCVN</div>
+      <div class="brand-sub">Shopee Vietnam CS</div>
+    </div>
+  </div>
+
   <div class="divider"></div>
-  <p class="sub">Hệ thống đang được xây dựng.<br>Các công cụ QA sẽ sớm ra mắt tại đây.</p>
+
+  <div id="login-form">
+    <div class="card-title">Đăng nhập</div>
+    <div class="card-sub">Nhập email công ty — hệ thống gửi cho bạn một liên kết đăng nhập.</div>
+
+    <label class="field-label" for="email">Email</label>
+    <input class="email-input" id="email" type="email" inputmode="email"
+           autocomplete="email" placeholder="ten.ban@shopeemobile-external.com" />
+
+    <button class="primary-btn" id="send-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Gửi link đăng nhập
+    </button>
+
+    <div class="org-note">
+      <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      Chỉ dùng email <strong>@shopeemobile-external.com</strong> hoặc <strong>@shopee.com</strong>.
+    </div>
+
+    <div class="error-note" id="error-note"></div>
+
+    <div class="footer-note">Nội bộ · Không chia sẻ ra ngoài</div>
+  </div>
+
+  <div class="state-panel" id="loading-state">
+    <div class="spinner"></div>
+    <div class="state-label">Đang gửi link...</div>
+  </div>
+
+  <div class="state-panel" id="sent-state">
+    <div class="mail-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </div>
+    <div class="state-label" id="sent-label">Đã gửi link đăng nhập! Mở email và bấm vào liên kết để vào hệ thống.</div>
+  </div>
+
+  <div class="state-panel" id="success-state">
+    <div class="spinner"></div>
+    <div class="state-label">Đã đăng nhập. Đang chuyển tới dashboard...</div>
+  </div>
 </div>
-<p class="footer">MCVN &nbsp;&middot;&nbsp; Quality Assurance &nbsp;&middot;&nbsp; 2025</p>
 
 <script>
-var canvas = document.getElementById('c');
-var ctx    = canvas.getContext('2d');
-var cursorEl = document.getElementById('cursor');
-var W = 0, H = 0;
-var mouse  = { x:0.5, y:0.5 };
-var smooth = { x:0.5, y:0.5 };
+/* ================================================================= *
+ *  CẤU HÌNH — chỉ cần dán anon key (an toàn để công khai).          *
+ * ================================================================= */
 
-function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
-resize();
-window.addEventListener('resize', resize);
+const SUPABASE_URL = 'https://ytbcydursrpjqnaalhxc.supabase.co';
 
-document.addEventListener('mousemove', function(e) {
-  mouse.x = e.clientX/W; mouse.y = e.clientY/H;
-  cursorEl.style.left = e.clientX+'px'; cursorEl.style.top = e.clientY+'px';
-});
-document.addEventListener('touchmove', function(e) {
-  mouse.x = e.touches[0].clientX/W; mouse.y = e.touches[0].clientY/H;
-}, {passive:true});
+// anon / public key: Supabase → Project Settings → API → "anon public".
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo';
 
-function lerp(a,b,t){ return a+(b-a)*t; }
+// Chỉ các domain email này được phép đăng nhập.
+const ALLOWED_DOMAINS = ['shopeemobile-external.com', 'shopee.com'];
 
-// 3 nguồn sáng: vị trí gốc trên màn, anchor sàn, follow chuột
-var LIGHTS = [
-  { sx:0.18, sy:0.0, fx:0.22, follow:0.22 },
-  { sx:0.50, sy:0.0, fx:0.50, follow:0.70 },
-  { sx:0.82, sy:0.0, fx:0.78, follow:0.22 }
-];
+/* ================================================================= *
+ *  Logic — không cần sửa bên dưới.                                  *
+ * ================================================================= */
 
-function drawBeam(x0,y0, x1,y1) {
-  var dx=x1-x0, dy=y1-y0;
-  var len=Math.sqrt(dx*dx+dy*dy);
-  if(len<1) return;
-  var ux=dx/len, uy=dy/len;
-  var px=-uy, py=ux;
+const $ = (id) => document.getElementById(id);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  var sw = 8;
-  var ew = len * 0.28;
-
-  // layer 1: core sáng nhất (cyan-white) — to và sáng
-  var g1 = ctx.createLinearGradient(x0,y0,x1,y1);
-  g1.addColorStop(0,   'rgba(230,248,255,0.95)');
-  g1.addColorStop(0.08,'rgba(180,230,255,0.70)');
-  g1.addColorStop(0.35,'rgba(100,195,255,0.30)');
-  g1.addColorStop(0.7, 'rgba(70,165,255,0.10)');
-  g1.addColorStop(1,   'rgba(50,140,255,0.0)');
-  ctx.beginPath();
-  ctx.moveTo(x0+px*sw*0.55, y0+py*sw*0.55);
-  ctx.lineTo(x0-px*sw*0.55, y0-py*sw*0.55);
-  ctx.lineTo(x1-px*ew*0.55, y1-py*ew*0.55);
-  ctx.lineTo(x1+px*ew*0.55, y1+py*ew*0.55);
-  ctx.closePath();
-  ctx.fillStyle=g1; ctx.fill();
-
-  // layer 2: mid glow
-  var g2 = ctx.createLinearGradient(x0,y0,x1,y1);
-  g2.addColorStop(0,   'rgba(120,205,255,0.55)');
-  g2.addColorStop(0.12,'rgba(80,175,255,0.28)');
-  g2.addColorStop(0.55,'rgba(55,150,255,0.08)');
-  g2.addColorStop(1,   'rgba(40,120,255,0.0)');
-  ctx.beginPath();
-  ctx.moveTo(x0+px*sw, y0+py*sw);
-  ctx.lineTo(x0-px*sw, y0-py*sw);
-  ctx.lineTo(x1-px*ew, y1-py*ew);
-  ctx.lineTo(x1+px*ew, y1+py*ew);
-  ctx.closePath();
-  ctx.fillStyle=g2; ctx.fill();
-
-  // layer 3: outer haze
-  var g3 = ctx.createLinearGradient(x0,y0,x1,y1);
-  g3.addColorStop(0,   'rgba(60,140,255,0.18)');
-  g3.addColorStop(0.08,'rgba(40,120,255,0.08)');
-  g3.addColorStop(0.45,'rgba(30,100,255,0.03)');
-  g3.addColorStop(1,   'rgba(20,80,255,0.0)');
-  ctx.beginPath();
-  ctx.moveTo(x0+px*sw*2.5, y0+py*sw*2.5);
-  ctx.lineTo(x0-px*sw*2.5, y0-py*sw*2.5);
-  ctx.lineTo(x1-px*ew*2.0, y1-py*ew*2.0);
-  ctx.lineTo(x1+px*ew*2.0, y1+py*ew*2.0);
-  ctx.closePath();
-  ctx.fillStyle=g3; ctx.fill();
+function showError(msg) {
+  const el = $('error-note');
+  el.textContent = msg;
+  el.classList.add('visible');
 }
 
-function drawSource(x, y) {
-  // điểm nguồn sáng nhỏ ở trần
-  var sg = ctx.createRadialGradient(x,y,0, x,y, 20);
-  sg.addColorStop(0,   'rgba(220,240,255,0.90)');
-  sg.addColorStop(0.25,'rgba(140,210,255,0.40)');
-  sg.addColorStop(1,   'rgba(80,170,255,0)');
-  ctx.fillStyle=sg;
-  ctx.beginPath(); ctx.arc(x,y,20,0,Math.PI*2); ctx.fill();
+function domainOf(email) {
+  return (email || '').split('@')[1]?.toLowerCase() || '';
 }
 
-function drawFloor(x, y) {
-  // ellipse sàn: oval nằm ngang
-  var rx = Math.min(W,H)*0.13;
-  var ry = rx*0.22;
-
-  // outer haze
-  ctx.save();
-  ctx.translate(x,y); ctx.scale(1, ry/rx);
-  var fo = ctx.createRadialGradient(0,0,0,0,0,rx);
-  fo.addColorStop(0,   'rgba(100,200,255,0.30)');
-  fo.addColorStop(0.45,'rgba(70,170,255,0.10)');
-  fo.addColorStop(1,   'rgba(40,140,255,0)');
-  ctx.fillStyle=fo; ctx.beginPath(); ctx.arc(0,0,rx,0,Math.PI*2); ctx.fill();
-  ctx.restore();
-
-  // bright ring (giống ảnh mẫu — vòng tròn sáng viền)
-  ctx.save();
-  ctx.translate(x,y); ctx.scale(1, ry/rx);
-  ctx.beginPath(); ctx.arc(0,0,rx*0.62,0,Math.PI*2);
-  ctx.strokeStyle='rgba(160,230,255,0.35)';
-  ctx.lineWidth=2; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0,0,rx*0.38,0,Math.PI*2);
-  ctx.strokeStyle='rgba(180,235,255,0.25)';
-  ctx.lineWidth=1.5; ctx.stroke();
-  ctx.restore();
-
-  // center hotspot
-  ctx.save();
-  ctx.translate(x,y); ctx.scale(1,0.16);
-  var fc = ctx.createRadialGradient(0,0,0,0,0,rx*0.18);
-  fc.addColorStop(0,'rgba(230,245,255,0.90)');
-  fc.addColorStop(1,'rgba(180,225,255,0)');
-  ctx.fillStyle=fc; ctx.beginPath(); ctx.arc(0,0,rx*0.18,0,Math.PI*2); ctx.fill();
-  ctx.restore();
+function show(panelId) {
+  ['login-form', 'loading-state', 'sent-state', 'success-state'].forEach(id => {
+    $(id).classList.remove('visible');
+    $(id).style.display = 'none';
+  });
+  const el = $(panelId);
+  el.style.display = panelId === 'login-form' ? 'block' : 'flex';
 }
 
-function frame() {
-  smooth.x = lerp(smooth.x, mouse.x, 0.055);
-  smooth.y = lerp(smooth.y, mouse.y, 0.055);
-  ctx.clearRect(0,0,W,H);
+function readUrlError() {
+  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const q = new URLSearchParams(location.search);
+  const desc = h.get('error_description') || q.get('error_description')
+            || h.get('error') || q.get('error');
+  return desc ? decodeURIComponent(desc.replace(/\+/g, ' ')) : '';
+}
 
-  var floorY  = H*0.82;
-  var offsetX = smooth.x - 0.5;
+// Đã đăng nhập + đúng domain -> vào dashboard. Sai domain -> đăng xuất.
+async function routeIfLoggedIn() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return false;
 
-  // vẽ floor trước (dưới beam)
-  for(var i=0;i<LIGHTS.length;i++){
-    var L=LIGHTS[i];
-    var hx=(L.fx + offsetX*L.follow)*W;
-    drawFloor(hx, floorY);
+  const email = (session.user.email || '').toLowerCase();
+  if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
+    await sb.auth.signOut();
+    show('login-form');
+    showError('Tài khoản ' + email + ' không được phép. Dùng email @'
+      + ALLOWED_DOMAINS.join(' hoặc @') + '.');
+    return false;
   }
 
-  // beam
-  for(var i=0;i<LIGHTS.length;i++){
-    var L=LIGHTS[i];
-    var sx=L.sx*W, sy=L.sy*H;
-    var hx=(L.fx + offsetX*L.follow)*W;
-    drawBeam(sx, sy, hx, floorY);
-  }
-
-  // nguồn sáng trên cùng
-  for(var i=0;i<LIGHTS.length;i++){
-    var L=LIGHTS[i];
-    drawSource(L.sx*W, L.sy*H);
-  }
-
-  // cursor ambient
-  var cx=smooth.x*W, cy=smooth.y*H, cr=Math.min(W,H)*0.08;
-  var cg=ctx.createRadialGradient(cx,cy,0,cx,cy,cr);
-  cg.addColorStop(0,'rgba(140,210,255,0.08)');
-  cg.addColorStop(1,'rgba(140,210,255,0)');
-  ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(cx,cy,cr,0,Math.PI*2); ctx.fill();
-
-  requestAnimationFrame(frame);
+  show('success-state');
+  setTimeout(() => location.replace('dashboard.html'), 600);
+  return true;
 }
-frame();
+
+async function sendLink() {
+  if (SUPABASE_ANON_KEY.indexOf('PASTE_') === 0) {
+    showError('Cần cấu hình: dán SUPABASE_ANON_KEY vào index.html trước đã.');
+    return;
+  }
+  const email = ($('email').value || '').trim().toLowerCase();
+  $('error-note').classList.remove('visible');
+
+  if (!email || email.indexOf('@') < 0) { showError('Vui lòng nhập email hợp lệ.'); return; }
+  if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
+    showError('Email phải thuộc @' + ALLOWED_DOMAINS.join(' hoặc @') + '.');
+    return;
+  }
+
+  show('loading-state');
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.origin + '/' }
+  });
+
+  if (error) {
+    show('login-form');
+    showError('Không gửi được link: ' + error.message);
+    return;
+  }
+  $('sent-label').textContent =
+    'Đã gửi link đăng nhập tới ' + email + '. Mở email và bấm vào liên kết để vào hệ thống.';
+  show('sent-state');
+}
+
+(async function init() {
+  const urlErr = readUrlError();
+  if (urlErr) {
+    showError('Đăng nhập không thành công. Email phải thuộc @'
+      + ALLOWED_DOMAINS.join(' hoặc @') + '. (' + urlErr + ')');
+    history.replaceState(null, '', location.pathname);
+  }
+  const routed = await routeIfLoggedIn();
+  if (!routed) show('login-form');
+
+  $('send-btn').addEventListener('click', sendLink);
+  $('email').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendLink(); });
+})();
 </script>
+
 </body>
 </html>

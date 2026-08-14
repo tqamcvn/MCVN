@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TQA MCVN — Home</title>
+
+<!-- Ẩn toàn bộ nội dung cho tới khi xác thực xong (chống lộ dữ liệu). -->
+<style id="gate">body { visibility: hidden; }</style>
+
+<!-- Supabase JS (kiểm tra session + lấy role) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --white: #ffffff;
+  --gray-50: #f8f9fa;
+  --gray-100: #f1f3f5;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-900: #212529;
+  --accent: #1a73e8;
+  --accent-light: #e8f0fe;
+  --accent-border: #c5d8fc;
+  --accent-dark: #1558b0;
+  --accent-text: #1a73e8;
+  --success: #1e8e3e;
+  --success-light: #e6f4ea;
+  --danger: #d93025;
+  --danger-light: #fce8e6;
+  --warning: #e37400;
+  --warning-light: #fef3e2;
+  --purple: #6f3fc5;
+  --purple-light: #f0eafb;
+  --radius: 10px;
+  --radius-card: 14px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--gray-50);
+  min-height: 100vh;
+  display: flex;
+  color: var(--gray-900);
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--white);
+  border-right: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px 18px;
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: 12px;
+}
+
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.brand-name { font-size: 13px; font-weight: 600; color: var(--gray-900); line-height: 1.3; }
+.brand-sub { font-size: 11px; color: var(--gray-500); }
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 10px 18px 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 18px;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+  border-left: 2.5px solid transparent;
+  transition: background 0.1s, color 0.1s;
+  user-select: none;
+  text-decoration: none;
+}
+
+.nav-item:hover { background: var(--gray-50); color: var(--gray-900); }
+
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  border-left-color: var(--accent);
+  font-weight: 500;
+}
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nav-item.active .nav-icon { opacity: 1; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 14px 18px 0;
+  border-top: 1px solid var(--gray-200);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.1s;
+}
+
+.user-chip:hover { background: var(--gray-50); }
+
+.user-avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  flex-shrink: 0;
+  border: 1.5px solid var(--accent-border);
+  overflow: hidden;
+}
+
+.user-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+.user-name { font-size: 12px; font-weight: 500; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.user-role-txt { font-size: 10px; color: var(--gray-500); }
+
+.logout-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-500);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: background 0.1s, color 0.1s;
+}
+.logout-btn:hover { background: var(--danger-light); color: var(--danger); }
+.logout-btn svg { width: 15px; height: 15px; }
+
+/* MAIN */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HERO */
+.hero {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 36px 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  border: 2.5px solid var(--accent-border);
+  margin-bottom: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.hero-name { font-size: 20px; font-weight: 600; color: var(--gray-900); margin-bottom: 3px; letter-spacing: -0.3px; }
+.hero-email { font-size: 12px; color: var(--gray-500); margin-bottom: 10px; }
+
+.hero-role-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  border: 1px solid var(--accent-border);
+}
+
+.quote-block {
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: var(--gray-50);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--gray-200);
+  max-width: 460px;
+  width: 100%;
+  box-shadow: var(--shadow-sm);
+}
+
+.quote-text {
+  font-size: 13px;
+  color: var(--gray-700);
+  line-height: 1.75;
+  font-style: italic;
+}
+
+.quote-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.quote-author { font-size: 11px; color: var(--gray-500); }
+
+.quote-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.tag-mindset { background: var(--accent-light); color: var(--accent-dark); }
+.tag-kientr { background: var(--warning-light); color: var(--warning); }
+.tag-kyluat { background: var(--purple-light); color: var(--purple); }
+.tag-teamwork { background: var(--success-light); color: var(--success); }
+.tag-caodao { background: var(--gray-100); color: var(--gray-600); border: 1px solid var(--gray-300); }
+
+/* CONTENT */
+.content { padding: 28px 40px; flex: 1; }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 12px;
+}
+
+/* CSAT CARD */
+.csat-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.csat-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+}
+
+.csat-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.csat-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.csat-icon svg { width: 14px; height: 14px; color: var(--accent); }
+
+.tab-row { display: flex; gap: 4px; }
+
+.tab {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--gray-600);
+  border: 1px solid transparent;
+  user-select: none;
+  transition: all 0.1s;
+}
+
+.tab:hover { background: var(--gray-100); }
+.tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.csat-body { display: flex; }
+
+.sum-card {
+  flex: 1;
+  padding: 16px 18px;
+  border-right: 1px solid var(--gray-200);
+  background: var(--white);
+}
+
+.sum-card:last-child { border-right: none; }
+
+.sum-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.sum-val {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--gray-900);
+  line-height: 1;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+
+.sum-delta { font-size: 12px; font-weight: 500; margin-bottom: 8px; }
+.up { color: var(--success); }
+.dn { color: var(--danger); }
+
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
+.b { width: 10px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.2; }
+.b.hi { opacity: 1; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">TQA</div>
+    <div>
+      <div class="brand-name">Team QA MCVN</div>
+      <div class="brand-sub">Shopee Vietnam CS</div>
+    </div>
+  </div>
+
+  <a class="nav-item active" href="#">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Home
+  </a>
+  <a class="nav-item" href="#">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    CSAT reports
+  </a>
+
+  <div class="nav-label">Tools</div>
+  <a class="nav-item" href="https://teamqamcvn.com/cqm/">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    CQM Monitor
+  </a>
+  <a class="nav-item" href="https://teamqamcvn.com/repeatagent/">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Repeated Agent
+  </a>
+  <a class="nav-item" href="https://teamqamcvn.com/form-an-danh/">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Form ẩn danh
+  </a>
+  <a class="nav-item" href="#">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    ZTP Governance
+  </a>
+
+  <div class="sidebar-footer">
+    <div class="user-chip" title="Sign out">
+      <div class="user-avatar-sm" id="sidebar-av">··</div>
+      <div>
+        <div class="user-name" id="sidebar-name">—</div>
+        <div class="user-role-txt" id="sidebar-role">MCVN</div>
+      </div>
+      <button class="logout-btn" id="logout-btn" title="Sign out" aria-label="Sign out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="hero">
+    <div class="hero-avatar" id="hero-av">··</div>
+    <div class="hero-name" id="hero-name">—</div>
+    <div class="hero-email" id="hero-email">—</div>
+    <div class="hero-role-badge" id="hero-role">Team QA · MCVN</div>
+    <div class="quote-block">
+      <div class="quote-text" id="qt"></div>
+      <div class="quote-footer">
+        <div class="quote-author" id="qa"></div>
+        <span class="quote-tag" id="qtag"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section-label">CSAT Overview</div>
+    <div class="csat-card">
+      <div class="csat-header">
+        <div class="csat-title">
+          <div class="csat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          CSAT Overview · MCVN
+        </div>
+        <div class="tab-row">
+          <div class="tab active" onclick="sw('mom',this)">MoM</div>
+          <div class="tab" onclick="sw('wow',this)">WoW</div>
+        </div>
+      </div>
+
+      <div id="mom" class="csat-body">
+        <div class="sum-card">
+          <div class="sum-label">MCVN Overall</div>
+          <div class="sum-val">86.0%</div>
+          <div class="sum-delta dn">▼ 1.1% MoM</div>
+          <div class="spark"><div class="b" style="height:80%"></div><div class="b" style="height:99%"></div><div class="b" style="height:96%"></div><div class="b hi" style="height:90%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Call</div>
+          <div class="sum-val">93.0%</div>
+          <div class="sum-delta dn">▼ 0.7% MoM</div>
+          <div class="spark"><div class="b" style="height:99%"></div><div class="b" style="height:100%"></div><div class="b" style="height:99%"></div><div class="b hi" style="height:93%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Chat</div>
+          <div class="sum-val">81.3%</div>
+          <div class="sum-delta dn">▼ 0.0% MoM</div>
+          <div class="spark"><div class="b" style="height:95%"></div><div class="b" style="height:100%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:99%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Multi</div>
+          <div class="sum-val">82.5%</div>
+          <div class="sum-delta dn">▼ 2.9% MoM</div>
+          <div class="spark"><div class="b" style="height:99%"></div><div class="b" style="height:100%"></div><div class="b" style="height:98%"></div><div class="b hi" style="height:96%"></div></div>
+        </div>
+      </div>
+
+      <div id="wow" class="csat-body" style="display:none">
+        <div class="sum-card">
+          <div class="sum-label">MCVN Overall</div>
+          <div class="sum-val">86.5%</div>
+          <div class="sum-delta up">▲ 1.0% WoW</div>
+          <div class="spark"><div class="b" style="height:100%"></div><div class="b" style="height:98%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:99%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Call</div>
+          <div class="sum-val">93.6%</div>
+          <div class="sum-delta up">▲ 1.0% WoW</div>
+          <div class="spark"><div class="b" style="height:100%"></div><div class="b" style="height:99%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:100%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Chat</div>
+          <div class="sum-val">81.3%</div>
+          <div class="sum-delta dn">▼ 0.0% WoW</div>
+          <div class="spark"><div class="b" style="height:94%"></div><div class="b" style="height:94%"></div><div class="b" style="height:95%"></div><div class="b hi" style="height:94%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Multi</div>
+          <div class="sum-val">83.5%</div>
+          <div class="sum-delta up">▲ 2.3% WoW</div>
+          <div class="spark"><div class="b" style="height:97%"></div><div class="b" style="height:94%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:97%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ================================================================= *
+ *  CẤU HÌNH (giống index.html)                                       *
+ * ================================================================= */
+const SUPABASE_URL = 'https://ytbcydursrpjqnaalhxc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo';
+const ALLOWED_DOMAINS = ['shopeemobile-external.com', 'shopee.com'];
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function domainOf(email) {
+  return (email || '').split('@')[1]?.toLowerCase() || '';
+}
+
+function initials(name, email) {
+  var base = (name || '').trim();
+  if (base) {
+    var parts = base.split(/\s+/);
+    var first = parts[0].charAt(0);
+    var last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return (first + last).toUpperCase();
+  }
+  return (email || '?').charAt(0).toUpperCase();
+}
+
+function fillAvatar(el, name, email, picture) {
+  if (picture) {
+    var img = document.createElement('img');
+    img.src = picture;
+    img.alt = name || email;
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = function () { el.textContent = initials(name, email); };
+    el.textContent = '';
+    el.appendChild(img);
+  } else {
+    el.textContent = initials(name, email);
+  }
+}
+
+// Guard + nạp dữ liệu người dùng. Không có session hoặc sai domain -> về login.
+async function renderUser() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.replace('index.html'); return; }
+
+  const u = session.user;
+  const email = (u.email || '').toLowerCase();
+  if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
+    await sb.auth.signOut();
+    location.replace('index.html');
+    return;
+  }
+
+  const meta = u.user_metadata || {};
+  let name = meta.full_name || meta.name || email.split('@')[0];
+  const picture = meta.avatar_url || meta.picture || '';
+  let role = 'Team QA · MCVN';
+
+  // Lấy vai trò từ bảng app_users (RLS chỉ cho đọc dòng của chính mình).
+  try {
+    const { data } = await sb.from('app_users')
+      .select('full_name, role, team')
+      .eq('email', email)
+      .maybeSingle();
+    if (data) {
+      if (data.full_name) name = data.full_name;
+      if (data.role) role = data.role + (data.team ? ' · ' + data.team : '');
+    }
+  } catch (e) { /* chưa có bảng / chưa cấp quyền -> dùng mặc định */ }
+
+  document.getElementById('hero-name').textContent = name;
+  document.getElementById('hero-email').textContent = email;
+  document.getElementById('hero-role').textContent = role;
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('sidebar-role').textContent = role;
+  fillAvatar(document.getElementById('hero-av'), name, email, picture);
+  fillAvatar(document.getElementById('sidebar-av'), name, email, picture);
+
+  // Xác thực xong -> hiện nội dung.
+  document.body.style.visibility = 'visible';
+}
+
+async function logout() {
+  try { await sb.auth.signOut(); } catch (e) {}
+  location.replace('index.html');
+}
+
+/* ---- Motivational quotes ---- */
+const quotes = [
+  {vn:"Chúng ta là những gì chúng ta liên tục làm. Sự xuất sắc không phải là một hành động, mà là một thói quen.",author:"Aristotle",tag:"kyluat"},
+  {vn:"Kỷ luật là cầu nối giữa mục tiêu và thành tựu.",author:"Jim Rohn",tag:"kyluat"},
+  {vn:"Bạn không cần phải tuyệt vời khi bắt đầu, nhưng bạn phải bắt đầu để trở nên tuyệt vời.",author:"Zig Ziglar",tag:"kientr"},
+  {vn:"Thành công không phải là điểm cuối, thất bại không phải là tận cùng — điều quan trọng là can đảm tiếp tục.",author:"Winston Churchill",tag:"kientr"},
+  {vn:"Không có gì thay thế được sự nỗ lực bền bỉ. Kiên trì và quyết tâm là tất cả.",author:"Calvin Coolidge",tag:"kientr"},
+  {vn:"Sức mạnh của đội nằm ở mỗi thành viên. Sức mạnh của mỗi thành viên là cả đội.",author:"Phil Jackson",tag:"teamwork"},
+  {vn:"Một mình chúng ta có thể làm được rất ít; cùng nhau chúng ta có thể làm được rất nhiều.",author:"Helen Keller",tag:"teamwork"},
+  {vn:"Tài năng thắng trận đấu, nhưng tinh thần đồng đội và trí tuệ giành chức vô địch.",author:"Michael Jordan",tag:"teamwork"},
+  {vn:"Không quan trọng bạn đi chậm đến đâu, miễn là bạn không dừng lại.",author:"Khổng Tử",tag:"kientr"},
+  {vn:"Ngã bảy lần, đứng dậy tám lần.",author:"Tục ngữ Nhật Bản",tag:"caodao"},
+  {vn:"Bí quyết để tiến về phía trước là bắt đầu.",author:"Mark Twain",tag:"mindset"},
+  {vn:"Tư duy của bạn là tài sản quan trọng nhất. Hãy bảo vệ nó.",author:"Carol Dweck",tag:"mindset"},
+  {vn:"Đừng xem đồng hồ — hãy làm những gì đồng hồ làm: tiếp tục tiến.",author:"Sam Levenson",tag:"kientr"},
+  {vn:"Người chiến thắng không bao giờ bỏ cuộc, và người bỏ cuộc không bao giờ chiến thắng.",author:"Vince Lombardi",tag:"kientr"},
+  {vn:"Cách tốt nhất để dự đoán tương lai là tạo ra nó.",author:"Peter Drucker",tag:"mindset"},
+  {vn:"Có công mài sắt, có ngày nên kim.",author:"Tục ngữ Việt Nam",tag:"caodao"},
+  {vn:"Chớ thấy sóng cả mà ngã tay chèo.",author:"Tục ngữ Việt Nam",tag:"caodao"},
+  {vn:"Một cây làm chẳng nên non, ba cây chụm lại nên hòn núi cao.",author:"Ca dao Việt Nam",tag:"caodao"},
+  {vn:"Lửa thử vàng, gian nan thử sức.",author:"Tục ngữ Việt Nam",tag:"caodao"},
+  {vn:"Thua keo này, bày keo khác.",author:"Tục ngữ Việt Nam",tag:"caodao"},
+  {vn:"Góp gió thành bão.",author:"Tục ngữ Việt Nam",tag:"caodao"},
+  {vn:"Năng nhặt chặt bị.",author:"Tục ngữ Việt Nam",tag:"caodao"},
+  {vn:"Nước chảy đá mòn.",author:"Tục ngữ Việt Nam",tag:"caodao"},
+  {vn:"Khó khăn chỉ là cơ hội mặc áo làm việc.",author:"Henry Kaiser",tag:"mindset"},
+  {vn:"Kỷ luật là lựa chọn giữa những gì bạn muốn lúc này và những gì bạn muốn nhất.",author:"Abraham Lincoln",tag:"kyluat"},
+  {vn:"Hành động nhỏ hôm nay tạo nên kết quả lớn ngày mai.",author:"Robin Sharma",tag:"kyluat"},
+  {vn:"Sự khác biệt giữa người thường và người xuất sắc là một chút nỗ lực thêm.",author:"Jimmy Johnson",tag:"kientr"},
+  {vn:"Mỗi chuyên gia đều từng là người mới bắt đầu.",author:"Helen Hayes",tag:"mindset"},
+  {vn:"Đừng chờ cảm hứng. Hãy hành động và cảm hứng sẽ đến.",author:"Jack London",tag:"mindset"},
+  {vn:"Tinh thần đồng đội bắt đầu bằng việc mỗi người đặt lợi ích nhóm lên trên lợi ích cá nhân.",author:"Patrick Lencioni",tag:"teamwork"},
+  {vn:"Nếu mọi người đều tiến về phía trước cùng nhau, thành công sẽ tự lo cho chính nó.",author:"Henry Ford",tag:"teamwork"},
+  {vn:"Đội nhóm giỏi không phải là không có xung đột, mà là biết giải quyết xung đột.",author:"Patrick Lencioni",tag:"teamwork"},
+  {vn:"Không có ai trong chúng ta thông minh bằng tất cả chúng ta cộng lại.",author:"Ken Blanchard",tag:"teamwork"},
+  {vn:"Chất lượng không bao giờ là tai nạn. Nó luôn là kết quả của nỗ lực thông minh.",author:"John Ruskin",tag:"kyluat"},
+  {vn:"Những thói quen tốt hình thành nên con người tốt.",author:"Aristotle",tag:"kyluat"},
+  {vn:"Kết quả hôm nay là phản ánh của kỷ luật ngày hôm qua.",author:"John C. Maxwell",tag:"kyluat"},
+  {vn:"Không có phím tắt nào dẫn đến nơi xứng đáng đến.",author:"Beverly Sills",tag:"kientr"},
+  {vn:"Hãy bắt đầu từ nơi bạn đang đứng, dùng những gì bạn có, làm những gì bạn có thể.",author:"Arthur Ashe",tag:"mindset"},
+  {vn:"Sự thay đổi tư duy nhỏ nhất cũng có thể dẫn đến thay đổi cuộc đời lớn nhất.",author:"Carol Dweck",tag:"mindset"},
+  {vn:"Tập trung vào quá trình, kết quả sẽ tự đến.",author:"Nick Saban",tag:"kyluat"},
+  {vn:"Người kiên nhẫn ăn chín trái ngọt.",author:"Tục ngữ châu Phi",tag:"kientr"},
+  {vn:"Áp lực tạo ra kim cương.",author:"George S. Patton",tag:"kientr"},
+  {vn:"Thái độ của bạn quyết định hướng đi của bạn.",author:"Anonymous",tag:"mindset"},
+  {vn:"Làm tốt công việc hôm nay là cách tốt nhất để chuẩn bị cho ngày mai.",author:"H. Jackson Brown Jr.",tag:"kyluat"},
+  {vn:"Đội mạnh nhất không phải là đội có cá nhân giỏi nhất, mà là đội làm việc ăn ý nhất.",author:"Anonymous",tag:"teamwork"},
+  {vn:"Kỷ luật bản thân là đỉnh cao của tình yêu bản thân.",author:"Anonymous",tag:"kyluat"},
+  {vn:"Mỗi ngày là một cơ hội mới để cải thiện bản thân.",author:"Anonymous",tag:"mindset"},
+  {vn:"Học ăn, học nói, học gói, học mở.",author:"Ca dao Việt Nam",tag:"caodao"},
+  {vn:"Người giỏi không làm việc cô đơn. Họ xây dựng đội nhóm.",author:"Reid Hoffman",tag:"teamwork"},
+  {vn:"Đo lường những gì quan trọng.",author:"John Doerr",tag:"mindset"},
+];
+
+const tagLabel = {mindset:'Mindset',kientr:'Kiên trì',kyluat:'Kỷ luật',teamwork:'Teamwork',caodao:'Ca dao / Tục ngữ'};
+
+function loadQuote() {
+  const q = quotes[Math.floor(Math.random() * quotes.length)];
+  document.getElementById('qt').textContent = '“' + q.vn + '”';
+  document.getElementById('qa').textContent = '— ' + q.author + ' —';
+  const tagEl = document.getElementById('qtag');
+  tagEl.textContent = tagLabel[q.tag];
+  tagEl.className = 'quote-tag tag-' + q.tag;
+}
+
+function sw(id, el) {
+  document.getElementById('mom').style.display = 'none';
+  document.getElementById('wow').style.display = 'none';
+  document.getElementById(id).style.display = 'flex';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', function () {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+document.getElementById('logout-btn').addEventListener('click', function (e) {
+  e.stopPropagation();
+  logout();
+});
+document.querySelector('.user-chip').addEventListener('click', logout);
+
+renderUser();
+loadQuote();
+</script>
+
+</body>
+</html>
