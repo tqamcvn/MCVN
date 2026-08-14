@@ -489,6 +489,21 @@ body.theme-dark {
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
 }
+
+/* ---- Cài đặt / đổi mật khẩu ---- */
+.settings-view { display: none; flex: 1; padding: 28px 40px; }
+.settings-view.visible { display: block; }
+.stg-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-card); padding: 22px; max-width: 460px; box-shadow: var(--shadow-sm); }
+.stg-title { font-size: 15px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; }
+.stg-desc { font-size: 12.5px; color: var(--gray-500); margin-bottom: 16px; line-height: 1.5; }
+.stg-label { font-size: 12px; font-weight: 500; color: var(--gray-700); margin-bottom: 6px; display: block; }
+.stg-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-300); border-radius: var(--radius); font-size: 14px; font-family: inherit; color: var(--gray-900); background: var(--white); margin-bottom: 14px; }
+.stg-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.stg-btn { padding: 10px 18px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.stg-btn:hover { background: var(--accent-dark); }
+.stg-msg { margin-top: 12px; font-size: 12.5px; min-height: 16px; }
+.stg-msg.err { color: var(--danger); }
+.stg-msg.ok { color: var(--success); }
 </style>
 </head>
 <body>
@@ -530,6 +545,11 @@ body.theme-dark {
   <a class="nav-item" href="#" data-tool="ztp" data-src="" data-title="ZTP Governance" title="ZTP Governance">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     <span class="nav-text">ZTP Governance</span>
+  </a>
+
+  <a class="nav-item" href="#" data-view="settings" title="Cài đặt">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span class="nav-text">Cài đặt</span>
   </a>
 
   <div class="sidebar-footer">
@@ -656,6 +676,21 @@ body.theme-dark {
     <div class="tool-empty" id="tool-empty">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       <div>Tính năng <strong id="tool-empty-name">này</strong> đang được phát triển.</div>
+    </div>
+  </section>
+
+  <!-- Cài đặt tài khoản -->
+  <section class="settings-view" id="settings-view">
+    <div class="section-label">Cài đặt tài khoản</div>
+    <div class="stg-card">
+      <div class="stg-title">Đổi mật khẩu</div>
+      <div class="stg-desc">Nhập mật khẩu mới nếu bạn muốn thay mật khẩu mặc định. Không đổi cũng không sao.</div>
+      <label class="stg-label" for="set-np">Mật khẩu mới</label>
+      <input class="stg-input" id="set-np" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự" />
+      <label class="stg-label" for="set-np2">Nhập lại mật khẩu</label>
+      <input class="stg-input" id="set-np2" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" />
+      <button class="stg-btn" id="set-savepw">Lưu mật khẩu</button>
+      <div class="stg-msg" id="set-msg"></div>
     </div>
   </section>
 </main>
@@ -825,12 +860,22 @@ const toolFrame = document.getElementById('tool-frame');
 const toolEmpty = document.getElementById('tool-empty');
 const toolTitle = document.getElementById('tool-title');
 const toolNewtab = document.getElementById('tool-newtab');
+const settingsView = document.getElementById('settings-view');
 
 function showHome() {
   toolView.classList.remove('visible');
+  settingsView.classList.remove('visible');
   toolFrame.src = 'about:blank';
   heroEl.style.display = 'flex';
   contentEl.style.display = 'block';
+}
+
+function showSettings() {
+  toolView.classList.remove('visible');
+  toolFrame.src = 'about:blank';
+  heroEl.style.display = 'none';
+  contentEl.style.display = 'none';
+  settingsView.classList.add('visible');
 }
 
 function currentTheme() {
@@ -841,6 +886,7 @@ function withTheme(src) {
 }
 
 function showTool(src, title) {
+  settingsView.classList.remove('visible');
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   toolTitle.textContent = title;
@@ -868,6 +914,8 @@ document.querySelectorAll('.nav-item').forEach(el => {
     this.classList.add('active');
     if (this.dataset.tool !== undefined) {
       showTool(this.dataset.src, this.dataset.title || 'Tool');
+    } else if (this.dataset.view === 'settings') {
+      showSettings();
     } else {
       showHome();
     }
@@ -922,6 +970,23 @@ document.getElementById('logout-btn').addEventListener('click', function (e) {
   logout();
 });
 document.querySelector('.user-chip').addEventListener('click', logout);
+
+/* ---- Đổi mật khẩu (Cài đặt) ---- */
+async function changePassword() {
+  const p1 = document.getElementById('set-np').value || '';
+  const p2 = document.getElementById('set-np2').value || '';
+  const msg = document.getElementById('set-msg');
+  msg.className = 'stg-msg';
+  if (p1.length < 6) { msg.textContent = 'Mật khẩu cần ít nhất 6 ký tự.'; msg.classList.add('err'); return; }
+  if (p1 !== p2) { msg.textContent = 'Hai ô mật khẩu chưa khớp.'; msg.classList.add('err'); return; }
+  msg.textContent = 'Đang lưu...';
+  const { error } = await sb.auth.updateUser({ password: p1, data: { password_set: true } });
+  if (error) { msg.textContent = 'Lỗi: ' + error.message; msg.classList.add('err'); return; }
+  msg.textContent = 'Đã đổi mật khẩu thành công!'; msg.classList.add('ok');
+  document.getElementById('set-np').value = '';
+  document.getElementById('set-np2').value = '';
+}
+document.getElementById('set-savepw').addEventListener('click', changePassword);
 
 renderUser();
 loadQuote();
