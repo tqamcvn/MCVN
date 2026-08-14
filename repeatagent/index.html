@@ -177,21 +177,7 @@ table.at tbody tr:last-child td{border-bottom:none}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 @media(max-width:900px){.g2,.g3,.data-col{grid-template-columns:1fr}.kpi-row{grid-template-columns:repeat(2,1fr)}}
-/* ---- Giao diện SÁNG (đồng bộ theo dashboard) ---- */
-:root[data-theme="light"]{
-  --bg:#f4f6fa; --surf:#ffffff; --s2:#f1f3f7; --s3:#e9edf5;
-  --bdr:#e2e6ee; --bdr2:#d5dbe6; --border:#e2e6ee;
-  --acc:#cf6a2e; --blue:#2f6fd0; --green:#1a9e6a; --warn:#c99a1e; --red:#d13b3b; --pur:#7c5cff;
-  --text:#1a2233; --t2:#5b657a; --t3:#98a1b3;
-}
 </style>
-<script>
-(function(){
-  function apply(t){ document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark'); }
-  try{ var p=new URLSearchParams(location.search).get('theme'); if(p) apply(p); }catch(e){}
-  window.addEventListener('message', function(e){ if(e.data && e.data.type==='tqa-theme') apply(e.data.theme); });
-})();
-</script>
 </head>
 <body>
 <div class="shell">

@@ -237,7 +237,7 @@ async function afterSession(session) {
   const passwordSet = session.user.user_metadata && session.user.user_metadata.password_set === true;
   if (passwordSet) {
     show('success-state');
-    setTimeout(() => location.replace('dashboard.html'), 500);
+    setTimeout(() => location.replace('dashboard'), 500);
   } else {
     show('setpw-form');       // lần đầu -> bắt đặt mật khẩu
   }
@@ -304,7 +304,7 @@ async function savePassword() {
     return;
   }
   show('success-state');
-  setTimeout(() => location.replace('dashboard.html'), 500);
+  setTimeout(() => location.replace('dashboard'), 500);
 }
 
 (async function init() {

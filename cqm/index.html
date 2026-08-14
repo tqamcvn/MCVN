@@ -99,21 +99,7 @@ tbody tr:last-child td{border-bottom:none;}
   .g2,.g3,.g12{grid-template-columns:1fr;}
   .kpi-row{grid-template-columns:repeat(2,1fr);}
 }
-/* ---- Giao diện SÁNG (đồng bộ theo dashboard) ---- */
-:root[data-theme="light"]{
-  --bg:#f4f6fa; --card:#ffffff; --card2:#f1f3f7; --border:#e2e6ee;
-  --accent:#3b5bdb; --accent2:#7c3aed;
-  --pos:#16a34a; --warn:#d97706; --neg:#dc2626; --crit:#b91c1c;
-  --text:#1a2233; --dim:#5b657a; --muted:#8a93a5;
-}
 </style>
-<script>
-(function(){
-  function apply(t){ document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark'); }
-  try{ var p=new URLSearchParams(location.search).get('theme'); if(p) apply(p); }catch(e){}
-  window.addEventListener('message', function(e){ if(e.data && e.data.type==='tqa-theme') apply(e.data.theme); });
-})();
-</script>
 </head>
 <body>
 <div class="dash">

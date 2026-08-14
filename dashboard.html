@@ -737,13 +737,13 @@ function fillAvatar(el, name, email, picture) {
 // Guard + nạp dữ liệu người dùng. Không có session hoặc sai domain -> về login.
 async function renderUser() {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { location.replace('index.html'); return; }
+  if (!session) { location.replace('/'); return; }
 
   const u = session.user;
   const email = (u.email || '').toLowerCase();
   if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
     await sb.auth.signOut();
-    location.replace('index.html');
+    location.replace('/');
     return;
   }
 
@@ -779,7 +779,7 @@ async function renderUser() {
 
 async function logout() {
   try { await sb.auth.signOut(); } catch (e) {}
-  location.replace('index.html');
+  location.replace('/');
 }
 
 /* ---- Motivational quotes ---- */
@@ -878,24 +878,16 @@ function showSettings() {
   settingsView.classList.add('visible');
 }
 
-function currentTheme() {
-  return document.body.classList.contains('theme-dark') ? 'dark' : 'light';
-}
-function withTheme(src) {
-  return src + (src.includes('?') ? '&' : '?') + 'theme=' + currentTheme();
-}
-
 function showTool(src, title) {
   settingsView.classList.remove('visible');
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   toolTitle.textContent = title;
   if (src) {
-    const url = withTheme(src);
     toolEmpty.classList.remove('visible');
     toolFrame.style.display = 'block';
-    toolFrame.src = url;
-    toolNewtab.href = url;
+    toolFrame.src = src;
+    toolNewtab.href = src;
     toolNewtab.style.display = 'inline-flex';
   } else {
     toolFrame.style.display = 'none';
@@ -951,12 +943,6 @@ function applyTheme() {
   document.body.classList.toggle('theme-dark', dark);
   const label = document.querySelector('.theme-label');
   if (label) label.textContent = dark ? 'Giao diện sáng' : 'Giao diện tối';
-  // Đồng bộ theme vào tool đang mở (nếu có).
-  try {
-    if (toolFrame && toolFrame.src && toolFrame.src !== 'about:blank' && toolFrame.contentWindow) {
-      toolFrame.contentWindow.postMessage({ type: 'tqa-theme', theme: dark ? 'dark' : 'light' }, '*');
-    }
-  } catch (e) { /* iframe chưa sẵn sàng */ }
 }
 document.getElementById('theme-toggle').addEventListener('click', () => {
   const dark = !document.body.classList.contains('theme-dark');
