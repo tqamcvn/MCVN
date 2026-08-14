@@ -598,6 +598,7 @@ body.theme-dark {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
           CSAT Overview · MCVN
+          <span id="csat-stamp" style="font-size:10px;color:var(--gray-500);font-weight:400;margin-left:4px"></span>
         </div>
         <div class="tab-row">
           <div class="tab active" onclick="sw('mom',this)">MoM</div>
@@ -696,6 +697,14 @@ body.theme-dark {
       <button class="stg-btn" id="set-savepw">Lưu mật khẩu</button>
       <div class="stg-msg" id="set-msg"></div>
     </div>
+
+    <div class="stg-card" id="csat-admin" style="display:none;margin-top:20px">
+      <div class="stg-title">Cập nhật số CSAT</div>
+      <div class="stg-desc">Mở web app (Apps Script) → copy toàn bộ JSON → dán vào đây → Lưu. Mọi người sẽ thấy số mới ngay.</div>
+      <textarea class="stg-input" id="csat-input" rows="5" placeholder='{"updated":"...","values":[[...]]}' style="resize:vertical;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+      <button class="stg-btn" id="csat-save">Lưu số CSAT</button>
+      <div class="stg-msg" id="csat-msg"></div>
+    </div>
   </section>
 </main>
 
@@ -758,6 +767,7 @@ async function renderUser() {
   let role = domainOf(email) === 'shopee.com' ? 'IH' : 'Member';
 
   // Lấy vai trò từ bảng app_users (RLS chỉ cho đọc dòng của chính mình).
+  let rawRole = '';
   try {
     const { data } = await sb.from('app_users')
       .select('full_name, role, team')
@@ -765,9 +775,15 @@ async function renderUser() {
       .maybeSingle();
     if (data) {
       if (data.full_name) name = data.full_name;
-      if (data.role) role = data.role + (data.team ? ' · ' + data.team : '');
+      if (data.role) { rawRole = data.role; role = data.role + (data.team ? ' · ' + data.team : ''); }
     }
   } catch (e) { /* chưa có bảng / chưa cấp quyền -> dùng mặc định */ }
+
+  // Chỉ TL/Sup TQA mới thấy ô cập nhật số CSAT.
+  const CSAT_ADMIN_ROLES = ['TL TQA', 'Acting TL TQA', 'Sup TQA'];
+  if (CSAT_ADMIN_ROLES.includes(rawRole)) {
+    document.getElementById('csat-admin').style.display = 'block';
+  }
 
   document.getElementById('hero-name').textContent = name;
   document.getElementById('hero-email').textContent = email;
@@ -993,8 +1009,105 @@ async function changePassword() {
 }
 document.getElementById('set-savepw').addEventListener('click', changePassword);
 
+/* ================================================================= *
+ *  CSAT: đọc từ Supabase, hiển thị, cache + backup                  *
+ * ================================================================= */
+const CSAT_TEAMS = [
+  { key: 'MCVN', label: 'MCVN Overall' },
+  { key: 'Team Call', label: 'Team Call' },
+  { key: 'Team Chat', label: 'Team Chat' },
+  { key: 'Team Multi', label: 'Team Multi' }
+];
+
+function csatPct(v) { return (Number(v) * 100).toFixed(1) + '%'; }
+function csatDelta(d, suffix) {
+  const up = Number(d) >= 0;
+  return '<div class="sum-delta ' + (up ? 'up' : 'dn') + '">' +
+    (up ? '▲' : '▼') + ' ' + Math.abs(Number(d) * 100).toFixed(1) + '% ' + suffix + '</div>';
+}
+function csatSpark(vals) {
+  const nums = vals.map(Number);
+  const min = Math.min.apply(null, nums), max = Math.max.apply(null, nums), rng = (max - min) || 1;
+  return '<div class="spark">' + nums.map(function (v, i) {
+    const h = Math.round(40 + (v - min) / rng * 60);
+    return '<div class="b' + (i === nums.length - 1 ? ' hi' : '') + '" style="height:' + h + '%"></div>';
+  }).join('') + '</div>';
+}
+function csatCard(label, value, d, spark, suffix) {
+  return '<div class="sum-card">' +
+    '<div class="sum-label">' + label + '</div>' +
+    '<div class="sum-val">' + csatPct(value) + '</div>' +
+    csatDelta(d, suffix) +
+    csatSpark(spark) + '</div>';
+}
+// J2:AA14 -> value=cột O[5]/W33[14], delta=MoM[3]/WoW[12], spark=tháng[8,7,6,5]/tuần[17,16,15,14]
+function renderCsat(raw) {
+  if (!raw || !Array.isArray(raw.values)) return false;
+  const byKey = {};
+  raw.values.forEach(function (r) { if (r && r[0]) byKey[String(r[0]).trim()] = r; });
+  let mom = '', wow = '', any = false;
+  CSAT_TEAMS.forEach(function (t) {
+    const r = byKey[t.key];
+    if (!r) return;
+    any = true;
+    mom += csatCard(t.label, r[5], r[3], [r[8], r[7], r[6], r[5]], 'MoM');
+    wow += csatCard(t.label, r[14], r[12], [r[17], r[16], r[15], r[14]], 'WoW');
+  });
+  if (!any) return false;
+  document.getElementById('mom').innerHTML = mom;
+  document.getElementById('wow').innerHTML = wow;
+  return true;
+}
+function csatStamp(savedAt, fromCache) {
+  const el = document.getElementById('csat-stamp');
+  if (!el || !savedAt) return;
+  const s = new Date(savedAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  el.textContent = '· cập nhật ' + s + (fromCache ? ' (đệm)' : '');
+}
+
+async function loadCsat() {
+  // 1) Hiện ngay từ cache -> không cần chờ, không cần load lại
+  try {
+    const c = JSON.parse(localStorage.getItem('tqa_csat') || 'null');
+    if (c && c.raw) { renderCsat(c.raw); csatStamp(c.saved_at, true); }
+  } catch (e) {}
+  // 2) Lấy bản mới từ Supabase; lỗi -> giữ số cũ (backup)
+  try {
+    const { data } = await sb.from('csat_data').select('raw,saved_at').eq('id', 1).maybeSingle();
+    if (data && data.raw) {
+      renderCsat(data.raw);
+      csatStamp(data.saved_at, false);
+      localStorage.setItem('tqa_csat', JSON.stringify(data));
+    }
+  } catch (e) { /* giữ cache */ }
+}
+
+async function saveCsat() {
+  const msg = document.getElementById('csat-msg');
+  msg.className = 'stg-msg';
+  let parsed;
+  try { parsed = JSON.parse(document.getElementById('csat-input').value.trim()); }
+  catch (e) { msg.textContent = 'Nội dung dán vào không phải JSON hợp lệ.'; msg.classList.add('err'); return; }
+  if (!parsed || !Array.isArray(parsed.values)) {
+    msg.textContent = 'JSON thiếu trường "values" — hãy copy đúng toàn bộ nội dung web app.'; msg.classList.add('err'); return;
+  }
+  msg.textContent = 'Đang lưu...';
+  const { error } = await sb.from('csat_data').upsert({
+    id: 1,
+    raw: { updated: parsed.updated || null, values: parsed.values },
+    sheet_updated: parsed.updated || null,
+    saved_at: new Date().toISOString()
+  });
+  if (error) { msg.textContent = 'Lỗi lưu: ' + error.message; msg.classList.add('err'); return; }
+  msg.textContent = 'Đã cập nhật số CSAT!'; msg.classList.add('ok');
+  document.getElementById('csat-input').value = '';
+  loadCsat();
+}
+document.getElementById('csat-save').addEventListener('click', saveCsat);
+
 renderUser();
 loadQuote();
+loadCsat();
 </script>
 
 </body>
