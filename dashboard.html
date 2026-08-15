@@ -228,8 +228,15 @@ body {
 }
 
 .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.hero-name { font-size: 20px; font-weight: 600; color: var(--gray-900); margin-bottom: 3px; letter-spacing: -0.3px; }
+.hero-greeting { font-size: 13px; color: var(--gray-500); margin-bottom: 3px; }
+.hero-name { font-size: 22px; font-weight: 700; color: var(--gray-900); margin-bottom: 3px; letter-spacing: -0.3px; }
 .hero-email { font-size: 12px; color: var(--gray-500); margin-bottom: 10px; }
+
+/* Hồ sơ trong Cài đặt */
+.profile-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; color: var(--accent-dark); border: 2px solid var(--accent-border); overflow: hidden; flex-shrink: 0; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-file-btn { font-size: 12.5px; color: var(--accent); cursor: pointer; text-decoration: underline; }
 
 .hero-role-badge {
   display: inline-block;
@@ -581,6 +588,7 @@ body.ops-view .qa-only { display: none !important; }
 <main class="main">
   <div class="hero">
     <div class="hero-avatar" id="hero-av">··</div>
+    <div class="hero-greeting" id="hero-greeting"></div>
     <div class="hero-name" id="hero-name">—</div>
     <div class="hero-email" id="hero-email">—</div>
     <div class="hero-role-badge" id="hero-role">Team QA · MCVN</div>
@@ -690,6 +698,24 @@ body.ops-view .qa-only { display: none !important; }
   <!-- Cài đặt tài khoản -->
   <section class="settings-view" id="settings-view">
     <div class="section-label">Cài đặt tài khoản</div>
+
+    <div class="stg-card" style="margin-bottom:20px">
+      <div class="stg-title">Hồ sơ</div>
+      <div class="stg-desc">Đổi ảnh đại diện và tên hiển thị của bạn.</div>
+      <div class="profile-row">
+        <div class="profile-avatar" id="profile-preview">··</div>
+        <div>
+          <label class="profile-file-btn" for="profile-file">Đổi ảnh đại diện</label>
+          <input id="profile-file" type="file" accept="image/*" style="display:none" />
+          <div class="stg-desc" style="margin:4px 0 0">Ảnh vuông là đẹp nhất.</div>
+        </div>
+      </div>
+      <label class="stg-label" for="profile-name">Tên hiển thị</label>
+      <input class="stg-input" id="profile-name" type="text" placeholder="Tên hiển thị" />
+      <button class="stg-btn" id="profile-save">Lưu hồ sơ</button>
+      <div class="stg-msg" id="profile-msg"></div>
+    </div>
+
     <div class="stg-card">
       <div class="stg-title">Đổi mật khẩu</div>
       <div class="stg-desc">Nhập mật khẩu mới nếu bạn muốn thay mật khẩu mặc định. Không đổi cũng không sao.</div>
@@ -765,7 +791,7 @@ async function renderUser() {
 
   const meta = u.user_metadata || {};
   let name = meta.full_name || meta.name || email.split('@')[0];
-  const picture = meta.avatar_url || meta.picture || '';
+  let picture = meta.avatar || meta.avatar_url || meta.picture || '';
   // @shopee.com mặc định là IH; email ngoài chưa có trong bảng -> Member.
   let role = domainOf(email) === 'shopee.com' ? 'IH' : 'Member';
 
@@ -782,6 +808,9 @@ async function renderUser() {
     }
   } catch (e) { /* chưa có bảng / chưa cấp quyền -> dùng mặc định */ }
 
+  // Tên do user tự đặt trong Hồ sơ được ưu tiên cao nhất.
+  if (meta.display_name) name = meta.display_name;
+
   // Team vận hành = role KHÔNG chứa "QA" -> ẩn CSAT reports / Form ẩn danh / ZTP.
   // (vẫn thấy CSAT Overview, CQM, Repeated Agent, Short Link)
   const isQA = /qa/i.test(rawRole) || rawRole === 'Trainer';  // Trainer xem như QA
@@ -793,13 +822,11 @@ async function renderUser() {
     document.getElementById('csat-admin').style.display = 'block';
   }
 
-  document.getElementById('hero-name').textContent = name;
   document.getElementById('hero-email').textContent = email;
   document.getElementById('hero-role').textContent = role;
-  document.getElementById('sidebar-name').textContent = name;
   document.getElementById('sidebar-role').textContent = role;
-  fillAvatar(document.getElementById('hero-av'), name, email, picture);
-  fillAvatar(document.getElementById('sidebar-av'), name, email, picture);
+  CUR = { name: name, email: email, picture: picture };
+  refreshHeader();
 
   // Xác thực xong -> hiện nội dung.
   document.body.style.visibility = 'visible';
@@ -1110,6 +1137,96 @@ async function saveCsat() {
   loadCsat();
 }
 document.getElementById('csat-save').addEventListener('click', saveCsat);
+
+/* ================================================================= *
+ *  Hồ sơ: câu chào theo giờ, đổi tên hiển thị + ảnh đại diện        *
+ * ================================================================= */
+var CUR = { name: '', email: '', picture: '' };
+
+function greetingText() {
+  const h = new Date().getHours();
+  let pool;
+  if (h >= 5 && h < 11) pool = [
+    'Sáng rồi nha, đã sẵn sàng "crush" mọi task chưa?',
+    'Chào buổi sáng! Một ngày năng suất đang chờ 💪',
+    'Sáng tươi rồi, nhâm nhi ly cà phê rồi chiến nào ☕'
+  ];
+  else if (h >= 11 && h < 14) pool = [
+    'Trưa rồi, nạp năng lượng rồi chiến tiếp nha!',
+    'Giữa ngày rồi, nghỉ tay chút cho khỏe nhé 🍜'
+  ];
+  else if (h >= 14 && h < 18) pool = [
+    'Chiều rồi, giữ nhịp chiến nốt nào!',
+    'Buổi chiều nhiều năng lượng, cố lên nha 🔥'
+  ];
+  else pool = [
+    'Tối rồi, ráng nốt rồi nghỉ ngơi nha 🌙',
+    'Chào buổi tối! Nhớ chăm sóc bản thân nữa nhé ✨',
+    'Muộn rồi đó, đừng thức khuya quá nha 💜'
+  ];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function refreshHeader() {
+  document.getElementById('hero-greeting').textContent = greetingText();
+  document.getElementById('hero-name').textContent = CUR.name + ' ơi! ✨';
+  document.getElementById('sidebar-name').textContent = CUR.name;
+  fillAvatar(document.getElementById('hero-av'), CUR.name, CUR.email, CUR.picture);
+  fillAvatar(document.getElementById('sidebar-av'), CUR.name, CUR.email, CUR.picture);
+  const pn = document.getElementById('profile-name');
+  if (pn && !pn.value) pn.value = CUR.name;
+  fillAvatar(document.getElementById('profile-preview'), CUR.name, CUR.email, CUR.picture);
+}
+
+async function updateMeta(patch) {
+  const { data: { user } } = await sb.auth.getUser();
+  const meta = (user && user.user_metadata) || {};
+  return sb.auth.updateUser({ data: Object.assign({}, meta, patch) });
+}
+
+function resizeImage(file, size, cb) {
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const c = document.createElement('canvas');
+      c.width = size; c.height = size;
+      const ctx = c.getContext('2d');
+      const scale = Math.max(size / img.width, size / img.height);
+      const w = img.width * scale, hh = img.height * scale;
+      ctx.drawImage(img, (size - w) / 2, (size - hh) / 2, w, hh);
+      cb(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfileName() {
+  const msg = document.getElementById('profile-msg'); msg.className = 'stg-msg';
+  const nm = (document.getElementById('profile-name').value || '').trim();
+  if (!nm) { msg.textContent = 'Nhập tên hiển thị.'; msg.classList.add('err'); return; }
+  msg.textContent = 'Đang lưu...';
+  const { error } = await updateMeta({ display_name: nm });
+  if (error) { msg.textContent = 'Lỗi: ' + error.message; msg.classList.add('err'); return; }
+  CUR.name = nm; refreshHeader();
+  msg.textContent = 'Đã lưu hồ sơ!'; msg.classList.add('ok');
+}
+document.getElementById('profile-save').addEventListener('click', saveProfileName);
+
+document.getElementById('profile-file').addEventListener('change', function () {
+  const file = this.files && this.files[0];
+  const msg = document.getElementById('profile-msg'); msg.className = 'stg-msg';
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { msg.textContent = 'Vui lòng chọn file ảnh.'; msg.classList.add('err'); return; }
+  msg.textContent = 'Đang xử lý ảnh...';
+  resizeImage(file, 160, async function (dataUrl) {
+    const { error } = await updateMeta({ avatar: dataUrl });
+    if (error) { msg.textContent = 'Lỗi lưu ảnh: ' + error.message; msg.classList.add('err'); return; }
+    CUR.picture = dataUrl; refreshHeader();
+    msg.textContent = 'Đã cập nhật ảnh đại diện!'; msg.classList.add('ok');
+  });
+});
 
 renderUser();
 loadQuote();
