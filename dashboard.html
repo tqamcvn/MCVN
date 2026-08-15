@@ -784,7 +784,7 @@ async function renderUser() {
 
   // Team vận hành = role KHÔNG chứa "QA" -> ẩn CSAT reports / Form ẩn danh / ZTP.
   // (vẫn thấy CSAT Overview, CQM, Repeated Agent, Short Link)
-  const isQA = /qa/i.test(rawRole);
+  const isQA = /qa/i.test(rawRole) || rawRole === 'Trainer';  // Trainer xem như QA
   if (!isQA) document.body.classList.add('ops-view');
 
   // Chỉ TL/Sup TQA mới thấy ô cập nhật số CSAT.
