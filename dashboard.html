@@ -493,6 +493,9 @@ body.theme-dark {
 /* ---- Cài đặt / đổi mật khẩu ---- */
 .settings-view { display: none; flex: 1; padding: 28px 40px; }
 .settings-view.visible { display: block; }
+
+/* Team vận hành (role không có "QA") -> ẩn các mục chỉ dành cho QA */
+body.ops-view .qa-only { display: none !important; }
 .stg-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-card); padding: 22px; max-width: 460px; box-shadow: var(--shadow-sm); }
 .stg-title { font-size: 15px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; }
 .stg-desc { font-size: 12.5px; color: var(--gray-500); margin-bottom: 16px; line-height: 1.5; }
@@ -524,7 +527,7 @@ body.theme-dark {
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <span class="nav-text">Home</span>
   </a>
-  <a class="nav-item" href="#" data-tool="csat" data-src="" data-title="CSAT reports" title="CSAT reports">
+  <a class="nav-item qa-only" href="#" data-tool="csat" data-src="" data-title="CSAT reports" title="CSAT reports">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span class="nav-text">CSAT reports</span>
   </a>
@@ -538,11 +541,11 @@ body.theme-dark {
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     <span class="nav-text">Repeated Agent</span>
   </a>
-  <a class="nav-item" href="/form-an-danh/" data-tool="form" data-src="/form-an-danh/" data-title="Form ẩn danh" title="Form ẩn danh">
+  <a class="nav-item qa-only" href="/form-an-danh/" data-tool="form" data-src="/form-an-danh/" data-title="Form ẩn danh" title="Form ẩn danh">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <span class="nav-text">Form ẩn danh</span>
   </a>
-  <a class="nav-item" href="#" data-tool="ztp" data-src="" data-title="ZTP Governance" title="ZTP Governance">
+  <a class="nav-item qa-only" href="#" data-tool="ztp" data-src="" data-title="ZTP Governance" title="ZTP Governance">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     <span class="nav-text">ZTP Governance</span>
   </a>
@@ -778,6 +781,11 @@ async function renderUser() {
       if (data.role) { rawRole = data.role; role = data.role + (data.team ? ' · ' + data.team : ''); }
     }
   } catch (e) { /* chưa có bảng / chưa cấp quyền -> dùng mặc định */ }
+
+  // Team vận hành = role KHÔNG chứa "QA" -> ẩn CSAT reports / Form ẩn danh / ZTP.
+  // (vẫn thấy CSAT Overview, CQM, Repeated Agent, Short Link)
+  const isQA = /qa/i.test(rawRole);
+  if (!isQA) document.body.classList.add('ops-view');
 
   // Chỉ TL/Sup TQA mới thấy ô cập nhật số CSAT.
   const CSAT_ADMIN_ROLES = ['TL TQA', 'Acting TL TQA', 'Sup TQA'];
