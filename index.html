@@ -149,14 +149,14 @@
     <button class="primary-btn" id="login-btn">Đăng nhập</button>
 
     <div class="alt-row">
-      <button class="link-btn" id="email-login-link">Đăng nhập lần đầu / Quên mật khẩu?</button>
+      <button class="link-btn" id="email-login-link">Quên mật khẩu?</button>
     </div>
 
     <div class="org-note">
       <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
       </svg>
-      Chỉ dùng email <strong>@shopeemobile-external.com</strong> hoặc <strong>@shopee.com</strong>.
+      Đăng nhập bằng <strong>email công ty Shopee</strong> của bạn.
     </div>
 
     <div class="error-note" id="error-note"></div>
@@ -256,7 +256,7 @@ async function passwordLogin() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
     show('login-form');
-    err('error-note', 'Sai email hoặc mật khẩu. Nếu là lần đầu (hoặc quên mật khẩu), bấm "Đăng nhập lần đầu / Quên mật khẩu?".');
+    err('error-note', 'Sai email hoặc mật khẩu. Nếu quên mật khẩu, bấm "Quên mật khẩu?" bên dưới.');
     return;
   }
   afterSession(data.session);
