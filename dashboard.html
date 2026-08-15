@@ -727,13 +727,6 @@ body.ops-view .qa-only { display: none !important; }
       <div class="stg-msg" id="set-msg"></div>
     </div>
 
-    <div class="stg-card" id="csat-admin" style="display:none;margin-top:20px">
-      <div class="stg-title">Cập nhật số CSAT</div>
-      <div class="stg-desc">Mở web app (Apps Script) → copy toàn bộ JSON → dán vào đây → Lưu. Mọi người sẽ thấy số mới ngay.</div>
-      <textarea class="stg-input" id="csat-input" rows="5" placeholder='{"updated":"...","values":[[...]]}' style="resize:vertical;font-family:ui-monospace,monospace;font-size:12px"></textarea>
-      <button class="stg-btn" id="csat-save">Lưu số CSAT</button>
-      <div class="stg-msg" id="csat-msg"></div>
-    </div>
   </section>
 </main>
 
@@ -815,12 +808,6 @@ async function renderUser() {
   // (vẫn thấy CSAT Overview, CQM, Repeated Agent, Short Link)
   const isQA = /qa/i.test(rawRole) || rawRole === 'Trainer';  // Trainer xem như QA
   if (!isQA) document.body.classList.add('ops-view');
-
-  // Chỉ TL/Sup TQA mới thấy ô cập nhật số CSAT.
-  const CSAT_ADMIN_ROLES = ['TL TQA', 'Acting TL TQA', 'Sup TQA'];
-  if (CSAT_ADMIN_ROLES.includes(rawRole)) {
-    document.getElementById('csat-admin').style.display = 'block';
-  }
 
   document.getElementById('hero-email').textContent = email;
   document.getElementById('hero-role').textContent = role;
@@ -1114,29 +1101,6 @@ async function loadCsat() {
     }
   } catch (e) { /* giữ cache */ }
 }
-
-async function saveCsat() {
-  const msg = document.getElementById('csat-msg');
-  msg.className = 'stg-msg';
-  let parsed;
-  try { parsed = JSON.parse(document.getElementById('csat-input').value.trim()); }
-  catch (e) { msg.textContent = 'Nội dung dán vào không phải JSON hợp lệ.'; msg.classList.add('err'); return; }
-  if (!parsed || !Array.isArray(parsed.values)) {
-    msg.textContent = 'JSON thiếu trường "values" — hãy copy đúng toàn bộ nội dung web app.'; msg.classList.add('err'); return;
-  }
-  msg.textContent = 'Đang lưu...';
-  const { error } = await sb.from('csat_data').upsert({
-    id: 1,
-    raw: { updated: parsed.updated || null, values: parsed.values },
-    sheet_updated: parsed.updated || null,
-    saved_at: new Date().toISOString()
-  });
-  if (error) { msg.textContent = 'Lỗi lưu: ' + error.message; msg.classList.add('err'); return; }
-  msg.textContent = 'Đã cập nhật số CSAT!'; msg.classList.add('ok');
-  document.getElementById('csat-input').value = '';
-  loadCsat();
-}
-document.getElementById('csat-save').addEventListener('click', saveCsat);
 
 /* ================================================================= *
  *  Hồ sơ: câu chào theo giờ, đổi tên hiển thị + ảnh đại diện        *
