@@ -732,7 +732,8 @@ const barValueLabels={
         if(!isScore && v===0) return; // don't clutter with ZTP 0
         ctx.save();
         ctx.font='700 10px -apple-system,Segoe UI,sans-serif';
-        ctx.fillStyle=isScore?'#c7d2fe':'#fca5a5';
+        var _lt=document.body.classList.contains('light');
+        ctx.fillStyle=isScore?(_lt?'#3b5bdb':'#c7d2fe'):(_lt?'#c0392b':'#fca5a5');
         ctx.textAlign='center';
         ctx.textBaseline='bottom';
         ctx.fillText(isScore?v:('ZTP '+v), bar.x, bar.y-3);
