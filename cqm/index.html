@@ -67,7 +67,7 @@ tbody tr:last-child td{border-bottom:none;}
 .p-Critical{background:rgba(220,38,38,.2);color:#fca5a5;}
 .p-High{background:rgba(245,158,11,.2);color:#fcd34d;}
 .p-Medium{background:rgba(79,110,247,.2);color:#a5b4fc;}
-.p-Monitor{background:rgba(100,116,139,.2);color:#94a3b8;}
+.p-Monitor{background:rgba(100,116,139,.2);color:var(--dim);}
 .ztp-tag{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;}
 .w-tag{background:rgba(79,110,247,.15);color:#a5b4fc;padding:1px 6px;border-radius:3px;font-size:10px;}
 
@@ -87,7 +87,7 @@ tbody tr:last-child td{border-bottom:none;}
 .abw{flex:1;height:7px;background:var(--border);border-radius:3px;overflow:hidden;}
 .abf{height:100%;border-radius:3px;}
 .apct{font-size:11px;width:42px;text-align:right;}
-.ascore{font-size:10px;color:#94a3b8;white-space:nowrap;padding-left:8px;min-width:120px;text-align:right;}
+.ascore{font-size:10px;color:var(--dim);white-space:nowrap;padding-left:8px;min-width:120px;text-align:right;}
 .ascore span{display:inline-block;background:rgba(79,110,247,.15);color:#818cf8;border:1px solid rgba(79,110,247,.3);padding:1px 5px;border-radius:3px;font-size:10px;}
 .ascore .w10{background:rgba(245,158,11,.12);color:#fbbf24;border-color:rgba(245,158,11,.3);}
 .ascore .w30{background:rgba(220,38,38,.12);color:#f87171;border-color:rgba(220,38,38,.3);}
@@ -99,14 +99,48 @@ tbody tr:last-child td{border-bottom:none;}
   .g2,.g3,.g12{grid-template-columns:1fr;}
   .kpi-row{grid-template-columns:repeat(2,1fr);}
 }
-/* Đồng bộ sáng/tối theo dashboard — đảo màu tự động, không đụng chức năng */
-html[data-tqa="light"]{ background:#f4f6fa; filter: invert(1) hue-rotate(180deg); }
-html[data-tqa="light"] img { filter: invert(1) hue-rotate(180deg); }
+
+/* ===== GIAO DIỆN SÁNG (bảng màu thật, không đảo màu) ===== */
+body.light{
+  --bg:#f4f6fa; --card:#ffffff; --card2:#f1f3f7; --border:#e2e6ee;
+  --text:#1a2233; --dim:#5b657a; --muted:#8a93a5;
+}
+body.light .hdr{ background:linear-gradient(135deg,#ffffff,#f1f3f7); }
+body.light .hdr h1{ color:var(--text); }
+body.light .kv{ color:var(--text); }
+body.light tbody td{ border-bottom-color:var(--border); }
+body.light tbody tr:hover td{ background:rgba(79,110,247,.06); }
+body.light .p-Critical, body.light .ztp-tag{ color:#c0392b; }
+body.light .p-High{ color:#b7791f; }
+body.light .p-Medium, body.light .w-tag{ color:#3b5bdb; }
+body.light .p-Monitor{ color:var(--muted); }
 </style>
 <script>
+/* Đọc màu hiện tại (theo theme) cho biểu đồ Chart.js */
+function CC(){
+  var cs = getComputedStyle(document.body);
+  var g = function(n){ return (cs.getPropertyValue(n) || '').trim(); };
+  return { dim: g('--dim') || '#94a3b8', muted: g('--muted') || '#64748b', grid: g('--border') || '#2a2d3e' };
+}
+
+/* Bật/tắt sáng-tối (dùng chính bảng màu sáng ở trên) */
+var _light = false;
+function toggleTheme(){
+  _light = !_light;
+  document.body.classList.toggle('light', _light);
+  var b = document.getElementById('cqm-theme-btn'); if (b) b.textContent = _light ? '☀️' : '🌙';
+  try { if (typeof D !== 'undefined' && D) applyGlobalFilter(); } catch(e){}  // vẽ lại biểu đồ với màu mới
+}
+
+/* Đồng bộ theo dashboard: bấm hộ nút theme */
 (function(){
-  function apply(t){ document.documentElement.setAttribute('data-tqa', t === 'light' ? 'light' : 'dark'); }
-  try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){}
+  function apply(t){
+    var wantLight = (t === 'light');
+    var isLight = document.body && document.body.classList.contains('light');
+    if (document.body && wantLight !== isLight && typeof toggleTheme === 'function') toggleTheme();
+  }
+  function init(){ try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){} }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   window.addEventListener('message', function(e){ if (e.data && e.data.type === 'tqa-theme') apply(e.data.theme); });
 })();
 </script>
@@ -120,7 +154,7 @@ html[data-tqa="light"] img { filter: invert(1) hue-rotate(180deg); }
     <div class="sub">LLM + Common + Senior &nbsp;|&nbsp; W23-W27 2026 &nbsp;|&nbsp; 59,174 cases &nbsp;|&nbsp; 271 agents</div>
   </div>
   <div class="hdr-r">
-    <span id="filterLabel" style="font-size:11px;color:#64748b;display:none">Showing: <strong id="filterLabelText" style="color:#a5b4fc"></strong></span>
+    <span id="filterLabel" style="font-size:11px;color:var(--muted);display:none">Showing: <strong id="filterLabelText" style="color:#a5b4fc"></strong></span>
     <select class="fs" id="fCard" onchange="applyGlobalFilter()">
       <option value="">All Cards</option>
       <option value="LLM">LLM</option>
@@ -131,6 +165,7 @@ html[data-tqa="light"] img { filter: invert(1) hue-rotate(180deg); }
     <select class="fs" id="fTeam" onchange="applyGlobalFilter()"><option value="">All Teams</option></select>
     <a href="#" onclick="exportReport(event)" style="display:none;background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;align-items:center;gap:5px">⬇ Export Excel</a>
     <span class="badge red" id="ztpBadge">ZTP: 26</span>
+    <button id="cqm-theme-btn" onclick="toggleTheme()" title="Chuyển sáng/tối" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center">🌙</button>
   </div>
 </div>
 
@@ -163,7 +198,7 @@ html[data-tqa="light"] img { filter: invert(1) hue-rotate(180deg); }
       </tr></thead>
       <tbody id="coachBody"></tbody>
     </table></div>
-    <div id="coachEmpty" style="display:none;color:#64748b;text-align:center;padding:16px">Không có agent nào cần coaching 🎉</div>
+    <div id="coachEmpty" style="display:none;color:var(--muted);text-align:center;padding:16px">Không có agent nào cần coaching 🎉</div>
   </div>
   <div class="card" style="margin-bottom:var(--g)"><div class="ct">Weekly Score Trend <span class="hint">avg score | ZTP</span></div><canvas id="cWeek"></canvas></div>
   <div class="g2">
@@ -576,7 +611,7 @@ function applyGlobalFilter(){
       const last=wtA[wtA.length-1], prev=wtA[wtA.length-2];
       const d=last.ztp_count-prev.ztp_count;
       const arrow=d>0?'▲':d<0?'▼':'▬';
-      const col=d>0?'#ef4444':d<0?'#22c55e':'#94a3b8';
+      const col=d>0?'#ef4444':d<0?'#22c55e':CC().dim;
       ztpDelta=` | <span style="color:${col}">W${last.week} ${arrow}${d>0?'+':''}${d} vs W${prev.week}</span>`;
     }
     if(el('kpiZtpSub')) el('kpiZtpSub').innerHTML = 'Target: 0'+(w?' | W'+w:ztpDelta);
@@ -633,7 +668,7 @@ function renderCoaching(){
     const d=wt[wt.length-1].ztp_count-wt[wt.length-2].ztp_count;
     dir = d>0 ? `<span style="color:#ef4444">ZTP ▲ tệ hơn (+${d})</span>`
         : d<0 ? `<span style="color:#22c55e">ZTP ▼ tốt hơn (${d})</span>`
-              : `<span style="color:#94a3b8">ZTP ▬ không đổi</span>`;
+              : `<span style="color:var(--dim)">ZTP ▬ không đổi</span>`;
   }
   const title=document.getElementById('coachTitle');
   const hint=document.getElementById('coachHint');
@@ -644,17 +679,17 @@ function renderCoaching(){
   empty.style.display='none';
   body.innerHTML=list.map((a,i)=>{
     const sc=a.avg_score>=98?'#22c55e':a.avg_score>=95?'#4f6ef7':a.avg_score>=90?'#f59e0b':'#ef4444';
-    const zs=a.ztp_count>0?`<span class="ztp-tag">ZTP x${a.ztp_count}</span>`:'<span style="color:#64748b">—</span>';
+    const zs=a.ztp_count>0?`<span class="ztp-tag">ZTP x${a.ztp_count}</span>`:'<span style="color:var(--muted)">—</span>';
     const why=a.top_fail_attr?a.top_fail_attr:(a.ztp_count>0?'ZTP violation':'—');
     const whyShort=why.length>42?why.slice(0,42)+'…':why;
     const pb=`<span class="pb p-${a.coaching_priority}">${a.coaching_priority}</span>`;
     return`<tr>
-      <td style="color:#64748b">${i+1}</td>
-      <td style="font-weight:600;color:#e2e8f0">${a.display_name}</td>
-      <td style="color:#94a3b8">${a.team}</td>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td style="font-weight:600;color:var(--text)">${a.display_name}</td>
+      <td style="color:var(--dim)">${a.team}</td>
       <td style="color:${sc};font-weight:700">${a.avg_score}</td>
       <td>${zs}</td>
-      <td style="color:#cbd5e1" title="${why}">${whyShort}</td>
+      <td style="color:var(--dim)" title="${why}">${whyShort}</td>
       <td>${pb}</td>
     </tr>`;
   }).join('');
@@ -672,10 +707,10 @@ function renderWeekChart(){
 
     {label:'ZTP',data:W.map(w=>w.ztp_count),backgroundColor:W.map(w=>sel&&w.week===sel?'rgba(220,38,38,1)':'rgba(220,38,38,.6)'),yAxisID:'y3',borderRadius:2}
   ]},options:{responsive:true,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{backgroundColor:'#1e2130'}},
+    plugins:{legend:{labels:{color:CC().dim,font:{size:11}}},tooltip:{backgroundColor:'#1e2130'}},
     scales:{
-      x:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},
-      y:{position:'left',min:94,max:100,ticks:{color:'#64748b'},grid:{color:'#2a2d3e'},title:{display:true,text:'Score',color:'#64748b',font:{size:10}}},
+      x:{ticks:{color:CC().muted},grid:{color:CC().grid}},
+      y:{position:'left',min:94,max:100,ticks:{color:CC().muted},grid:{color:CC().grid},title:{display:true,text:'Score',color:CC().muted,font:{size:10}}},
 
       y3:{position:'right',suggestedMax:Math.ceil(maxZtp*1.25),beginAtZero:true,display:false}
     }
@@ -720,7 +755,7 @@ function renderDistChart(){
   window._dc=new Chart(ctx,{type:'doughnut',data:{
     labels:['Score 0','Score <80','Score 80-89','Score 90-94','Score 95-99','Score 100'],
     datasets:[{data:Object.values(b),backgroundColor:['#dc2626','#ef4444','#f59e0b','#3b82f6','#4f6ef7','#22c55e'],borderWidth:0}]
-  },options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:10},padding:8}},tooltip:{backgroundColor:'#1e2130'}}}});
+  },options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:CC().dim,font:{size:10},padding:8}},tooltip:{backgroundColor:'#1e2130'}}}});
 }
 
 function renderCatChart(){
@@ -730,7 +765,7 @@ function renderCatChart(){
   const colors=cats.map(c=>c.avg_score>=98?'#22c55e':c.avg_score>=97?'#4f6ef7':'#f59e0b');
   window._cc=new Chart(ctx,{type:'bar',data:{labels:cats.map(c=>c.category.length>18?c.category.slice(0,18)+'...':c.category),datasets:[{label:'Avg Score',data:cats.map(c=>c.avg_score),backgroundColor:colors,borderRadius:3}]},
     options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130',callbacks:{afterLabel:c=>`Cases: ${cats[c.dataIndex].total_cases.toLocaleString()} | ZTP: ${cats[c.dataIndex].ztp_count}`}}},
-    scales:{x:{min:88,max:100,ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}
+    scales:{x:{min:88,max:100,ticks:{color:CC().muted},grid:{color:CC().grid}},y:{ticks:{color:CC().dim,font:{size:10}},grid:{display:false}}}}
   });
 }
 
@@ -776,7 +811,7 @@ function renderAttrChart(){
   const colors=attrs.map(a=>a.fail_rate>=10?'#dc2626':a.fail_rate>=5?'#f59e0b':a.fail_rate>=2?'#4f6ef7':'#22c55e');
   window._ac=new Chart(ctx,{type:'bar',data:{labels:attrs.map(a=>a.label.length>32?a.label.slice(0,32)+'...':a.label),datasets:[{label:'Fail Rate %',data:attrs.map(a=>a.fail_rate),backgroundColor:colors,borderRadius:3}]},
     options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130',callbacks:{afterLabel:c=>`Fail: ${attrs[c.dataIndex].fail_count.toLocaleString()} / ${attrs[c.dataIndex].total_applicable.toLocaleString()}`}}},
-    scales:{x:{ticks:{color:'#64748b',callback:v=>v+'%'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}
+    scales:{x:{ticks:{color:CC().muted,callback:v=>v+'%'},grid:{color:CC().grid}},y:{ticks:{color:CC().dim,font:{size:10}},grid:{display:false}}}}
   });
 }
 
@@ -838,19 +873,19 @@ function renderAgents(){
   document.getElementById('agBody').innerHTML=page.map(a=>{
     const sc=a.avg_score>=98?'#22c55e':a.avg_score>=95?'#4f6ef7':a.avg_score>=90?'#f59e0b':'#ef4444';
     const sw=Math.max(0,(a.avg_score-60)/40*100);
-    const zs=a.ztp_count>0?`<span class="ztp-tag">ZTP x${a.ztp_count}</span>`:'<span style="color:#64748b">0</span>';
+    const zs=a.ztp_count>0?`<span class="ztp-tag">ZTP x${a.ztp_count}</span>`:'<span style="color:var(--muted)">0</span>';
     const pb=`<span class="pb p-${a.coaching_priority}">${a.coaching_priority}</span>`;
     const te=a.top_fail_attr.length>28?a.top_fail_attr.slice(0,28)+'...':a.top_fail_attr;
-    const b9c=a.below_90_rate>5?'#ef4444':a.below_90_rate>2?'#f59e0b':'#94a3b8';
+    const b9c=a.below_90_rate>5?'#ef4444':a.below_90_rate>2?'#f59e0b':CC().dim;
     return`<tr>
-      <td style="font-weight:500;color:#e2e8f0">${a.display_name}</td>
-      <td style="color:#94a3b8">${a.team}</td>
+      <td style="font-weight:500;color:var(--text)">${a.display_name}</td>
+      <td style="color:var(--dim)">${a.team}</td>
       <td>${a.total_cases.toLocaleString()}</td>
       <td style="color:${sc};font-weight:700">${a.avg_score}<div class="sbar"><div class="sbar-f" style="width:${sw}%;background:${sc}"></div></div></td>
       <td>${zs}</td>
       <td style="color:${b9c}">${a.below_90_rate}%</td>
       <td>${a.fail_per_case}</td>
-      <td style="color:#94a3b8;font-size:11px" title="${a.top_fail_attr}">${te}</td>
+      <td style="color:var(--dim);font-size:11px" title="${a.top_fail_attr}">${te}</td>
       <td>${pb}</td>
     </tr>`;
   }).join('');
@@ -937,8 +972,8 @@ function renderTrend(){
     }).join('');
 
     return`<tr>
-      <td style="font-weight:500;color:#e2e8f0">${a.display_name}</td>
-      <td style="color:#94a3b8">${a.team}</td>
+      <td style="font-weight:500;color:var(--text)">${a.display_name}</td>
+      <td style="color:var(--dim)">${a.team}</td>
       ${cells}
       <td style="color:${avgC};font-weight:700">${a.overall_avg}</td>
       <td>${spark}</td>
@@ -982,7 +1017,7 @@ function renderSolution(){
   const maxFails=data[0]?.fail_cases||1;
 
   if(!data.length){
-    document.getElementById('solBody').innerHTML=`<tr><td colspan="7" style="color:#64748b;text-align:center;padding:20px">No solution fails${selW?' in W'+selW:''}</td></tr>`;
+    document.getElementById('solBody').innerHTML=`<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">No solution fails${selW?' in W'+selW:''}</td></tr>`;
     return;
   }
 
@@ -998,18 +1033,18 @@ function renderSolution(){
           return `<span class="w-tag" style="margin-right:3px">W${w}:${cnt}</span>`;
         }).join('');
 
-    const agentList=item.top_agents.map(a=>`<div style="color:#94a3b8;font-size:11px;white-space:nowrap">${a.name} <span style="color:#64748b">(${a.count})</span></div>`).join('');
+    const agentList=item.top_agents.map(a=>`<div style="color:var(--dim);font-size:11px;white-space:nowrap">${a.name} <span style="color:var(--muted)">(${a.count})</span></div>`).join('');
 
-    const cardBadge=item.card_type?`<span style="font-size:9px;color:#64748b;background:rgba(148,163,184,.12);padding:1px 4px;border-radius:2px;margin-left:4px">${item.card_type}</span>`:'';
+    const cardBadge=item.card_type?`<span style="font-size:9px;color:var(--muted);background:rgba(148,163,184,.12);padding:1px 4px;border-radius:2px;margin-left:4px">${item.card_type}</span>`:'';
 
     return`<tr>
       <td><span style="font-family:monospace;font-size:12px;color:#a5b4fc;background:rgba(79,110,247,.1);padding:2px 6px;border-radius:3px">${item.kb}</span>${cardBadge}</td>
-      <td style="color:#94a3b8">${item.l1}</td>
+      <td style="color:var(--dim)">${item.l1}</td>
       <td>
-        <span style="color:#e2e8f0;font-weight:700">${item.fail_cases}</span>
+        <span style="color:var(--text);font-weight:700">${item.fail_cases}</span>
         <div class="sbar" style="width:${barW}px"><div class="sbar-f" style="width:100%;background:#ef4444"></div></div>
       </td>
-      <td style="color:#94a3b8">${item.total_cases}</td>
+      <td style="color:var(--dim)">${item.total_cases}</td>
       <td style="color:${rateC};font-weight:600">${item.fail_rate}%</td>
       <td>${weekCells}</td>
       <td>${agentList}</td>
@@ -1025,7 +1060,7 @@ function renderZTP(){
   const ctx1=document.getElementById('cZtpW').getContext('2d');
   const barColors=D.week_trend.map(w=>sel&&w.week===sel?'#dc2626':w.ztp_count>=10?'#ef4444':'rgba(239,68,68,.5)');
   window._ztpW=new Chart(ctx1,{type:'bar',data:{labels:D.week_trend.map(w=>w.label),datasets:[{label:'ZTP',data:D.week_trend.map(w=>w.ztp_count),backgroundColor:barColors,borderRadius:4}]},
-    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130'}},scales:{x:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}}}}});
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130'}},scales:{x:{ticks:{color:CC().muted},grid:{color:CC().grid}},y:{ticks:{color:CC().muted},grid:{color:CC().grid}}}}});
 
   const byAgent={};
   filteredZtp.forEach(z=>{byAgent[z.agent_name]=(byAgent[z.agent_name]||0)+1;});
@@ -1038,10 +1073,10 @@ function renderZTP(){
       labels:sorted.map(x=>x[0].length>22?x[0].slice(0,22)+'...':x[0]),
       datasets:[{label:'ZTP Cases',data:sorted.map(x=>x[1]),backgroundColor:sorted.map(x=>x[1]>=5?'#dc2626':x[1]>=2?'#f59e0b':'#4f6ef7'),borderRadius:4}]
     },options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130'}},
-      scales:{x:{ticks:{color:'#64748b'},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#94a3b8',font:{size:11}},grid:{display:false}}}}});
+      scales:{x:{ticks:{color:CC().muted},grid:{color:CC().grid}},y:{ticks:{color:CC().dim,font:{size:11}},grid:{display:false}}}}});
   } else {
     ctx2.clearRect(0,0,ctx2.canvas.width,ctx2.canvas.height);
-    ctx2.fillStyle='#64748b';ctx2.font='13px sans-serif';ctx2.textAlign='center';
+    ctx2.fillStyle=CC().muted;ctx2.font='13px sans-serif';ctx2.textAlign='center';
     ctx2.fillText('No ZTP cases'+(sel?' in W'+sel:''),ctx2.canvas.width/2,ctx2.canvas.height/2);
   }
 
@@ -1076,18 +1111,18 @@ function renderZTP(){
         const errorTags=z.ok_qs.map(q=>`<span style="display:inline-block;background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);padding:1px 5px;border-radius:3px;font-size:10px;margin:1px">${q.q}: ${q.label}</span>`).join('');
         const okTags=z.error_qs.map(q=>`<span style="display:inline-block;background:rgba(34,197,94,.1);color:#86efac;border:1px solid rgba(34,197,94,.25);padding:1px 5px;border-radius:3px;font-size:10px;margin:1px">${q.q}</span>`).join('');
         const kb=z.kb_code?`<span style="font-family:monospace;font-size:11px;color:#a5b4fc;background:rgba(79,110,247,.1);padding:2px 5px;border-radius:3px">${z.kb_code}</span>`:`<span style="color:#4a5568">—</span>`;
-        const caseId=`<span style="font-family:monospace;font-size:10px;color:#64748b">${z.case_id}</span>`;
+        const caseId=`<span style="font-family:monospace;font-size:10px;color:var(--muted)">${z.case_id}</span>`;
         return`<tr>
           <td>${caseId}</td>
-          <td style="font-weight:500;color:#e2e8f0">${z.agent_name}</td>
+          <td style="font-weight:500;color:var(--text)">${z.agent_name}</td>
           <td><span class="w-tag">W${z.week}</span></td>
-          <td style="color:#94a3b8">${z.level1_case_category_name}</td>
+          <td style="color:var(--dim)">${z.level1_case_category_name}</td>
           <td>${kb}</td>
           <td style="max-width:400px;line-height:1.8">${errorTags||'<span style="color:#4a5568">—</span>'}</td>
           <td style="max-width:160px">${okTags||'<span style="color:#4a5568">—</span>'}</td>
         </tr>`;
       }).join('')
-    : `<tr><td colspan="7" style="color:#64748b;text-align:center;padding:20px">No ZTP cases${sel?' in W'+sel:''}</td></tr>`;
+    : `<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">No ZTP cases${sel?' in W'+sel:''}</td></tr>`;
 
   // ZTP error frequency chart (Pass = mắc lỗi)
   if(window._ztpErr)window._ztpErr.destroy();
@@ -1105,11 +1140,11 @@ function renderZTP(){
       datasets:[{label:'Số cases',data:errSorted.map(e=>e[1]),backgroundColor:errColors,borderRadius:4}]
     },options:{indexAxis:'y',responsive:true,
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2130',callbacks:{title:c=>errSorted[c[0].dataIndex][0]}}},
-      scales:{x:{ticks:{color:'#64748b',stepSize:1},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#94a3b8',font:{size:11}},grid:{display:false}}}
+      scales:{x:{ticks:{color:CC().muted,stepSize:1},grid:{color:CC().grid}},y:{ticks:{color:CC().dim,font:{size:11}},grid:{display:false}}}
     }});
   } else {
     ctxErr.clearRect(0,0,ctxErr.canvas.width,ctxErr.canvas.height);
-    ctxErr.fillStyle='#64748b';ctxErr.font='13px sans-serif';ctxErr.textAlign='center';
+    ctxErr.fillStyle=CC().muted;ctxErr.font='13px sans-serif';ctxErr.textAlign='center';
     ctxErr.fillText('No ZTP errors'+(sel?' in W'+sel:''),ctxErr.canvas.width/2,40);
   }
 
