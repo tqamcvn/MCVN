@@ -88,7 +88,7 @@ body{
 .team-btn{
   border:2px solid var(--border);border-radius:12px;
   padding:10px 6px;cursor:pointer;text-align:center;
-  background:#fff;font-family:'Be Vietnam Pro',sans-serif;
+  background:var(--white);font-family:'Be Vietnam Pro',sans-serif;
   transition:border-color .18s,background .18s,color .18s;
   user-select:none;
 }
@@ -123,13 +123,13 @@ body{
 .toggle input{opacity:0;width:0;height:0;}
 .toggle-slider{
   position:absolute;inset:0;
-  background:#d0d3e4;border-radius:24px;cursor:pointer;
+  background:var(--border);border-radius:24px;cursor:pointer;
   transition:background .25s;
 }
 .toggle-slider::before{
   content:'';position:absolute;
   width:18px;height:18px;border-radius:50%;
-  background:#fff;top:3px;left:3px;
+  background:var(--white);top:3px;left:3px;
   transition:transform .25s;
   box-shadow:0 1px 4px rgba(0,0,0,.15);
 }
@@ -148,7 +148,7 @@ body{
   width:100%;padding:11px 14px;
   border:1.5px solid var(--border);border-radius:10px;
   font-family:'Be Vietnam Pro',sans-serif;font-size:13px;
-  color:var(--text);background:#fff;outline:none;
+  color:var(--text);background:var(--white);outline:none;
   transition:border-color .2s;
 }
 .input-field:focus{border-color:var(--purple);}
@@ -212,7 +212,7 @@ body{
 .action-btn{
   display:flex;align-items:center;gap:6px;
   padding:8px 14px;border-radius:8px;border:1.5px solid var(--border);
-  background:#fff;font-family:'Be Vietnam Pro',sans-serif;
+  background:var(--white);font-family:'Be Vietnam Pro',sans-serif;
   font-size:12px;font-weight:600;color:var(--mid);cursor:pointer;
   transition:all .2s;
 }
@@ -224,7 +224,7 @@ body{
 .attach-area{
   border:1.5px dashed var(--border);border-radius:10px;
   padding:12px 14px;margin-bottom:12px;
-  background:#fafbff;cursor:pointer;transition:border-color .2s,background .2s;
+  background:var(--white);cursor:pointer;transition:border-color .2s,background .2s;
 }
 .attach-area:hover{border-color:var(--purple);background:var(--purple-mid);}
 
@@ -278,7 +278,7 @@ body{
   width:100%;padding:11px 14px;
   border:1.5px solid var(--border);border-radius:10px;
   font-family:'Be Vietnam Pro',sans-serif;font-size:13px;
-  color:var(--text);background:#fff;outline:none;
+  color:var(--text);background:var(--white);outline:none;
   appearance:none;cursor:pointer;
   transition:border-color .2s;
 }
@@ -368,7 +368,7 @@ body{
 }
 .modal-overlay.open{opacity:1;pointer-events:all;}
 .modal{
-  background:#fff;border-radius:20px;width:100%;max-width:500px;
+  background:var(--white);border-radius:20px;width:100%;max-width:500px;
   box-shadow:0 8px 40px rgba(20,20,40,.18);
   overflow:hidden;transform:translateY(16px);
   transition:transform .25s;
@@ -415,7 +415,7 @@ body{
 .btn-confirm:hover{opacity:.88;}
 .btn-edit{
   padding:12px 18px;border-radius:10px;
-  border:1.5px solid var(--border);background:#fff;
+  border:1.5px solid var(--border);background:var(--white);
   font-family:'Be Vietnam Pro',sans-serif;font-size:13px;font-weight:600;
   color:var(--mid);cursor:pointer;transition:all .2s;
 }
@@ -436,10 +436,10 @@ body{
 }
 .rv-area{resize:vertical;min-height:80px;line-height:1.6;}
 .rv-input:focus,.rv-area:focus{
-  border-color:var(--purple);background:#fff;
+  border-color:var(--purple);background:var(--white);
   box-shadow:0 0 0 3px rgba(108,71,255,.08);
 }
-.rv-input::placeholder,.rv-area::placeholder{color:#c0c4d8;font-style:italic;}
+.rv-input::placeholder,.rv-area::placeholder{color:var(--light);font-style:italic;}
 .rv-pencil{
   position:absolute;top:50%;right:10px;transform:translateY(-50%);
   font-size:13px;color:var(--light);pointer-events:none;
@@ -510,7 +510,7 @@ body{
 /* tooltip card that follows the spotlight */
 #spot-card{
   position:absolute;
-  background:#fff;
+  background:var(--white);
   border-radius:16px;
   padding:0;
   width:280px;
@@ -548,7 +548,7 @@ body{
 .spot-btns{display:flex;gap:8px;}
 #spot-skip{
   padding:8px 13px;border-radius:8px;
-  border:1.5px solid var(--border);background:#fff;
+  border:1.5px solid var(--border);background:var(--white);
   font-family:'Be Vietnam Pro',sans-serif;font-size:12px;
   font-weight:600;color:var(--mid);cursor:pointer;
   transition:all .2s;
@@ -585,7 +585,7 @@ body{
 
 #float-bubble{
   position:fixed;bottom:94px;right:16px;
-  background:#fff;border-radius:14px 14px 4px 14px;
+  background:var(--white);border-radius:14px 14px 4px 14px;
   padding:10px 14px;font-size:12px;font-weight:600;
   color:var(--text);box-shadow:0 4px 18px rgba(0,0,0,.13);
   max-width:210px;line-height:1.5;
@@ -603,14 +603,33 @@ body{
 /* keep card overflow visible during spotlight */
 .card.spotlight-active{overflow:visible !important;}
 
-/* Đồng bộ sáng/tối theo dashboard — đảo màu tự động, không đụng chức năng */
-html[data-tqa="dark"]{ background:#141517; filter: invert(1) hue-rotate(180deg); }
-html[data-tqa="dark"] img { filter: invert(1) hue-rotate(180deg); }
+/* ===== GIAO DIỆN TỐI (bảng màu thật, không đảo màu) ===== */
+body.dark{
+  --bg:#141517; --white:#1e2023;
+  --purple:#8b6dff; --purple-light:#241d3a; --purple-mid:rgba(139,109,255,.16);
+  --green:#2fd196; --green-light:#16281f;
+  --text:#eaeef2; --mid:#a2a9b6; --light:#6b7280;
+  --border:#2b2f36; --red:#ff6b7f;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+body.dark{ background:var(--bg); }
 </style>
 <script>
+/* Bật/tắt tối-sáng (mặc định sáng; tối = thêm class .dark) */
+var _dark = false;
+function toggleTheme(){
+  _dark = !_dark;
+  document.body.classList.toggle('dark', _dark);
+}
+/* Đồng bộ theo dashboard */
 (function(){
-  function apply(t){ document.documentElement.setAttribute('data-tqa', t === 'light' ? 'light' : 'dark'); }
-  try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){}
+  function apply(t){
+    var wantDark = (t === 'dark');
+    var isDark = document.body && document.body.classList.contains('dark');
+    if (document.body && wantDark !== isDark && typeof toggleTheme === 'function') toggleTheme();
+  }
+  function init(){ try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){} }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   window.addEventListener('message', function(e){ if (e.data && e.data.type === 'tqa-theme') apply(e.data.theme); });
 })();
 </script>
