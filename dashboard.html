@@ -932,7 +932,8 @@ function currentTheme() {
   return document.body.classList.contains('theme-dark') ? 'dark' : 'light';
 }
 function withTheme(src) {
-  return src + (src.includes('?') ? '&' : '?') + 'theme=' + currentTheme();
+  // thêm theme + mốc thời gian để iframe luôn lấy bản tool mới nhất (tránh kẹt cache)
+  return src + (src.includes('?') ? '&' : '?') + 'theme=' + currentTheme() + '&_=' + Date.now();
 }
 
 function showTool(src, title) {
