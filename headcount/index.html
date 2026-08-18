@@ -635,6 +635,25 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
       </div>
     </div>
 
+    <!-- CSAT × HC by Team / Queue -->
+    <div>
+      <div class="sh"><span class="sl">CSAT × HC theo Team / Queue</span>
+        <div class="sd"></div>
+        <select id="csat-hc-dim" onchange="renderCsatHc()"
+          style="background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:11px;padding:4px 9px;border-radius:5px;font-family:var(--sans);cursor:pointer">
+          <option value="overall">Overall</option>
+          <option value="team" selected>By Team</option>
+          <option value="queue">By Queue</option>
+        </select></div>
+      <div class="panel">
+        <div class="ph"><span class="pt">Volume = số agent · % HC = tỷ lệ agent active · CSAT = good/(good+bad)</span></div>
+        <div class="pb"><table>
+          <thead id="csathc-thead"></thead>
+          <tbody id="csathc-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1390,6 +1409,77 @@ function renderHCCSAT(){
   if(view==='week')  renderHCCSATWeekTable(grpF);
   else if(view==='month') renderHCCSATMonthTable(grpF);
   else renderHCCSATAgent(grpF);
+  renderCsatHc();
+}
+
+// ── CSAT × HC by Team / Queue ──────────────────────────────
+function teamOfFull(ft){
+  if(ft.indexOf('CA')===0) return 'CALL';
+  if(ft.indexOf('CH')===0) return 'CHAT';
+  if(ft.indexOf('MT')===0) return 'MULTI';
+  return 'Other';   // DP, ...
+}
+function queueOfFull(ft){
+  if(/\.B$/.test(ft))   return 'Buyer';
+  if(/\.S$/.test(ft))   return 'Seller';
+  if(/\.LOG$/.test(ft)) return 'Log';
+  return 'All';       // MT, *.Sen
+}
+function renderCsatHc(){
+  const dimEl=document.getElementById('csat-hc-dim'); if(!dimEl) return;
+  const dim=dimEl.value;
+  const csActive=CS_AGENTS.filter(a=>a.is_hc);
+  const mngActive=MNG_AGENTS.filter(a=>a.is_hc);
+  const totalHc=csActive.length+mngActive.length;
+
+  let entities, volOf, denom, entOfFull;
+  if(dim==='overall'){
+    entities=['Overall']; denom=totalHc;
+    volOf=()=>totalHc; entOfFull=()=>'Overall';
+  } else if(dim==='team'){
+    const present=[...new Set(csActive.map(a=>a.team))];
+    entities=['CALL','CHAT','MULTI','EMAIL'].filter(t=>present.includes(t));
+    if(mngActive.length) entities.push('MNG');
+    denom=totalHc;
+    volOf=e=> e==='MNG'?mngActive.length:csActive.filter(a=>a.team===e).length;
+    entOfFull=ft=>teamOfFull(ft);
+  } else {
+    const present=[...new Set(csActive.map(a=>a.queue))];
+    entities=['Buyer','Seller','Log','All'].filter(q=>present.includes(q));
+    denom=csActive.length;
+    volOf=e=>csActive.filter(a=>a.queue===e).length;
+    entOfFull=ft=>queueOfFull(ft);
+  }
+
+  // CSAT per entity per week
+  const acc={};
+  CSAT_DATA.tq_week.forEach(r=>{
+    const ent = dim==='overall' ? 'Overall' : entOfFull(r.full_team);
+    if(entities.indexOf(ent)<0) return;
+    const k=ent+'|'+r.report_week;
+    if(!acc[k]) acc[k]={good:0,bad:0};
+    acc[k].good+=r.good; acc[k].bad+=r.bad;
+  });
+  const pc=(g,b)=> (g+b)? Math.round(g/(g+b)*1000)/10 : null;
+
+  const label = dim==='overall'?'Overall':dim==='team'?'Team':'Queue';
+  document.getElementById('csathc-thead').innerHTML=`<tr>
+    <th>${label}</th><th class="c">Volume</th><th class="c">% HC</th>
+    ${WEEKS7.map(w=>`<th class="c">${WL7[w]}</th>`).join('')}
+  </tr>`;
+  document.getElementById('csathc-tbody').innerHTML=entities.map(e=>{
+    const vol=volOf(e);
+    const share=denom?Math.round(vol/denom*1000)/10:0;
+    const color = dim==='team' ? (TC[e]||'var(--t1)') : 'var(--t1)';
+    return `<tr>
+      <td class="b" style="color:${color}">${e}</td>
+      <td class="c mn">${vol}</td>
+      <td class="c mn" style="color:var(--t2)">${share}%</td>
+      ${WEEKS7.map(w=>{const o=acc[e+'|'+w];const v=o?pc(o.good,o.bad):null;
+        return v!==null?`<td class="c">${hcCsatPill(v,null)}</td>`
+                       :'<td class="c" style="color:var(--t3)">—</td>';}).join('')}
+    </tr>`;
+  }).join('');
 }
 
 // ── BY AGENT ───────────────────────────────────────────────
