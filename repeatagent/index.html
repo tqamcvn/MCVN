@@ -1200,7 +1200,7 @@ function sparkBars(a){
 function editField(email,field,val){const a=G.curAgents.find(x=>x.email===email);if(a){a[field]=val;renderReport();}}
 function renderTable(){
   const search=(document.getElementById('srch')?.value||'').toLowerCase();
-  const all=getFilteredAgents().filter(a=>a.repeated>=1);
+  const all=getFilteredAgents();   // giữ Rolling L6W: gồm cả agent lặp ≥1 và agent xuất hiện nhưng lặp 0 lần
   const data=[...all].filter(r=>!search||r.name.toLowerCase().includes(search))
     .sort((a,b)=>{
       let va=sortCol==='wow'?(a.wow??-999):(a[sortCol]??-999);
@@ -1210,7 +1210,7 @@ function renderTable(){
     });
   document.getElementById('tbl-cnt').textContent=data.length;
   lastTableRows=data;
-  const lb=l=>l>=3?`<span class="badge b4">L${l}</span>`:l===2?`<span class="badge b2">L${l}</span>`:`<span class="badge b1">L${l}</span>`;
+  const lb=l=>l>=3?`<span class="badge b4">L${l}</span>`:l===2?`<span class="badge b2">L${l}</span>`:l===1?`<span class="badge b1">L${l}</span>`:`<span class="badge" style="background:var(--s2);color:var(--t3)">L0</span>`;
   const mb=m=>m==='New Join'?`<span class="badge bnew">New</span>`:m==='Rejoin'?`<span class="badge brej">Rejoin</span>`:`<span class="badge bcon">Consec</span>`;
   const bk=b=>`<span class="badge bb${b||'U'}">${b||'U'}</span>`;
   document.getElementById('aTbody').innerHTML=data.map(r=>{
