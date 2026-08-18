@@ -542,6 +542,14 @@ function parseRepeat(s){if(!s||s===''||s==='-')return null;const n=parseInt(s);r
 // ================================================================
 // PARSE FILE 1: AGENT LIST WEEKLY
 // ================================================================
+// Suy ra kênh (Chat/Call/Multi) từ mã team: CH.*→Chat, CA.*→Call, MT→Multi
+function chanFromTeam(code){
+  var c=(code||'').trim().toUpperCase();
+  if(c.indexOf('CA')===0) return 'Call';
+  if(c.indexOf('MT')===0) return 'Multi';
+  if(c.indexOf('CH')===0) return 'Chat';
+  return '';
+}
 function parseAgentList(raw){
   const lines = raw.trim().split('\n').map(l=>l.split('\t'));
   if(!lines.length) return {rows:[],error:'Empty'};
@@ -587,7 +595,7 @@ function parseAgentList(raw){
       bottom_monthly:(r[colBot]||'').trim(),
       treatment:(r[colTreat]||'').trim()||'—',
       repeats_weekly:(r[colRepW]||'').trim(),
-      team_label:(r[colTeamL]||'').trim()||'Chat',
+      team_label: chanFromTeam(r[colTeam]) || (r[colTeamL]||'').trim() || 'Chat',
       root_cause:'', reason_next:''
     });
   }
