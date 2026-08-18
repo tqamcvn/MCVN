@@ -972,19 +972,21 @@ function updateWeekLabels(){
 // ================================================================
 // KPIs
 // ================================================================
+// Một agent/row có qua bộ lọc Team + Usertype hiện tại không (dùng chung cho KPI, chart, summary, report)
+function agentPass(a){
+  if(activeTab!=='all'&&a.team_label!==activeTab)return false;
+  if(activeUT!=='all'&&a.usertype!==activeUT)return false;
+  return true;
+}
 function getFilteredAgents(){
-  return G.curAgents.filter(a=>{
-    if(activeTab!=='all'&&a.team_label!==activeTab)return false;
-    if(activeUT!=='all'&&a.usertype!==activeUT)return false;
-    return true;
-  });
+  return G.curAgents.filter(agentPass);
 }
 function setTab(t,btn){activeTab=t;document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyFilters();}
 function applyFilters(){
   // BUG cũ: activeUT không bao giờ được gán từ dropdown => lọc Usertype vô tác dụng
   const _ut=document.getElementById('filter-ut');
   activeUT = _ut ? (_ut.value||'all') : 'all';
-  renderKPIs(); renderTable();
+  renderKPIs(); renderSummaryTables(); renderCharts(); renderTable(); renderReport();
 }
 
 function renderKPIs(){
@@ -1020,7 +1022,7 @@ function renderKPIs(){
 // SUMMARY TABLE
 // ================================================================
 function buildSummaryData(){
-  const all=G.curAgents;
+  const all=getFilteredAgents();
   const wks=G.csatWeeks;
 
   function grpStats(agents){
@@ -1131,7 +1133,7 @@ function renderCharts(){
 
   Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};
 
-  const rep=G.curAgents.filter(a=>a.repeated>=1);
+  const rep=getFilteredAgents().filter(a=>a.repeated>=1);
   const sorted=[...rep].sort((a,b)=>(a.csat_cur||0)-(b.csat_cur||0));
   const names=sorted.map(a=>a.name.split(' ').slice(-2).join(' '));
 
@@ -1150,13 +1152,16 @@ function renderCharts(){
   }
 
   // Trend
-  const snaps=Object.entries(G.snapshots).map(([w,rows])=>({
-    week:+w,
-    total:rows.filter(r=>r.repeated>=1).length,
-    l1:rows.filter(r=>r.repeated===1).length,
-    l2:rows.filter(r=>r.repeated===2).length,
-    l3:rows.filter(r=>r.repeated>=3).length,
-  })).sort((a,b)=>a.week-b.week);
+  const snaps=Object.entries(G.snapshots).map(([w,rows])=>{
+    const fr=rows.filter(agentPass);    // lọc snapshot theo Team/Usertype để Trend nhảy theo filter
+    return {
+      week:+w,
+      total:fr.filter(r=>r.repeated>=1).length,
+      l1:fr.filter(r=>r.repeated===1).length,
+      l2:fr.filter(r=>r.repeated===2).length,
+      l3:fr.filter(r=>r.repeated>=3).length,
+    };
+  }).sort((a,b)=>a.week-b.week);
 
   const cT=document.getElementById('cTrend');
   if(cT&&snaps.length){
@@ -1378,8 +1383,8 @@ function renderReport(){
   if(!G.ready)return;
   const W=G.curWeek;
   const wks=G.csatWeeks;
-  const rep=G.curAgents.filter(a=>a.repeated>=1);
-  const prev=G.prevAgents.filter(a=>a.repeated>=1);
+  const rep=getFilteredAgents().filter(a=>a.repeated>=1);
+  const prev=G.prevAgents.filter(a=>a.repeated>=1&&agentPass(a));
   const withPrev=rep.filter(a=>a.wow!=null);
   const up=withPrev.filter(a=>a.wow>0);
   const down=withPrev.filter(a=>a.wow<0);
