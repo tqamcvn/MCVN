@@ -1830,5 +1830,17 @@ function toggleTheme(){
 })();
 
 </script>
+<script>
+/* Đồng bộ sáng/tối theo dashboard TQA — bấm hộ nút theme gốc */
+(function(){
+  function apply(t){
+    var wantLight = (t === 'light');
+    var isLight = document.body && document.body.classList.contains('light');
+    if (document.body && wantLight !== isLight && typeof toggleTheme === 'function') toggleTheme();
+  }
+  try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){}
+  window.addEventListener('message', function(e){ if (e.data && e.data.type === 'tqa-theme') apply(e.data.theme); });
+})();
+</script>
 </body>
 </html>
