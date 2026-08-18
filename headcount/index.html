@@ -596,6 +596,14 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
         <option value="LWD 1–2M">LWD 1–2 tháng</option>
       </select>
     </div>
+    <div class="fg"><span class="fl">Team</span>
+      <select id="hc-csat-team" onchange="renderHCCSAT()">
+        <option value="ALL">All Teams</option>
+        <option value="CALL">CALL</option>
+        <option value="CHAT">CHAT</option>
+        <option value="MULTI">MULTI</option>
+      </select>
+    </div>
   </div>
   <div class="wrap">
 
@@ -686,6 +694,7 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
 let CS_AGENTS=[], MNG_AGENTS=[], BATCH_DATA=[];
 let CSAT_DATA={tq_week:[],tq_month:[],bat_month:[],overall_week:[]};
 let HC_CSAT={grp_week:[],grp_month:[],grp_agents:{},overall_week:[]};
+let HC_VIEW=HC_CSAT;   // HC×CSAT current view (all teams, or a team-filtered rebuild)
 // ============================================================
 // CONSTANTS
 // ============================================================
@@ -1025,7 +1034,7 @@ function renderMNG(){
     {l:'Total MNG HC',v:tot,s:'Active today',c:'o'},
     {l:'Working',v:hcMng.filter(a=>a.status==='Working').length,s:`${tot?Math.round(agents.filter(a=>a.status==='Working').length/tot*100):0}% of MNG`,c:'g'},
     {l:'Training',v:hcMng.filter(a=>a.status==='On training').length,s:'On training',c:'w'},
-    {l:'Pending',v:hcMng.filter(a=>a.status==='Pending').length,s:'Long-term leave',c:'a'},
+    {l:'Long Leave',v:agents.filter(a=>a.status==='Long-term leave').length,s:'Long-term leave',c:'a'},
     {l:'QA Group',v:hcMng.filter(a=>a.grp==='QA').length,s:'TQA + Trainer',c:'p'},
   ].map(k=>`<div class="kpi ${k.c}"><div class="kl">${k.l}</div><div class="kv">${k.v}</div><div class="ks">${k.s}</div></div>`).join('');
 
@@ -1094,6 +1103,7 @@ function renderAgents(){
   });
   agPageN=0;
   agSearch();
+  refreshBatch();          // batch table follows the Team/Queue filter
 }
 
 function agSearch(){
@@ -1399,9 +1409,35 @@ function hcCsatPill(v,ref){
   return `<span style="font-family:var(--mono);font-weight:700;color:${c}">${v}%</span>${ds}`;
 }
 
+function pctOf(g,b){ return (g+b)?Math.round(g/(g+b)*1000)/10:0; }
+
+// Rebuild the HC×CSAT dataset for a single team from grp_agents (which carries team).
+function buildTeamView(team){
+  const src=HC_CSAT, ga={}, gw=[], gm=[];
+  HC_GROUPS.forEach(g=>{
+    ga[g]=(src.grp_agents[g]||[]).filter(a=>a.team===team);
+    const byW={}, byM={};
+    ga[g].forEach(a=>(a.weekly||[]).forEach(x=>{
+      const m=x.week.slice(0,7)+'-01';
+      (byW[x.week]=byW[x.week]||{good:0,bad:0,ag:{}}); byW[x.week].good+=x.good; byW[x.week].bad+=x.bad; byW[x.week].ag[a.name]=1;
+      (byM[m]=byM[m]||{good:0,bad:0,ag:{}});        byM[m].good+=x.good;     byM[m].bad+=x.bad;     byM[m].ag[a.name]=1;
+    }));
+    Object.keys(byW).forEach(w=>{const o=byW[w];gw.push({hc_group:g,report_week:w,good:o.good,bad:o.bad,cases:o.good+o.bad,agents:Object.keys(o.ag).length,csat:pctOf(o.good,o.bad)});});
+    Object.keys(byM).forEach(m=>{const o=byM[m];gm.push({hc_group:g,report_month:m,good:o.good,bad:o.bad,cases:o.good+o.bad,agents:Object.keys(o.ag).length,csat:pctOf(o.good,o.bad)});});
+  });
+  const ow={};
+  CSAT_DATA.tq_week.forEach(r=>{ if(teamOfFull(r.full_team)!==team) return;
+    (ow[r.report_week]=ow[r.report_week]||{good:0,bad:0,cases:0}); ow[r.report_week].good+=r.good; ow[r.report_week].bad+=r.bad; ow[r.report_week].cases+=r.cases; });
+  const overall_week=Object.keys(ow).sort().map(w=>({report_week:w,good:ow[w].good,bad:ow[w].bad,cases:ow[w].cases,csat:pctOf(ow[w].good,ow[w].bad)}));
+  return {grp_agents:ga, grp_week:gw, grp_month:gm, overall_week:overall_week};
+}
+
 function renderHCCSAT(){
   const grpEl=document.getElementById('hc-csat-grp');
   const grpF=grpEl?grpEl.value:'ALL';
+  const teamEl=document.getElementById('hc-csat-team');
+  const teamF=teamEl?teamEl.value:'ALL';
+  HC_VIEW = (teamF==='ALL') ? HC_CSAT : buildTeamView(teamF);
   renderHCCSATCards(grpF);
   renderHCCSATInsight();
   renderHCCSATTrend(grpF);
@@ -1489,11 +1525,11 @@ function renderHCCSATAgent(grpF){
     <th>Agent</th><th>Group</th><th class="c">Overall</th>
     ${WEEKS7.map(w=>`<th class="c">${WL7[w]}</th>`).join('')}
   </tr>`;
-  const overall={}; HC_CSAT.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+  const overall={}; HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
   const groups=(!grpF||grpF==='ALL')?HC_GROUPS:[grpF];
   let rows='', n=0;
   groups.forEach(g=>{
-    (HC_CSAT.grp_agents[g]||[]).forEach(a=>{
+    (HC_VIEW.grp_agents[g]||[]).forEach(a=>{
       n++;
       const wmap={}; (a.weekly||[]).forEach(x=>{wmap[x.week]=x;});
       rows+=`<tr>
@@ -1512,11 +1548,11 @@ function renderHCCSATAgent(grpF){
 
 // ── CARDS ──────────────────────────────────────────────────
 function renderHCCSATCards(grpF){
-  const overall=HC_CSAT.overall_week;
+  const overall=HC_VIEW.overall_week;
   const latestOverall=overall.find(r=>r.report_week===LAST_FULL_WEEK)||{};
 
   const grpMap={};
-  HC_CSAT.grp_week.forEach(r=>{
+  HC_VIEW.grp_week.forEach(r=>{
     if(!grpMap[r.hc_group]||r.report_week>grpMap[r.hc_group].report_week)
       grpMap[r.hc_group]=r;
   });
@@ -1524,7 +1560,7 @@ function renderHCCSATCards(grpF){
   const showGrps=(!grpF||grpF==='ALL')?HC_GROUPS:[grpF];
   document.getElementById('hccsat-cards').innerHTML=showGrps.map(g=>{
     const r=grpMap[g];
-    const agents=HC_CSAT.grp_agents[g]||[];
+    const agents=HC_VIEW.grp_agents[g]||[];
     const csat=r?r.csat:null;
     const diff=(csat&&latestOverall.csat)?Math.round((csat-latestOverall.csat)*10)/10:null;
     const c=HC_COLORS[g];
@@ -1553,7 +1589,7 @@ function renderHCCSATCards(grpF){
 
 // ── MODAL ──────────────────────────────────────────────────
 function openGroupModal(grp){
-  const agents=HC_CSAT.grp_agents[grp]||[];
+  const agents=HC_VIEW.grp_agents[grp]||[];
   const c=HC_COLORS[grp];
   document.getElementById('modal-title').textContent=grp;
   document.getElementById('modal-title').style.color=c;
@@ -1561,7 +1597,7 @@ function openGroupModal(grp){
     `${agents.length} agents · Click agent để xem weekly trend`;
 
   const overall={};
-  HC_CSAT.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+  HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
 
   let body=`<div style="display:flex;flex-direction:column;gap:10px">`;
   agents.forEach(a=>{
@@ -1647,10 +1683,10 @@ function closeModal(e){
 function renderHCCSATInsight(){
   const insights=[];
   const overall={};
-  HC_CSAT.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+  HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
 
   HC_GROUPS.forEach(g=>{
-    const rows=HC_CSAT.grp_week.filter(r=>r.hc_group===g)
+    const rows=HC_VIEW.grp_week.filter(r=>r.hc_group===g)
       .sort((a,b)=>a.report_week.localeCompare(b.report_week));
     if(rows.length<2) return;
     const first=rows[0], last=rows[rows.length-1];
@@ -1686,9 +1722,9 @@ function renderHCCSATInsight(){
 // ── TREND ──────────────────────────────────────────────────
 function renderHCCSATTrend(grpF){
   const overall={};
-  HC_CSAT.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+  HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
   const grpMap={};
-  HC_CSAT.grp_week.forEach(r=>{
+  HC_VIEW.grp_week.forEach(r=>{
     if(!grpMap[r.hc_group]) grpMap[r.hc_group]={};
     grpMap[r.hc_group][r.report_week]=r.csat;
   });
@@ -1743,12 +1779,12 @@ function renderHCCSATWeekTable(grpF){
     ${WEEKS7.map(w=>`<th class="c">${WL7[w]}</th>`).join('')}
   </tr>`;
   const map={};
-  HC_CSAT.grp_week.forEach(r=>{map[r.hc_group+'|'+r.report_week]=r;});
+  HC_VIEW.grp_week.forEach(r=>{map[r.hc_group+'|'+r.report_week]=r;});
   const overall={};
-  HC_CSAT.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+  HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
   const weekGrps=(!grpF||grpF==='ALL')?HC_GROUPS:[grpF];
   document.getElementById('hccsat-tbody').innerHTML=weekGrps.map(g=>{
-    const agents=(HC_CSAT.grp_agents[g]||[]).length;
+    const agents=(HC_VIEW.grp_agents[g]||[]).length;
     return `<tr>
       <td class="b" style="color:${HC_COLORS[g]};cursor:pointer" onclick="openGroupModal('${g}')">${g} ↗</td>
       <td class="c mn" style="color:var(--t2)">${agents}</td>
@@ -1771,13 +1807,13 @@ function renderHCCSATMonthTable(grpF){
     <th class="c">MoM</th><th class="c">Good</th><th class="c">Bad</th>
   </tr>`;
   const map={};
-  HC_CSAT.grp_month.forEach(r=>{map[r.hc_group+'|'+r.report_month]=r;});
+  HC_VIEW.grp_month.forEach(r=>{map[r.hc_group+'|'+r.report_month]=r;});
   const monthGrps=(!grpF||grpF==='ALL')?HC_GROUPS:[grpF];
   document.getElementById('hccsat-tbody').innerHTML=monthGrps.map(g=>{
     const m7=map[g+'|2026-07-01'], m8=map[g+'|2026-08-01'];
     if(!m7&&!m8) return '';
     const mom=(m7?.csat&&m8?.csat)?Math.round((m8.csat-m7.csat)*10)/10:null;
-    const agents=(HC_CSAT.grp_agents[g]||[]).length;
+    const agents=(HC_VIEW.grp_agents[g]||[]).length;
     return `<tr>
       <td class="b" style="color:${HC_COLORS[g]};cursor:pointer" onclick="openGroupModal('${g}')">${g} ↗</td>
       <td class="c mn" style="color:var(--t2)">${agents}</td>
@@ -1798,11 +1834,39 @@ let batAll=[], batFiltered=[], batSortKey='batch_num', batSortAsc=false, batPage
 const BAT_PER_PAGE=30;
 let batFilterMode='all';
 
+function computeBatchData(agents){
+  const map={};
+  agents.forEach(a=>{
+    const b=(a.batch||'').trim(); if(!b) return;
+    const m=b.match(/K\s*0*([0-9]+)/i);
+    if(!map[b]) map[b]={batch:b,batch_num:m?+m[1]:NaN,total:0,working:0,training:0,pending:0,long_leave:0,stopped:0};
+    const o=map[b]; o.total++;
+    if(a.status==='Working')o.working++;
+    else if(a.status==='On training')o.training++;
+    else if(a.status==='Pending')o.pending++;
+    else if(a.status==='Long-term leave')o.long_leave++;
+    else if(a.status==='Stopped')o.stopped++;
+  });
+  return Object.values(map);
+}
+
+// Recompute the batch table from CS_AGENTS filtered by the Team/Queue dropdowns.
+function refreshBatch(){
+  const team =document.getElementById('ag-team').value;
+  const queue=document.getElementById('ag-queue').value;
+  const pool=CS_AGENTS.filter(a=>{
+    if(team!=='ALL'&&a.team!==team) return false;
+    if(queue!=='ALL'&&(a.queue||'')!==queue) return false;
+    return true;
+  });
+  batAll=computeBatchData(pool);
+  batApplyAll((document.getElementById('bat-search').value||'').toLowerCase());
+}
+
 function initBatch(){
-  batAll=[...BATCH_DATA];
   batFilterMode='all';
-  batFiltered=[...batAll];
-  batSortApply();
+  document.querySelectorAll('#tab-agents .tab-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()==='All'));
+  refreshBatch();
 }
 
 function batFilter(mode, btn){
