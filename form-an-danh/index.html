@@ -1,6 +1,29 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+<!-- TQA-AUTH-GUARD -->
+<script>document.documentElement.style.visibility="hidden";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function(){
+  var U="https://ytbcydursrpjqnaalhxc.supabase.co", K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
+  var DOMS=["shopeemobile-external.com","shopee.com"], QA_ONLY=true;
+  function deny(){ location.replace("/"); }
+  try{
+    var sb=window.supabase.createClient(U,K);
+    var s=(await sb.auth.getSession()).data.session;
+    if(!s){ deny(); return; }
+    var email=(s.user.email||"").toLowerCase();
+    if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
+    if(QA_ONLY){
+      var role=""; try{ var d=(await sb.from("app_users").select("role").eq("email",email).maybeSingle()).data; if(d) role=d.role||""; }catch(e){}
+      if(!(/qa/i.test(role)||role==="Trainer")){ deny(); return; }
+    }
+    document.documentElement.style.visibility="";
+  }catch(e){ deny(); }
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Báo cáo vấn đề — QA Team</title>
