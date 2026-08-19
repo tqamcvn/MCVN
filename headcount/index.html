@@ -1057,27 +1057,26 @@ function csFiltered(){
 function renderMNG(){
   const grpF=document.getElementById('mng-grp').value;
   const stF =document.getElementById('mng-status').value;
-  const agents=MNG_AGENTS.filter(a=>{
-    if(grpF!=='ALL'&&a.grp!==grpF) return false;
-    if(stF!=='ALL'&&a.status!==stF) return false;
-    // Apply same isActive logic for today
-    return isActive(a, TODAY_D, TODAY_D);
-  });
-  const hcMng=agents.filter(a=>HC_S.includes(a.status));
+  // Base roster: group-filtered + active today (incl Long-term leave), ignoring STATUS filter.
+  const base=MNG_AGENTS.filter(a=>(grpF==='ALL'||a.grp===grpF) && isActive(a,TODAY_D,TODAY_D));
+  const hcMng=base.filter(a=>HC_S.includes(a.status));   // active working HC
   const tot=hcMng.length;
+  // Display set for the grid & summary: apply STATUS filter (so "Long Leave" lists names).
+  const agents = (stF==='ALL') ? hcMng : base.filter(a=>a.status===stF);
   const grps=['QA','AM','Senior','TL','Supervisor','Other'];
 
+  // KPI cards = stable overview (not affected by the STATUS filter)
   document.getElementById('mng-kpi').innerHTML=[
     {l:'Total MNG HC',v:tot,s:'Active today',c:'o'},
-    {l:'Working',v:hcMng.filter(a=>a.status==='Working').length,s:`${tot?Math.round(agents.filter(a=>a.status==='Working').length/tot*100):0}% of MNG`,c:'g'},
+    {l:'Working',v:hcMng.filter(a=>a.status==='Working').length,s:`${tot?Math.round(hcMng.filter(a=>a.status==='Working').length/tot*100):0}% of MNG`,c:'g'},
     {l:'Training',v:hcMng.filter(a=>a.status==='On training').length,s:'On training',c:'w'},
-    {l:'Long Leave',v:agents.filter(a=>a.status==='Long-term leave').length,s:'Long-term leave',c:'a'},
+    {l:'Long Leave',v:base.filter(a=>a.status==='Long-term leave').length,s:'Long-term leave',c:'a'},
     {l:'QA Group',v:hcMng.filter(a=>a.grp==='QA').length,s:'TQA + Trainer',c:'p'},
   ].map(k=>`<div class="kpi ${k.c}"><div class="kl">${k.l}</div><div class="kv">${k.v}</div><div class="ks">${k.s}</div></div>`).join('');
 
   const activeGrps=grpF==='ALL'?grps:[grpF];
   document.getElementById('mng-grp-grid').innerHTML=activeGrps.map(grp=>{
-    const list=hcMng.filter(a=>a.grp===grp).sort((a,b)=>a.position.localeCompare(b.position));
+    const list=agents.filter(a=>a.grp===grp).sort((a,b)=>(a.position||'').localeCompare(b.position||''));
     if(!list.length) return '';
     const gc=GC[grp]||'var(--t2)';
     return `<div class="grp-card">
@@ -1100,17 +1099,18 @@ function renderMNG(){
     </div>`;
   }).join('');
 
-  const maxHC=Math.max(...grps.map(g=>hcMng.filter(a=>a.grp===g).length),1);
-  document.getElementById('mng-total-meta').textContent=`${tot} HC today`;
+  const denom=agents.length||1;
+  const maxHC=Math.max(...grps.map(g=>agents.filter(a=>a.grp===g).length),1);
+  document.getElementById('mng-total-meta').textContent=`${agents.length} HC today`;
   document.getElementById('mng-summary-tbody').innerHTML=grps.map(grp=>{
-    const list=hcMng.filter(a=>a.grp===grp);
+    const list=agents.filter(a=>a.grp===grp);
     if(!list.length) return '';
     const c=list.length;
     const gc=GC[grp]||'var(--t2)';
     return `<tr>
       <td class="b" style="color:${gc}">${grp}</td>
       <td class="c b mn">${c}</td>
-      <td class="c" title="${grp}: ${c} / ${tot} = ${tot?Math.round(c/tot*100):0}% of MNG HC"><span style="font-family:var(--mono);font-size:11px;color:#8b949e;border-bottom:1px dashed #484f58">${tot?Math.round(c/tot*100):0}%</span></td>
+      <td class="c" title="${grp}: ${c} / ${denom} = ${Math.round(c/denom*100)}% of view"><span style="font-family:var(--mono);font-size:11px;color:#8b949e;border-bottom:1px dashed #484f58">${Math.round(c/denom*100)}%</span></td>
       <td class="c" style="color:var(--g);font-family:var(--mono)">${list.filter(a=>a.status==='Working').length}</td>
       <td class="c" style="color:var(--w);font-family:var(--mono)">${list.filter(a=>a.status==='On training').length}</td>
       <td class="c" style="color:var(--acc);font-family:var(--mono)">${list.filter(a=>a.status==='Long-term leave').length}</td>
