@@ -190,10 +190,6 @@
                 <!-- Week Filter -->
                 <select id="filterWeek" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
                     <option value="ALL">Tất cả Tuần</option>
-                    <option value="W1">Tuần 1 (01 - 07)</option>
-                    <option value="W2">Tuần 2 (08 - 14)</option>
-                    <option value="W3">Tuần 3 (15 - 21)</option>
-                    <option value="W4">Tuần 4 (22 - 31)</option>
                 </select>
 
                 <!-- Queue Filter -->
@@ -792,10 +788,24 @@
             bSel.innerHTML = '<option value="ALL">Tất cả Batch</option>' +
                 batches.map(b => `<option value="${b}">Batch ${b}</option>`).join('');
             bSel.value = batches.includes(bPrev) ? bPrev : 'ALL';
+
+            // Tuần (theo cột report_week: "W" & WEEKNUM) — sắp xếp theo số tuần
+            const weeks = distinctWeeks();
+            const wSel = document.getElementById('filterWeek');
+            const wPrev = wSel.value;
+            wSel.innerHTML = '<option value="ALL">Tất cả Tuần</option>' +
+                weeks.map(w => `<option value="${w}">Tuần ${weekNum(w)} (${w})</option>`).join('');
+            wSel.value = weeks.includes(wPrev) ? wPrev : 'ALL';
         }
 
         function distinctBatches() {
             return [...new Set(ROSTER.map(r => r.batch).filter(Boolean))].sort();
+        }
+
+        function weekNum(w) { return parseInt(String(w).replace(/\D/g, ''), 10) || 0; }
+
+        function distinctWeeks() {
+            return [...new Set(RECORDS.map(r => r.week).filter(Boolean))].sort((a, b) => weekNum(a) - weekNum(b));
         }
 
         function applyFilters() {
@@ -1069,8 +1079,8 @@
             const ctxTrend = document.getElementById('trendChart').getContext('2d');
             if (trendChartObj) trendChartObj.destroy();
 
-            // Trend thực tế theo tuần (W1..W4) từ dữ liệu đã lọc
-            const weeks = ['W1', 'W2', 'W3', 'W4'];
+            // Trend thực tế theo tuần (report_week = "W"&WEEKNUM) từ dữ liệu đã lọc
+            const weeks = [...new Set(filteredRecords.map(r => r.week).filter(Boolean))].sort((a, b) => weekNum(a) - weekNum(b));
             const trendCsat = weeks.map(w => {
                 const rs = filteredRecords.filter(r => r.week === w);
                 const g = rs.reduce((a, i) => a + i.good, 0);
@@ -1084,7 +1094,7 @@
             trendChartObj = new Chart(ctxTrend, {
                 type: 'line',
                 data: {
-                    labels: ['W1 (01-07)', 'W2 (08-14)', 'W3 (15-21)', 'W4 (22-31)'],
+                    labels: weeks.map(w => 'Tuần ' + weekNum(w)),
                     datasets: [
                         {
                             label: 'CSAT Score (%)',
