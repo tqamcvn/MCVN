@@ -56,6 +56,48 @@
 </head>
 <body class="h-full font-sans text-slate-700 bg-slate-50/50 flex flex-col antialiased">
 
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/70 backdrop-blur-sm z-[60] hidden items-center justify-center">
+        <div class="flex flex-col items-center space-y-3">
+            <div class="w-9 h-9 border-[3px] border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+            <p id="loadingText" class="text-xs text-slate-500 font-medium">Đang tải dữ liệu…</p>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[70] hidden max-w-md w-[92%]">
+        <div class="bg-rose-600 text-white text-xs px-4 py-3 rounded-xl shadow-lg flex items-start space-x-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+            <span id="errorToastMsg" class="leading-relaxed"></span>
+            <button onclick="document.getElementById('errorToast').classList.add('hidden')" class="ml-auto text-white/80 hover:text-white">✕</button>
+        </div>
+    </div>
+
+    <!-- Config Modal: Web App URL -->
+    <div id="configModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[65] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
+            <div class="p-5 bg-slate-900 text-white flex items-center space-x-3">
+                <i data-lucide="database" class="w-5 h-5 text-amber-400"></i>
+                <div>
+                    <h3 class="font-bold text-sm">Nguồn dữ liệu (Google Apps Script)</h3>
+                    <p class="text-[11px] text-slate-400">Dán URL Web App (…/exec) để trang lấy data tự động.</p>
+                </div>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="text-slate-500 font-medium block mb-1.5">Web App URL</label>
+                    <input id="configUrlInput" type="url" placeholder="https://script.google.com/macros/s/XXXX/exec"
+                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-mono">
+                    <p class="text-[11px] text-slate-400 mt-1.5">URL sẽ được lưu trên trình duyệt này. Để tất cả mọi người thấy data, hãy gắn cứng URL vào file (nhờ dev cập nhật).</p>
+                </div>
+                <div class="flex justify-end space-x-2 pt-1">
+                    <button onclick="closeConfig()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-lg transition">Đóng</button>
+                    <button onclick="saveConfig()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition">Lưu &amp; Tải data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Top Navigation / Header -->
     <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -75,13 +117,24 @@
                 </div>
 
                 <!-- Right Action / Meeting Mode Toggle -->
-                <div class="flex items-center space-x-3">
-                    <button onclick="toggleView('meeting')" id="btnMeetingMode" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <div class="hidden md:flex flex-col items-end leading-tight mr-1">
+                        <span id="lastUpdated" class="text-[11px] text-slate-400">Đang tải dữ liệu…</span>
+                        <span id="dataCounts" class="text-[10px] text-slate-300"></span>
+                    </div>
+                    <button onclick="reloadData(true)" id="btnRefreshData" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-sm disabled:opacity-60" title="Kéo dữ liệu mới nhất từ Google Sheet ngay bây giờ">
+                        <i data-lucide="refresh-cw" class="w-4 h-4" id="refreshIcon"></i>
+                        <span>Cập nhật ngay</span>
+                    </button>
+                    <button onclick="toggleView('meeting')" id="btnMeetingMode" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
                         <i data-lucide="presentation" class="w-4 h-4 text-indigo-600"></i>
-                        <span>Meeting Review Mode</span>
+                        <span>Meeting Mode</span>
                     </button>
                     <button onclick="resetFilters()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition" title="Reset tất cả bộ lọc">
                         <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="openConfig()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition" title="Cấu hình nguồn dữ liệu (Web App URL)">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
@@ -100,8 +153,6 @@
                 <!-- Month Filter -->
                 <select id="filterMonth" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
                     <option value="ALL">Tất cả Tháng</option>
-                    <option value="2026-07">Tháng 07/2026</option>
-                    <option value="2026-08">Tháng 08/2026</option>
                 </select>
 
                 <!-- Week Filter -->
@@ -123,13 +174,6 @@
                 <!-- Batch Filter -->
                 <select id="filterBatch" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
                     <option value="ALL">Tất cả Batch</option>
-                    <option value="K167">Batch K167</option>
-                    <option value="K173">Batch K173</option>
-                    <option value="K179">Batch K179</option>
-                    <option value="K181">Batch K181</option>
-                    <option value="K186">Batch K186</option>
-                    <option value="K194">Batch K194</option>
-                    <option value="K203">Batch K203</option>
                 </select>
             </div>
 
@@ -566,115 +610,160 @@
     </div>
 
     <script>
-        // CS Chat Log Roster Data
-        const CS_ROSTER = [
-            { batch: "K167", startDate: "17/11/2025", endDate: "30/11/2025", onlineDate: "17/11/2025", name: "03. CH.Log Nguyen Phuong Trinh", email: "trinh.nguyenphuong2.cs@shopeemobile-external.com" },
-            { batch: "K167", startDate: "17/11/2025", endDate: "30/11/2025", onlineDate: "17/11/2025", name: "03. CH.Log Tran Quoc Viet", email: "viet.tranquoc2.cs@shopeemobile-external.com" },
-            { batch: "K167", startDate: "17/11/2025", endDate: "30/11/2025", onlineDate: "17/11/2025", name: "03. CH.Log Ha Gia Linh", email: "linh.hagia2.cs@shopeemobile-external.com" },
-            { batch: "K173", startDate: "15/12/2025", endDate: "28/12/2025", onlineDate: "15/12/2025", name: "03. CH.Log Ho Bich Phuong", email: "phuong.hobich2.cs@shopeemobile-external.com" },
-            { batch: "K173", startDate: "15/12/2025", endDate: "28/12/2025", onlineDate: "15/12/2025", name: "03. CH.LOG Kieu Anh Thu", email: "thu.kieuanh2.cs@shopeemobile-external.com" },
-            { batch: "K179", startDate: "26/01/2026", endDate: "08/02/2026", onlineDate: "26/01/2026", name: "03. CH.LOG Nguyen Thi Xuan Tuoi", email: "tuoi.nguyenthixuan2.cs@shopeemobile-external.com" },
-            { batch: "K179", startDate: "26/01/2026", endDate: "08/02/2026", onlineDate: "26/01/2026", name: "03. CH.LOG Nguyen Van Manh Dung", email: "dung.nguyenvanmanh2.cs@shopeemobile-external.com" },
-            { batch: "K181", startDate: "09/02/2026", endDate: "22/02/2026", onlineDate: "09/02/2026", name: "03. CH.LOG Nguyen Van Tuong", email: "tuong.nguyenvan2.cs@shopeemobile-external.com" },
-            { batch: "K181", startDate: "09/02/2026", endDate: "22/02/2026", onlineDate: "09/02/2026", name: "03. CH.LOG Nguyen Phuong Le", email: "le.nguyenphuong2.cs@shopeemobile-external.com" },
-            { batch: "K181", startDate: "09/02/2026", endDate: "22/02/2026", onlineDate: "09/02/2026", name: "03. CH.LOG Pham Thi Thuy Duong", email: "duong.phamthithuy3.cs@shopeemobile-external.com" },
-            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Nguyen Nhat Long", email: "long.nguyennhat2.cs@shopeemobile-external.com" },
-            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Bui Thuy Truc", email: "truc.buithuy2.cs@shopeemobile-external.com" },
-            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Le Thi Bich Loan", email: "loan.lethibich2.cs@shopeemobile-external.com" },
-            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Nguyen Thi Mai Phuong", email: "phuong.nguyenthimai2.cs@shopeemobile-external.com" },
-            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Dinh Thi Phuong Anh", email: "anh.dinhthiphuong2.cs@shopeemobile-external.com" },
-            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Duong Thi Ngoc Tram", email: "tram.duongthingoc2.cs@shopeemobile-external.com" },
-            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Vu Ngoc Bich Tram", email: "tram.vungocbich2.cs@shopeemobile-external.com" },
-            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Ngo Thi Thanh Ngan", email: "ngothithanhngan2.cs@shopeemobile-external.com" },
-            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Huynh Thi Bich Ngoc", email: "huynhthibichngoc2.cs@shopeemobile-external.com" },
-            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Nguyen Kieu Minh Thu", email: "nguyenkieuminhthu2.cs@shopeemobile-external.com" },
-            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Pham Diem Luyen", email: "phamdiemluyen2.cs@shopeemobile-external.com" },
-            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Truong Thi Huynh Nhu", email: "truongthihuynhnhu2.cs@shopeemobile-external.com" },
-            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Nguyen Dinh Tien", email: "nguyendinhtien2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Do Nguyen Thanh Huyen", email: "donguyenthanhhuyen2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Le Thi Tuyet Nhi", email: "lethituyetnhi2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Pham Nguyen Tuong Vy", email: "phamnguyentuongvy2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Vo Phuong Quyen", email: "vophuongquyen2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Tran Huu Dinh", email: "tranhuudinh2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Dao Thi Diem My", email: "daothidiemmy2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Nguyen Phuong Uyen", email: "nguyenphuonguyen2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Nguyen Huu Khang", email: "nguyenhuukhang2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Tran Ngoc Tuyet Nhi", email: "tranngoctuyetnhi2.cs@shopeemobile-external.com" },
-            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Le Thi Nhu Huynh", email: "lethinhuhuynh2.cs@shopeemobile-external.com" }
-        ];
+        /* =================================================================
+         *  DATA SOURCE
+         *  Mặc định đọc file tĩnh data.json cùng thư mục (Apps Script tự đẩy
+         *  vào repo mỗi 30 phút -> teamqamcvn.com/chat-log-part-time/data.json).
+         *  Không CORS, không cần đăng nhập.
+         *  (Có thể tạm override bằng ?api=<url> hoặc nút ⚙️ để test nguồn khác.)
+         * ================================================================= */
+        const DEFAULT_DATA_URL = "data.json";
 
-        // Raw Performance Log Sample Entries (Mapped to CS Log team)
-        const RAW_LOGS = [
-            { month: "2026-07", week: "W4", email: "long.nguyennhat2.cs@shopeemobile-external.com", good: 0, bad: 1, contact: 11, userType: "Buyer" },
-            { month: "2026-07", week: "W4", email: "dung.nguyenvanmanh2.cs@shopeemobile-external.com", good: 20, bad: 2, contact: 22, userType: "Seller" },
-            { month: "2026-08", week: "W2", email: "truc.buithuy2.cs@shopeemobile-external.com", good: 10, bad: 1, contact: 23, userType: "Seller" },
-            { month: "2026-07", week: "W2", email: "tuoi.nguyenthixuan2.cs@shopeemobile-external.com", good: 11, bad: 2, contact: 22, userType: "Buyer" },
-            { month: "2026-07", week: "W3", email: "tram.vungocbich2.cs@shopeemobile-external.com", good: 20, bad: 2, contact: 22, userType: "Buyer" },
-            { month: "2026-08", week: "W1", email: "nguyenphuonguyen2.cs@shopeemobile-external.com", good: 10, bad: 1, contact: 5, userType: "Buyer" },
-            { month: "2026-07", week: "W1", email: "viet.tranquoc2.cs@shopeemobile-external.com", good: 10, bad: 1, contact: 11, userType: "Seller" },
-            { month: "2026-07", week: "W2", email: "phuong.hobich2.cs@shopeemobile-external.com", good: 10, bad: 1, contact: 11, userType: "Buyer" },
-            { month: "2026-08", week: "W3", email: "linh.hagia2.cs@shopeemobile-external.com", good: 51, bad: 6, contact: 16, userType: "Seller" },
-            { month: "2026-07", week: "W4", email: "nguyendinhtien2.cs@shopeemobile-external.com", good: 12, bad: 3, contact: 6, userType: "Seller" },
-            { month: "2026-08", week: "W2", email: "trinh.nguyenphuong2.cs@shopeemobile-external.com", good: 51, bad: 6, contact: 25, userType: "Seller" },
-            { month: "2026-08", week: "W2", email: "phamnguyentuongvy2.cs@shopeemobile-external.com", good: 70, bad: 7, contact: 42, userType: "Seller" },
-            { month: "2026-07", week: "W2", email: "nguyenkieuminhthu2.cs@shopeemobile-external.com", good: 131, bad: 14, contact: 36, userType: "Buyer" },
-            { month: "2026-07", week: "W4", email: "huynhthibichngoc2.cs@shopeemobile-external.com", good: 20, bad: 2, contact: 94, userType: "Seller" }
-        ];
+        function getApiUrl() {
+            const p = new URLSearchParams(location.search).get('api');
+            if (p) { try { localStorage.setItem('chatlog_api_url', p); } catch (e) {} }
+            try { return localStorage.getItem('chatlog_api_url') || DEFAULT_DATA_URL; } catch (e) { return DEFAULT_DATA_URL; }
+        }
 
-        let masterData = [];
-        let filteredData = [];
+        // Live data (từ sheet thật)
+        let ROSTER = [];          // [{batch,startDate,endDate,onlineDate,name,email,workingStatus}]
+        let RECORDS = [];         // [{email,name,batch,month,week,weekDate,userType,good,bad,contact}]
+        let rosterByEmail = {};
+        let masterCsAll = [];     // aggregate theo CS trên TOÀN bộ records (cho modal)
+
+        let filteredRecords = [];
+        let filteredData = [];    // aggregate theo CS sau khi lọc (cho bảng CS / tier)
         let currentTierFilter = 'ALL';
-        
+
         // Chart instances
         let trendChartObj = null;
         let tierChartObj = null;
         let batchChartObj = null;
 
-        // Initialize App Data
-        function initData() {
-            masterData = CS_ROSTER.map((agent, index) => {
-                // Find matching raw logs or build deterministic baseline
-                const log = RAW_LOGS.find(l => l.email.toLowerCase() === agent.email.toLowerCase());
-                
-                // Deterministic variation based on index for consistent visualization
-                const baseContact = log ? log.contact : (110 + (index * 7) % 90);
-                const goodCnt = log ? log.good : Math.floor(baseContact * (0.82 + ((index % 5) * 0.03)));
-                const badCnt = log ? log.bad : Math.floor(baseContact * (0.02 + ((index % 4) * 0.02)));
-                const userType = log ? log.userType : (index % 2 === 0 ? "Buyer" : "Seller");
-                const month = (index % 3 === 0) ? "2026-08" : "2026-07";
-                const week = log ? (log.week || "W1") : `W${(index % 4) + 1}`;
+        function cleanName(n) {
+            return String(n || '').replace(/^\d+\.\s*CH\.?\s*LOG\s*/i, '').replace(/^\d+\.\s*/, '').trim();
+        }
 
-                // Calculate CSAT dynamically: Good / (Good + Bad) * 100
-                const evalCount = goodCnt + badCnt;
-                const csatScore = evalCount > 0 ? parseFloat(((goodCnt / evalCount) * 100).toFixed(1)) : 0;
-                const goodRate = csatScore; // Good Rate equals CSAT (%)
+        /* --------- Nạp dữ liệu từ Web App --------- */
+        async function reloadData(force) {
+            const url = getApiUrl();
+            if (!url) { openConfig(); setStatus('Chưa cấu hình nguồn dữ liệu'); return; }
 
-                let tier = "Average";
-                if (goodRate >= 88) tier = "Top";
-                else if (goodRate < 75) tier = "Low";
+            const btn = document.getElementById('btnRefreshData');
+            const icon = document.getElementById('refreshIcon');
+            if (icon) icon.classList.add('animate-spin');
+            if (btn) btn.disabled = true;
+            showLoading(force ? 'Đang kéo dữ liệu mới nhất từ Google Sheet…' : 'Đang tải dữ liệu…');
 
-                return {
-                    id: index + 1,
-                    name: agent.name.replace(/^03\.\s*CH\.LOG\s*/i, '').trim(),
-                    fullName: agent.name,
-                    email: agent.email,
-                    batch: agent.batch,
-                    startDate: agent.startDate,
-                    endDate: agent.endDate,
-                    onlineDate: agent.onlineDate,
-                    month: month,
-                    week: week,
-                    userType: userType,
-                    contact: baseContact,
-                    goodCnt: goodCnt,
-                    badCnt: badCnt,
-                    goodRate: goodRate,
-                    csat: csatScore,
-                    tier: tier
-                };
+            try {
+                const sep = url.includes('?') ? '&' : '?';
+                const full = url + sep + (force ? 'refresh=1&' : '') + 't=' + Date.now();
+                const res = await fetch(full, { method: 'GET', redirect: 'follow' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const json = await res.json();
+                if (json && json.error) throw new Error(json.error);
+                applyPayload(json);
+            } catch (err) {
+                showError('Không tải được data.json (' + err.message + '). Nếu là lần đầu: hãy chạy hàm setup trong Apps Script rồi chờ GitHub Pages build ~1-3 phút.');
+                setStatus('Lỗi tải dữ liệu');
+            } finally {
+                hideLoading();
+                if (icon) icon.classList.remove('animate-spin');
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function applyPayload(json) {
+            ROSTER = (json.roster || []).map(r => ({ ...r, email: String(r.email || '').toLowerCase().trim() }));
+            RECORDS = (json.logs || []).map(r => ({
+                email: String(r.email || '').toLowerCase().trim(),
+                name: r.name || '',
+                batch: r.batch || '',
+                month: r.month || '',
+                week: r.week || '',
+                weekDate: r.weekDate || '',
+                userType: r.userType || '',
+                good: Number(r.good) || 0,
+                bad: Number(r.bad) || 0,
+                contact: Number(r.contact) || 0
+            }));
+            rosterByEmail = {};
+            ROSTER.forEach(r => { rosterByEmail[r.email] = r; });
+
+            masterCsAll = aggregateByCs(RECORDS);
+
+            setStatus('Cập nhật lúc: ' + (json.lastUpdatedText || '—'));
+            const c = json.counts || {};
+            const dc = document.getElementById('dataCounts');
+            if (dc) dc.innerText = (c.roster != null ? c.roster + ' CS · ' : '') + (RECORDS.length) + ' dòng log';
+
+            populateFilters();
+            applyFilters();
+        }
+
+        function setStatus(text) {
+            const el = document.getElementById('lastUpdated');
+            if (el) el.innerText = text;
+        }
+
+        /* --------- Gom nhóm theo CS --------- */
+        function aggregateByCs(records) {
+            const map = {};
+            records.forEach(r => {
+                let a = map[r.email];
+                if (!a) {
+                    const info = rosterByEmail[r.email] || {};
+                    a = map[r.email] = {
+                        id: r.email,
+                        email: r.email,
+                        name: cleanName(info.name || r.name || r.email),
+                        fullName: info.name || r.name || '',
+                        batch: info.batch || r.batch || '—',
+                        startDate: info.startDate || '',
+                        endDate: info.endDate || '',
+                        onlineDate: info.onlineDate || '',
+                        good: 0, bad: 0, contact: 0,
+                        buyerContact: 0, sellerContact: 0
+                    };
+                }
+                a.good += r.good; a.bad += r.bad; a.contact += r.contact;
+                if (r.userType === 'Buyer') a.buyerContact += r.contact;
+                else if (r.userType === 'Seller') a.sellerContact += r.contact;
             });
+            return Object.values(map).map(a => {
+                const evalc = a.good + a.bad;
+                a.csat = evalc > 0 ? parseFloat(((a.good / evalc) * 100).toFixed(1)) : null;
+                a.goodRate = a.csat;
+                a.userType = a.sellerContact > a.buyerContact ? 'Seller' : 'Buyer';
+                if (a.csat === null) a.tier = 'NoData';
+                else if (a.csat >= 88) a.tier = 'Top';
+                else if (a.csat < 75) a.tier = 'Low';
+                else a.tier = 'Average';
+                return a;
+            });
+        }
 
-            filteredData = [...masterData];
+        /* --------- Populate bộ lọc động --------- */
+        function populateFilters() {
+            // Tháng
+            const months = [...new Set(RECORDS.map(r => r.month).filter(Boolean))].sort().reverse();
+            const mSel = document.getElementById('filterMonth');
+            const mPrev = mSel.value;
+            mSel.innerHTML = '<option value="ALL">Tất cả Tháng</option>' +
+                months.map(m => { const [y, mo] = m.split('-'); return `<option value="${m}">Tháng ${mo}/${y}</option>`; }).join('');
+            mSel.value = months.includes(mPrev) ? mPrev : 'ALL';
+
+            // Batch (theo roster)
+            const batches = [...new Set(ROSTER.map(r => r.batch).filter(Boolean))].sort();
+            const bSel = document.getElementById('filterBatch');
+            const bPrev = bSel.value;
+            bSel.innerHTML = '<option value="ALL">Tất cả Batch</option>' +
+                batches.map(b => `<option value="${b}">Batch ${b}</option>`).join('');
+            bSel.value = batches.includes(bPrev) ? bPrev : 'ALL';
+        }
+
+        function distinctBatches() {
+            return [...new Set(ROSTER.map(r => r.batch).filter(Boolean))].sort();
         }
 
         function applyFilters() {
@@ -684,19 +773,28 @@
             const batchVal = document.getElementById('filterBatch').value;
             const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
 
-            filteredData = masterData.filter(item => {
-                const matchMonth = (monthVal === 'ALL') || (item.month === monthVal);
-                const matchWeek = (weekVal === 'ALL') || (item.week === weekVal);
-                const matchQueue = (queueVal === 'ALL') || (item.userType === queueVal);
-                const matchBatch = (batchVal === 'ALL') || (item.batch === batchVal);
-                const matchTier = (currentTierFilter === 'ALL') || (item.tier === currentTierFilter);
-                const matchSearch = !searchVal || 
-                    item.name.toLowerCase().includes(searchVal) || 
-                    item.email.toLowerCase().includes(searchVal) ||
-                    item.batch.toLowerCase().includes(searchVal);
-
-                return matchMonth && matchWeek && matchQueue && matchBatch && matchTier && matchSearch;
+            // Lọc ở cấp độ TỪNG dòng log
+            filteredRecords = RECORDS.filter(r => {
+                const matchMonth = (monthVal === 'ALL') || (r.month === monthVal);
+                const matchWeek = (weekVal === 'ALL') || (r.week === weekVal);
+                const matchQueue = (queueVal === 'ALL') || (r.userType === queueVal);
+                const matchBatch = (batchVal === 'ALL') || (r.batch === batchVal);
+                const matchSearch = !searchVal ||
+                    cleanName(r.name).toLowerCase().includes(searchVal) ||
+                    r.email.toLowerCase().includes(searchVal) ||
+                    String(r.batch).toLowerCase().includes(searchVal);
+                return matchMonth && matchWeek && matchQueue && matchBatch && matchSearch;
             });
+
+            // Gom theo CS + áp bộ lọc Tier
+            filteredData = aggregateByCs(filteredRecords)
+                .filter(cs => (currentTierFilter === 'ALL') || (cs.tier === currentTierFilter))
+                .sort((a, b) => {
+                    if (a.csat === null && b.csat === null) return 0;
+                    if (a.csat === null) return 1;
+                    if (b.csat === null) return -1;
+                    return b.csat - a.csat;
+                });
 
             renderAllViews();
         }
@@ -725,9 +823,9 @@
 
         // Calculate KPI summaries
         function updateHeaderMetrics() {
-            const totalContact = filteredData.reduce((acc, i) => acc + i.contact, 0);
-            const totalGood = filteredData.reduce((acc, i) => acc + i.goodCnt, 0);
-            const totalBad = filteredData.reduce((acc, i) => acc + i.badCnt, 0);
+            const totalContact = filteredRecords.reduce((acc, i) => acc + i.contact, 0);
+            const totalGood = filteredRecords.reduce((acc, i) => acc + i.good, 0);
+            const totalBad = filteredRecords.reduce((acc, i) => acc + i.bad, 0);
             const totalEvaluated = totalGood + totalBad;
 
             const goodRate = totalEvaluated > 0 ? ((totalGood / totalEvaluated) * 100).toFixed(1) : '0.0';
@@ -736,8 +834,8 @@
             // CSAT = Good / (Good + Bad) * 100%
             const overallCsat = totalEvaluated > 0 ? ((totalGood / totalEvaluated) * 100).toFixed(1) : '0.0';
 
-            const buyerContacts = filteredData.filter(i => i.userType === 'Buyer').reduce((acc, i) => acc + i.contact, 0);
-            const sellerContacts = filteredData.filter(i => i.userType === 'Seller').reduce((acc, i) => acc + i.contact, 0);
+            const buyerContacts = filteredRecords.filter(i => i.userType === 'Buyer').reduce((acc, i) => acc + i.contact, 0);
+            const sellerContacts = filteredRecords.filter(i => i.userType === 'Seller').reduce((acc, i) => acc + i.contact, 0);
             const sumContacts = buyerContacts + sellerContacts || 1;
 
             const buyerPct = Math.round((buyerContacts / sumContacts) * 100);
@@ -758,13 +856,13 @@
         }
 
         function updateBuyerSellerCards() {
-            const buyerItems = filteredData.filter(i => i.userType === 'Buyer');
-            const sellerItems = filteredData.filter(i => i.userType === 'Seller');
+            const buyerItems = filteredRecords.filter(i => i.userType === 'Buyer');
+            const sellerItems = filteredRecords.filter(i => i.userType === 'Seller');
 
             // Buyer
             const bContact = buyerItems.reduce((acc, i) => acc + i.contact, 0);
-            const bGood = buyerItems.reduce((acc, i) => acc + i.goodCnt, 0);
-            const bBad = buyerItems.reduce((acc, i) => acc + i.badCnt, 0);
+            const bGood = buyerItems.reduce((acc, i) => acc + i.good, 0);
+            const bBad = buyerItems.reduce((acc, i) => acc + i.bad, 0);
             const bEval = bGood + bBad;
             const bCsat = bEval > 0 ? ((bGood / bEval) * 100).toFixed(1) : '0.0';
 
@@ -774,8 +872,8 @@
 
             // Seller
             const sContact = sellerItems.reduce((acc, i) => acc + i.contact, 0);
-            const sGood = sellerItems.reduce((acc, i) => acc + i.goodCnt, 0);
-            const sBad = sellerItems.reduce((acc, i) => acc + i.badCnt, 0);
+            const sGood = sellerItems.reduce((acc, i) => acc + i.good, 0);
+            const sBad = sellerItems.reduce((acc, i) => acc + i.bad, 0);
             const sEval = sGood + sBad;
             const sCsat = sEval > 0 ? ((sGood / sEval) * 100).toFixed(1) : '0.0';
 
@@ -786,34 +884,44 @@
 
         function renderBatchTable() {
             const tbody = document.getElementById('batchTableBody');
-            const batches = ["K167", "K173", "K179", "K181", "K186", "K194", "K203"];
+            const batches = distinctBatches();
+
+            if (batches.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">Chưa có dữ liệu batch.</td></tr>`;
+                return;
+            }
 
             tbody.innerHTML = batches.map(b => {
-                const rosterSample = CS_ROSTER.find(r => r.batch === b) || {};
-                const bData = masterData.filter(i => i.batch === b);
-                const count = bData.length;
+                const rosterSample = ROSTER.find(r => r.batch === b) || {};
+                const headcount = ROSTER.filter(r => r.batch === b).length;
+                const bData = RECORDS.filter(i => i.batch === b);
                 const contact = bData.reduce((acc, i) => acc + i.contact, 0);
-                const good = bData.reduce((acc, i) => acc + i.goodCnt, 0);
-                const bad = bData.reduce((acc, i) => acc + i.badCnt, 0);
+                const good = bData.reduce((acc, i) => acc + i.good, 0);
+                const bad = bData.reduce((acc, i) => acc + i.bad, 0);
                 const evalCount = good + bad;
-                const rate = evalCount > 0 ? ((good / evalCount) * 100).toFixed(1) : '0.0';
-                const badRate = evalCount > 0 ? ((bad / evalCount) * 100).toFixed(1) : '0.0';
-                const batchCsat = evalCount > 0 ? ((good / evalCount) * 100).toFixed(1) : '0.0';
+                const hasData = evalCount > 0;
+                const rate = hasData ? ((good / evalCount) * 100).toFixed(1) : '—';
+                const badRate = hasData ? ((bad / evalCount) * 100).toFixed(1) : '—';
+                const batchCsat = hasData ? ((good / evalCount) * 100).toFixed(1) : '—';
+                const rateNum = hasData ? (good / evalCount) * 100 : -1;
 
-                let tagHtml = `<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200">Xuất Sắc</span>`;
-                if (rate < 75) tagHtml = `<span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-[10px] font-semibold border border-rose-200">Cần Cải Thiện</span>`;
-                else if (rate < 88) tagHtml = `<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">Đạt Yêu Cầu</span>`;
+                let tagHtml = `<span class="px-2.5 py-1 rounded-full bg-slate-50 text-slate-500 text-[10px] font-semibold border border-slate-200">Chưa có data</span>`;
+                if (hasData) {
+                    tagHtml = `<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200">Xuất Sắc</span>`;
+                    if (rateNum < 75) tagHtml = `<span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-[10px] font-semibold border border-rose-200">Cần Cải Thiện</span>`;
+                    else if (rateNum < 88) tagHtml = `<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">Đạt Yêu Cầu</span>`;
+                }
 
                 return `
                     <tr class="hover:bg-slate-50/80 transition">
                         <td class="p-3 pl-5 font-bold text-slate-800">Batch ${b}</td>
                         <td class="p-3 text-slate-500">${rosterSample.startDate || 'N/A'} - ${rosterSample.endDate || 'N/A'}</td>
                         <td class="p-3 font-medium text-slate-700">${rosterSample.onlineDate || 'N/A'}</td>
-                        <td class="p-3 text-center font-semibold text-slate-800">${count}</td>
-                        <td class="p-3 text-right font-medium">${contact}</td>
-                        <td class="p-3 text-right font-bold text-emerald-600">${rate}%</td>
-                        <td class="p-3 text-right text-rose-500">${badRate}%</td>
-                        <td class="p-3 text-center font-semibold text-amber-600">${batchCsat}%</td>
+                        <td class="p-3 text-center font-semibold text-slate-800">${headcount}</td>
+                        <td class="p-3 text-right font-medium">${contact.toLocaleString()}</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">${hasData ? rate + '%' : '—'}</td>
+                        <td class="p-3 text-right text-rose-500">${hasData ? badRate + '%' : '—'}</td>
+                        <td class="p-3 text-center font-semibold text-amber-600">${hasData ? batchCsat + '%' : '—'}</td>
                         <td class="p-3 text-center pr-5">${tagHtml}</td>
                     </tr>
                 `;
@@ -844,11 +952,16 @@
                 } else if (item.tier === 'Low') {
                     badgeClass = "bg-rose-50 text-rose-700 border-rose-200";
                     tierText = "Needs Coaching";
+                } else if (item.tier === 'NoData') {
+                    badgeClass = "bg-slate-50 text-slate-500 border-slate-200";
+                    tierText = "Chưa có data";
                 }
 
-                const queueBadge = item.userType === 'Buyer' ? 
-                    '<span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">Buyer</span>' : 
+                const queueBadge = item.userType === 'Buyer' ?
+                    '<span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">Buyer</span>' :
                     '<span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-medium">Seller</span>';
+
+                const csatText = item.csat === null ? '—' : `${item.csat}%`;
 
                 return `
                     <tr class="hover:bg-slate-50/80 transition">
@@ -857,15 +970,15 @@
                         <td class="p-3 text-slate-500 text-[11px] font-mono">${item.email}</td>
                         <td class="p-3 text-center font-medium"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">${item.batch}</span></td>
                         <td class="p-3 text-center">${queueBadge}</td>
-                        <td class="p-3 text-right font-medium text-slate-800">${item.contact}</td>
-                        <td class="p-3 text-right font-bold text-emerald-600">${item.goodCnt}</td>
-                        <td class="p-3 text-right text-rose-500 font-medium">${item.badCnt}</td>
-                        <td class="p-3 text-center font-bold text-amber-600">${item.csat}%</td>
+                        <td class="p-3 text-right font-medium text-slate-800">${item.contact.toLocaleString()}</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">${item.good.toLocaleString()}</td>
+                        <td class="p-3 text-right text-rose-500 font-medium">${item.bad.toLocaleString()}</td>
+                        <td class="p-3 text-center font-bold text-amber-600">${csatText}</td>
                         <td class="p-3 text-center">
                             <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${badgeClass}">${tierText}</span>
                         </td>
                         <td class="p-3 text-center pr-5">
-                            <button onclick="openCsModal(${item.id})" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 transition">
+                            <button onclick="openCsModal('${item.id}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 transition">
                                 Chi tiết
                             </button>
                         </td>
@@ -875,11 +988,13 @@
         }
 
         function renderMeetingView() {
-            const topCs = [...filteredData].sort((a, b) => b.csat - a.csat).slice(0, 3);
-            const lowCs = [...filteredData].sort((a, b) => a.csat - b.csat).slice(0, 3);
+            const rated = filteredData.filter(c => c.csat !== null);
+            const topCs = [...rated].sort((a, b) => b.csat - a.csat).slice(0, 3);
+            const lowCs = [...rated].sort((a, b) => a.csat - b.csat).slice(0, 3);
 
+            const emptyMsg = '<p class="text-xs text-slate-400 py-3 text-center">Chưa có dữ liệu phù hợp bộ lọc.</p>';
             const topContainer = document.getElementById('meetingTopCsList');
-            topContainer.innerHTML = topCs.map(c => `
+            topContainer.innerHTML = topCs.length ? topCs.map(c => `
                 <div class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100">
                     <div class="flex items-center space-x-2">
                         <div class="w-7 h-7 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs">
@@ -892,13 +1007,13 @@
                     </div>
                     <div class="text-right">
                         <span class="text-xs font-bold text-emerald-700">${c.csat}% CSAT</span>
-                        <p class="text-[10px] text-slate-400">${c.goodCnt} Good</p>
+                        <p class="text-[10px] text-slate-400">${c.good.toLocaleString()} Good</p>
                     </div>
                 </div>
-            `).join('');
+            `).join('') : emptyMsg;
 
             const lowContainer = document.getElementById('meetingLowCsList');
-            lowContainer.innerHTML = lowCs.map(c => `
+            lowContainer.innerHTML = lowCs.length ? lowCs.map(c => `
                 <div class="flex items-center justify-between p-2.5 rounded-xl bg-rose-50/50 border border-rose-100">
                     <div class="flex items-center space-x-2">
                         <div class="w-7 h-7 rounded-full bg-rose-500 text-white font-bold flex items-center justify-center text-xs">
@@ -911,16 +1026,28 @@
                     </div>
                     <div class="text-right">
                         <span class="text-xs font-bold text-rose-600">${c.csat}% CSAT</span>
-                        <p class="text-[10px] text-slate-400">${c.badCnt} Bad</p>
+                        <p class="text-[10px] text-slate-400">${c.bad.toLocaleString()} Bad</p>
                     </div>
                 </div>
-            `).join('');
+            `).join('') : emptyMsg;
         }
 
         function renderCharts() {
             // 1. Trend Chart
             const ctxTrend = document.getElementById('trendChart').getContext('2d');
             if (trendChartObj) trendChartObj.destroy();
+
+            // Trend thực tế theo tuần (W1..W4) từ dữ liệu đã lọc
+            const weeks = ['W1', 'W2', 'W3', 'W4'];
+            const trendCsat = weeks.map(w => {
+                const rs = filteredRecords.filter(r => r.week === w);
+                const g = rs.reduce((a, i) => a + i.good, 0);
+                const b = rs.reduce((a, i) => a + i.bad, 0);
+                return (g + b) > 0 ? parseFloat(((g / (g + b)) * 100).toFixed(1)) : null;
+            });
+            const trendVolume = weeks.map(w =>
+                filteredRecords.filter(r => r.week === w).reduce((a, i) => a + i.contact, 0)
+            );
 
             trendChartObj = new Chart(ctxTrend, {
                 type: 'line',
@@ -929,16 +1056,17 @@
                     datasets: [
                         {
                             label: 'CSAT Score (%)',
-                            data: [86.5, 88.2, 89.0, 87.8],
+                            data: trendCsat,
                             borderColor: '#f59e0b',
                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
                             fill: true,
                             tension: 0.3,
+                            spanGaps: true,
                             yAxisID: 'yCsat'
                         },
                         {
                             label: 'Total Contacts',
-                            data: [1250, 1420, 1380, 1510],
+                            data: trendVolume,
                             borderColor: '#6366f1',
                             backgroundColor: 'transparent',
                             borderDash: [5, 5],
@@ -998,11 +1126,11 @@
             const ctxBatch = document.getElementById('batchCompareChart').getContext('2d');
             if (batchChartObj) batchChartObj.destroy();
 
-            const batches = ["K167", "K173", "K179", "K181", "K186", "K194", "K203"];
+            const batches = distinctBatches();
             const batchCsatScores = batches.map(b => {
-                const bItems = masterData.filter(i => i.batch === b);
-                const g = bItems.reduce((acc, i) => acc + i.goodCnt, 0);
-                const bd = bItems.reduce((acc, i) => acc + i.badCnt, 0);
+                const bItems = RECORDS.filter(i => i.batch === b);
+                const g = bItems.reduce((acc, i) => acc + i.good, 0);
+                const bd = bItems.reduce((acc, i) => acc + i.bad, 0);
                 return (g + bd) > 0 ? parseFloat(((g / (g + bd)) * 100).toFixed(1)) : 0;
             });
 
@@ -1033,19 +1161,27 @@
         }
 
         function openCsModal(csId) {
-            const cs = masterData.find(i => i.id === csId);
+            const cs = masterCsAll.find(i => i.id === csId) || filteredData.find(i => i.id === csId);
             if (!cs) return;
 
-            const initials = cs.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            const initials = (cs.name || '?').split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-            document.getElementById('modalInitials').innerText = initials;
+            document.getElementById('modalInitials').innerText = initials || 'CS';
             document.getElementById('modalCsName').innerText = cs.name;
             document.getElementById('modalCsEmail').innerText = cs.email;
             document.getElementById('modalBatch').innerText = `Batch ${cs.batch}`;
-            document.getElementById('modalOnlineDate').innerText = cs.onlineDate;
-            document.getElementById('modalContacts').innerText = cs.contact;
-            document.getElementById('modalGoodCnt').innerText = cs.goodCnt.toLocaleString();
-            document.getElementById('modalCsat').innerText = `${cs.csat}%`;
+            document.getElementById('modalOnlineDate').innerText = cs.onlineDate || '—';
+            document.getElementById('modalContacts').innerText = cs.contact.toLocaleString();
+            document.getElementById('modalGoodCnt').innerText = cs.good.toLocaleString();
+            document.getElementById('modalCsat').innerText = cs.csat === null ? '—' : `${cs.csat}%`;
+
+            const rec = document.getElementById('modalRecommendation');
+            if (rec) {
+                if (cs.tier === 'Top') rec.innerText = 'Nhân sự đạt hiệu suất tốt (CSAT ≥ 88%), duy trì thái độ giao tiếp chuẩn mực và xử lý thắc mắc người dùng nhanh chóng. Đề xuất tuyên dương.';
+                else if (cs.tier === 'Low') rec.innerText = 'CSAT dưới 75% — cần coaching 1-on-1, rà soát lại các case Bad và quy trình xử lý.';
+                else if (cs.tier === 'NoData') rec.innerText = 'Chưa có dữ liệu log trong kỳ được chọn.';
+                else rec.innerText = 'Hiệu suất ở mức trung bình (75–87%). Tiếp tục theo dõi và hỗ trợ để nâng CSAT lên nhóm Top.';
+            }
 
             document.getElementById('csModal').classList.remove('hidden');
         }
@@ -1080,6 +1216,12 @@
         }
 
         function renderAllViews() {
+            const monthVal = document.getElementById('filterMonth').value;
+            const mt = document.getElementById('meetingDateText');
+            if (mt) {
+                if (monthVal && monthVal !== 'ALL') { const [y, mo] = monthVal.split('-'); mt.innerText = `Tháng ${mo}/${y}`; }
+                else mt.innerText = 'Tất cả kỳ';
+            }
             updateHeaderMetrics();
             updateBuyerSellerCards();
             renderBatchTable();
@@ -1088,10 +1230,44 @@
             renderCharts();
         }
 
+        /* --------- UI helpers: loading / error / config --------- */
+        function showLoading(text) {
+            const o = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').innerText = text || 'Đang tải…';
+            o.classList.remove('hidden'); o.classList.add('flex');
+        }
+        function hideLoading() {
+            const o = document.getElementById('loadingOverlay');
+            o.classList.add('hidden'); o.classList.remove('flex');
+        }
+        function showError(msg) {
+            document.getElementById('errorToastMsg').innerText = msg;
+            const t = document.getElementById('errorToast');
+            t.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+            clearTimeout(window.__errTimer);
+            window.__errTimer = setTimeout(() => t.classList.add('hidden'), 9000);
+        }
+        function openConfig() {
+            document.getElementById('configUrlInput').value = getApiUrl();
+            const m = document.getElementById('configModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeConfig() {
+            const m = document.getElementById('configModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+        function saveConfig() {
+            const v = document.getElementById('configUrlInput').value.trim();
+            if (!v) { showError('Vui lòng nhập URL Web App.'); return; }
+            try { localStorage.setItem('chatlog_api_url', v); } catch (e) {}
+            closeConfig();
+            reloadData(true);
+        }
+
         window.onload = function() {
             lucide.createIcons();
-            initData();
-            renderAllViews();
+            reloadData(false);
         };
     </script>
 </body>
