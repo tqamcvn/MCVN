@@ -611,17 +611,18 @@
 
     <script>
         /* =================================================================
-         *  DATA SOURCE (Google Apps Script Web App)
-         *  - HARDCODED_API_URL: dev dán URL /exec vào đây để MỌI người thấy data.
-         *  - Nếu để trống: trang đọc từ localStorage / tham số ?api= (nút ⚙️).
+         *  DATA SOURCE
+         *  Mặc định đọc file tĩnh data.json cùng thư mục (Apps Script tự đẩy
+         *  vào repo mỗi 30 phút -> teamqamcvn.com/chat-log-part-time/data.json).
+         *  Không CORS, không cần đăng nhập.
+         *  (Có thể tạm override bằng ?api=<url> hoặc nút ⚙️ để test nguồn khác.)
          * ================================================================= */
-        const HARDCODED_API_URL = ""; // <-- DÁN URL WEB APP (…/exec) VÀO ĐÂY
+        const DEFAULT_DATA_URL = "data.json";
 
         function getApiUrl() {
             const p = new URLSearchParams(location.search).get('api');
             if (p) { try { localStorage.setItem('chatlog_api_url', p); } catch (e) {} }
-            return (HARDCODED_API_URL && HARDCODED_API_URL.trim())
-                || (function () { try { return localStorage.getItem('chatlog_api_url') || ''; } catch (e) { return ''; } })();
+            try { return localStorage.getItem('chatlog_api_url') || DEFAULT_DATA_URL; } catch (e) { return DEFAULT_DATA_URL; }
         }
 
         // Live data (từ sheet thật)
@@ -663,7 +664,7 @@
                 if (json && json.error) throw new Error(json.error);
                 applyPayload(json);
             } catch (err) {
-                showError('Không tải được dữ liệu: ' + err.message + '. Kiểm tra URL Web App và quyền truy cập "Anyone".');
+                showError('Không tải được data.json (' + err.message + '). Nếu là lần đầu: hãy chạy hàm setup trong Apps Script rồi chờ GitHub Pages build ~1-3 phút.');
                 setStatus('Lỗi tải dữ liệu');
             } finally {
                 hideLoading();
@@ -1266,12 +1267,7 @@
 
         window.onload = function() {
             lucide.createIcons();
-            if (getApiUrl()) {
-                reloadData(false);
-            } else {
-                setStatus('Chưa cấu hình nguồn dữ liệu');
-                openConfig();
-            }
+            reloadData(false);
         };
     </script>
 </body>
