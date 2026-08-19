@@ -325,6 +325,7 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
 
     <!-- ALERT BANNER -->
     <div id="cs-alert"></div>
+    <div id="cs-warn"></div>
 
     <!-- 1. HC SNAPSHOT -->
     <div>
@@ -724,10 +725,27 @@ function weeksSince(s){ return s ? Math.round((TODAY_D-new Date(s))/(7*86400000)
 function isActive(a, sD, eD){
   if(!ACTIVE_S.includes(a.status)) return false;
   const od  = pd(a.online_date);
-  const lwd = pd(a.lwd);
-  if(od  && od  > eD) return false;   // not yet started
-  if(lwd && lwd < sD) return false;   // already left
+  if(od && od > eD) return false;     // not yet started
+  // P1 = trust Working Status: a Working/Training/Pending agent stays active
+  // even if its LWD is stale (already passed). Only Long-term leave honours LWD.
+  if(a.status==='Long-term leave'){
+    const lwd = pd(a.lwd);
+    if(lwd && lwd < sD) return false;
+  }
   return true;
+}
+
+// Data-integrity check: active status but conflicting date (LWD passed / not started).
+function statusDateConflicts(list){
+  return list.filter(a=>{
+    if(!HC_S.includes(a.status)) return false;
+    const od=pd(a.online_date), lwd=pd(a.lwd);
+    return (lwd && lwd < TODAY_D) || (od && od > TODAY_D);
+  }).map(a=>{
+    const lwd=pd(a.lwd), od=pd(a.online_date);
+    const reason = (lwd && lwd < TODAY_D) ? `LWD ${a.lwd} đã qua` : `Online ${a.online_date} chưa tới`;
+    return {name:a.name, team:a.team||a.grp||'', status:a.status, reason};
+  });
 }
 
 function activeIn(agents, p){
@@ -804,6 +822,7 @@ function renderCS(){
 
   // ── 1. ALERT BANNER ────────────────────────────────────
   renderCSAlert(agents);
+  renderCSWarn();
 
   // ── 2. HC SNAPSHOT ─────────────────────────────────────
   const hcOnly=active.filter(a=>HC_S.includes(a.status));
@@ -955,6 +974,24 @@ function renderCS(){
 }
 
 // ── ALERT BANNER ─────────────────────────────────────────
+// Data-integrity warning: status active but LWD/online conflicts (trust status, but flag it).
+function renderCSWarn(){
+  const box=document.getElementById('cs-warn'); if(!box) return;
+  const conflicts=statusDateConflicts(CS_AGENTS.concat(MNG_AGENTS));
+  if(!conflicts.length){ box.innerHTML=''; return; }
+  box.innerHTML=`<div style="background:linear-gradient(135deg,#d2992218,#f0883e10);
+    border:1px solid #d2992240;border-radius:8px;padding:10px 14px;margin-bottom:12px;
+    font-size:11px;color:var(--t2);line-height:1.7">
+    <span style="color:var(--w);font-weight:700">⚠ Lưu ý dữ liệu (${conflicts.length}):</span>
+    tin theo <b>Working Status</b> nên vẫn tính là active, nhưng ngày bị lệch — nên kiểm tra/cập nhật sheet:
+    <div style="margin-top:5px;display:flex;flex-direction:column;gap:2px">
+      ${conflicts.map(c=>`<div style="font-family:var(--mono);font-size:10px">
+        • <b style="color:var(--t1)">${c.name}</b> <span style="color:${SC[c.status]||'var(--t3)'}">${c.status}</span>
+        ${c.team?`· ${c.team}`:''} — <span style="color:var(--w)">${c.reason}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
 function renderCSAlert(agents){
   const today2=TODAY_D;
   const twoWeeks=new Date(today2); twoWeeks.setDate(twoWeeks.getDate()+14);
