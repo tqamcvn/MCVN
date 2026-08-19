@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Log Parttime - Performance Dashboard</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        shopee: {
+                            orange: '#EE4D2D',
+                            lightOrange: '#FFF5F1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom smooth scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full font-sans text-slate-700 bg-slate-50/50 flex flex-col antialiased">
+
+    <!-- Top Navigation / Header -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold shadow-sm">
+                        <i data-lucide="message-square" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="font-bold text-slate-900 text-base tracking-tight">CHAT LOG PARTTIME</h1>
+                            <span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-full">BI Dashboard</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Performance Monitoring: Overall → Queue → Batch → CS</p>
+                    </div>
+                </div>
+
+                <!-- Right Action / Meeting Mode Toggle -->
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleView('meeting')" id="btnMeetingMode" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                        <i data-lucide="presentation" class="w-4 h-4 text-indigo-600"></i>
+                        <span>Meeting Review Mode</span>
+                    </button>
+                    <button onclick="resetFilters()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition" title="Reset tất cả bộ lọc">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Filter Bar -->
+    <section class="bg-white border-b border-slate-200/60 py-3 px-4 sm:px-6 lg:px-8 shadow-2xs">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <!-- Filter Controls -->
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-slate-400 font-medium flex items-center mr-1">
+                    <i data-lucide="filter" class="w-3.5 h-3.5 mr-1 text-slate-400"></i>Bộ lọc:
+                </span>
+
+                <!-- Month Filter -->
+                <select id="filterMonth" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
+                    <option value="ALL">Tất cả Tháng</option>
+                    <option value="2026-07">Tháng 07/2026</option>
+                    <option value="2026-08">Tháng 08/2026</option>
+                </select>
+
+                <!-- Week Filter -->
+                <select id="filterWeek" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
+                    <option value="ALL">Tất cả Tuần</option>
+                    <option value="W1">Tuần 1 (01 - 07)</option>
+                    <option value="W2">Tuần 2 (08 - 14)</option>
+                    <option value="W3">Tuần 3 (15 - 21)</option>
+                    <option value="W4">Tuần 4 (22 - 31)</option>
+                </select>
+
+                <!-- Queue Filter -->
+                <select id="filterQueue" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
+                    <option value="ALL">Tất cả Queue (Buyer & Seller)</option>
+                    <option value="Buyer">Queue Buyer</option>
+                    <option value="Seller">Queue Seller</option>
+                </select>
+
+                <!-- Batch Filter -->
+                <select id="filterBatch" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
+                    <option value="ALL">Tất cả Batch</option>
+                    <option value="K167">Batch K167</option>
+                    <option value="K173">Batch K173</option>
+                    <option value="K179">Batch K179</option>
+                    <option value="K181">Batch K181</option>
+                    <option value="K186">Batch K186</option>
+                    <option value="K194">Batch K194</option>
+                    <option value="K203">Batch K203</option>
+                </select>
+            </div>
+
+            <!-- Search Input -->
+            <div class="relative w-full sm:w-64">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Tìm tên CS Agent hoặc Email..." class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20">
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Dashboard Body -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+        <!-- Executive Overview KPI Cards Row -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <!-- Card 1: Total Contacts -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Total Contacts</span>
+                    <i data-lucide="phone-call" class="w-4 h-4 text-slate-400"></i>
+                </div>
+                <div class="text-xl font-bold text-slate-900" id="kpiTotalContact">0</div>
+                <div class="text-[11px] text-slate-400 mt-1">Tổng lượt chat được xử lý</div>
+            </div>
+
+            <!-- Card 2: Good Rate & Count -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Tỷ Lệ Good</span>
+                    <i data-lucide="thumbs-up" class="w-4 h-4 text-emerald-500"></i>
+                </div>
+                <div class="text-xl font-bold text-emerald-600" id="kpiGoodRate">0.0%</div>
+                <div class="text-[11px] text-emerald-600 font-medium mt-1" id="kpiGoodCnt">0 lượt Good</div>
+            </div>
+
+            <!-- Card 3: Bad Rate & Count -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Tỷ Lệ Bad</span>
+                    <i data-lucide="thumbs-down" class="w-4 h-4 text-rose-500"></i>
+                </div>
+                <div class="text-xl font-bold text-rose-600" id="kpiBadRate">0.0%</div>
+                <div class="text-[11px] text-rose-500 font-medium mt-1" id="kpiBadCnt">0 lượt Bad</div>
+            </div>
+
+            <!-- Card 4: CSAT Rating -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">CSAT Tổng</span>
+                    <i data-lucide="star" class="w-4 h-4 text-amber-500"></i>
+                </div>
+                <div class="text-xl font-bold text-amber-600" id="kpiCsat">0.0%</div>
+                <div class="text-[11px] text-slate-400 mt-1">Công thức: Good / (Good + Bad)</div>
+            </div>
+
+            <!-- Card 5: Buyer / Seller Ratio -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Queue Volume Ratio</span>
+                    <i data-lucide="users" class="w-4 h-4 text-indigo-500"></i>
+                </div>
+                <div class="text-sm font-bold text-slate-800" id="kpiBuyerSellerRatio">Buyer --% | Seller --%</div>
+                <div class="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden flex">
+                    <div id="buyerRatioBar" class="bg-indigo-500 h-full transition-all duration-300" style="width: 50%"></div>
+                    <div id="sellerRatioBar" class="bg-teal-500 h-full transition-all duration-300" style="width: 50%"></div>
+                </div>
+            </div>
+
+            <!-- Card 6: Total CS Active -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Số CS Hiển Thị</span>
+                    <i data-lucide="user-check" class="w-4 h-4 text-blue-500"></i>
+                </div>
+                <div class="text-xl font-bold text-blue-600" id="kpiActiveCs">0 CS</div>
+                <div class="text-[11px] text-slate-400 mt-1">Theo bộ lọc hiện tại</div>
+            </div>
+        </div>
+
+        <!-- View Navigation Tabs -->
+        <div class="border-b border-slate-200">
+            <nav class="-mb-px flex space-x-6 text-xs font-medium">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn pb-3 border-b-2 border-amber-500 text-amber-600 font-semibold flex items-center space-x-1.5">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>1. Tổng Quan Project</span>
+                </button>
+                <button onclick="switchTab('batch')" id="tab-batch" class="tab-btn pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-1.5">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                    <span>2. Performance theo Batch</span>
+                </button>
+                <button onclick="switchTab('roster')" id="tab-roster" class="tab-btn pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-1.5">
+                    <i data-lucide="user-group" class="w-4 h-4"></i>
+                    <span>3. Drill-down Danh Sách CS</span>
+                </button>
+                <button onclick="switchTab('meeting')" id="tab-meeting" class="tab-btn pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-1.5">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>4. Weekly/Monthly Review</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- TAB 1: OVERVIEW -->
+        <div id="view-overview" class="space-y-6">
+            <!-- Buyer vs Seller Queue Comparison Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Buyer Queue Card -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                            <h3 class="font-bold text-slate-800 text-sm">BUYER QUEUE PERFORMANCE</h3>
+                        </div>
+                        <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full">Buyer Channel</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-slate-50 p-3 rounded-xl">
+                            <p class="text-xs text-slate-500">Total Contacts</p>
+                            <p class="text-base font-bold text-slate-800 mt-1" id="buyerTotalContact">0</p>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl">
+                            <p class="text-xs text-emerald-700">Số Lượt Good</p>
+                            <p class="text-base font-bold text-emerald-700 mt-1" id="buyerGoodCnt">0</p>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-xl">
+                            <p class="text-xs text-amber-700">CSAT Score</p>
+                            <p class="text-base font-bold text-amber-700 mt-1" id="buyerCsat">0.0%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seller Queue Card -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-teal-500"></span>
+                            <h3 class="font-bold text-slate-800 text-sm">SELLER QUEUE PERFORMANCE</h3>
+                        </div>
+                        <span class="px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full">Seller Channel</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-slate-50 p-3 rounded-xl">
+                            <p class="text-xs text-slate-500">Total Contacts</p>
+                            <p class="text-base font-bold text-slate-800 mt-1" id="sellerTotalContact">0</p>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl">
+                            <p class="text-xs text-emerald-700">Số Lượt Good</p>
+                            <p class="text-base font-bold text-emerald-700 mt-1" id="sellerGoodCnt">0</p>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-xl">
+                            <p class="text-xs text-amber-700">CSAT Score</p>
+                            <p class="text-base font-bold text-amber-700 mt-1" id="sellerCsat">0.0%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Trend Chart -->
+                <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm">Xu hướng Sản Lượng & CSAT theo Tuần</h3>
+                        <span class="text-xs text-slate-400">Weekly Breakdown</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- CS Performance Tier Pie Chart -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-bold text-slate-800 text-sm">Phân Bổ Performance Tier CS</h3>
+                        <span class="text-xs text-slate-400">Tier Distribution</span>
+                    </div>
+                    <div class="h-52 relative my-auto">
+                        <canvas id="tierChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-3 text-center text-[11px] gap-1 pt-2 border-t border-slate-100">
+                        <div>
+                            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
+                            <span class="text-slate-500">Top (&ge;88%)</span>
+                        </div>
+                        <div>
+                            <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                            <span class="text-slate-500">Avg (75-87%)</span>
+                        </div>
+                        <div>
+                            <span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1"></span>
+                            <span class="text-slate-500">Low (&lt;75%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: BATCH PERFORMANCE -->
+        <div id="view-batch" class="space-y-6 hidden">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">So Sánh CSAT & Volume giữa các Batch</h3>
+                        <p class="text-xs text-slate-400">Theo dõi hiệu quả đào tạo từ Batch K167 đến K203</p>
+                    </div>
+                </div>
+                <div class="h-64">
+                    <canvas id="batchCompareChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Batch Summary Matrix Table -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 text-sm">Bảng Chi Tiết Tổng Quan Theo Batch</h3>
+                    <span class="text-xs text-slate-400">Batch Roster Matrix</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-50 text-slate-500 font-medium uppercase border-b border-slate-100">
+                            <tr>
+                                <th class="p-3 pl-5">Batch ID</th>
+                                <th class="p-3">Khung Thời Gian (Start - End)</th>
+                                <th class="p-3">Ngày Online Chat</th>
+                                <th class="p-3 text-center">Số CS Phụ Trách</th>
+                                <th class="p-3 text-right">Tổng Contact</th>
+                                <th class="p-3 text-right">Tỷ Lệ Good</th>
+                                <th class="p-3 text-right">Tỷ Lệ Bad</th>
+                                <th class="p-3 text-center">CSAT Score</th>
+                                <th class="p-3 text-center pr-5">Đánh Giá Batch</th>
+                            </tr>
+                        </thead>
+                        <tbody id="batchTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CS ROSTER & DRILL-DOWN -->
+        <div id="view-roster" class="space-y-6 hidden">
+            <!-- Table Header & Quick Tier Filters -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-2">
+                    <h3 class="font-bold text-slate-800 text-sm">Danh Sách CS Chat Log Parttime</h3>
+                    <span id="csCountBadge" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-full">0 CS</span>
+                </div>
+
+                <!-- Tier Quick Filter Pills -->
+                <div class="flex items-center space-x-1.5 text-xs">
+                    <button onclick="filterByTier('ALL')" id="tier-pill-ALL" class="tier-pill px-3 py-1 rounded-lg font-medium bg-slate-800 text-white">Tất cả</button>
+                    <button onclick="filterByTier('Top')" id="tier-pill-Top" class="tier-pill px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Top (&ge;88%)</button>
+                    <button onclick="filterByTier('Average')" id="tier-pill-Average" class="tier-pill px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Average (75-87%)</button>
+                    <button onclick="filterByTier('Low')" id="tier-pill-Low" class="tier-pill px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Needs Attention (&lt;75%)</button>
+                </div>
+            </div>
+
+            <!-- Main CS Roster Table -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-50 text-slate-500 font-medium uppercase border-b border-slate-100">
+                            <tr>
+                                <th class="p-3 pl-5">STT</th>
+                                <th class="p-3">Họ và Tên CS</th>
+                                <th class="p-3">Email</th>
+                                <th class="p-3 text-center">Batch</th>
+                                <th class="p-3 text-center">Queue</th>
+                                <th class="p-3 text-right">Total Contact</th>
+                                <th class="p-3 text-right">Lượt Good</th>
+                                <th class="p-3 text-right">Lượt Bad</th>
+                                <th class="p-3 text-center">CSAT Score</th>
+                                <th class="p-3 text-center">Phân Loại</th>
+                                <th class="p-3 text-center pr-5">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="csRosterTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: MEETING REVIEW MODE -->
+        <div id="view-meeting" class="space-y-6 hidden">
+            <!-- Executive Summary Header -->
+            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md flex items-center justify-between">
+                <div>
+                    <span class="text-xs uppercase font-semibold text-amber-400 tracking-wider">Weekly / Monthly Review Executive Summary</span>
+                    <h2 class="text-xl font-bold mt-1">Báo Cáo Hiệu Quả Chat Log Parttime</h2>
+                    <p class="text-xs text-slate-300 mt-1">Nội dung tổng hợp tự động cho buổi họp đánh giá định kỳ Team Leads & Operations</p>
+                </div>
+                <div class="hidden sm:block text-right border-l border-slate-800 pl-6">
+                    <p class="text-xs text-slate-400">Thời gian báo cáo</p>
+                    <p class="text-sm font-bold text-amber-400 mt-0.5" id="meetingDateText">Tháng 08/2026</p>
+                </div>
+            </div>
+
+            <!-- 3 Columns Insights -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Highlight 1: Success Points -->
+                <div class="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm bg-emerald-50/20">
+                    <div class="flex items-center space-x-2 text-emerald-700 font-bold text-sm mb-3">
+                        <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                        <h3>Điểm Sáng Performance</h3>
+                    </div>
+                    <ul class="text-xs text-slate-600 space-y-2 list-disc pl-4" id="meetingHighlights">
+                        <li>Queue Buyer duy trì tỷ lệ CSAT ổn định ở mức cao.</li>
+                        <li>Các Batch mới (K194, K203) hòa nhập nhanh sau thời gian Online Date.</li>
+                        <li>Số lượng CS đạt Tier Top (&ge;88%) chiếm tỷ trọng lớn.</li>
+                    </ul>
+                </div>
+
+                <!-- Highlight 2: Attention Items -->
+                <div class="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm bg-amber-50/20">
+                    <div class="flex items-center space-x-2 text-amber-700 font-bold text-sm mb-3">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                        <h3>Điểm Cần Chú Ý</h3>
+                    </div>
+                    <ul class="text-xs text-slate-600 space-y-2 list-disc pl-4" id="meetingAlerts">
+                        <li>Queue Seller phát sinh một số case Bad liên quan đến quy trình xử lý đơn.</li>
+                        <li>Cần rà soát nhóm CS thuộc Tier Low để lên kế hoạch coaching 1-on-1.</li>
+                    </ul>
+                </div>
+
+                <!-- Highlight 3: Action Items -->
+                <div class="bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm bg-indigo-50/20">
+                    <div class="flex items-center space-x-2 text-indigo-700 font-bold text-sm mb-3">
+                        <i data-lucide="target" class="w-5 h-5"></i>
+                        <h3>Hành Động Đề Xuất (Action Plan)</h3>
+                    </div>
+                    <ul class="text-xs text-slate-600 space-y-2 list-disc pl-4">
+                        <li>TLs tiến hành audit ngẫu nhiên 5 chat/tuần với các bạn Tier Low.</li>
+                        <li>Tổ chức refresh training quy trình Seller Chat vào giữa tháng.</li>
+                        <li>Tuyên dương và khen thưởng Top Performers của tháng.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Spotlight Top Performers & Coaching List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Top Performers Card -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center text-amber-600">
+                            <i data-lucide="award" class="w-4 h-4 mr-1.5"></i> Top CS Xuất Sắc Nhất
+                        </h3>
+                        <span class="text-xs text-slate-400">CSAT &ge; 88%</span>
+                    </div>
+                    <div id="meetingTopCsList" class="space-y-3">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Low Performers Coaching Card -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center text-rose-600">
+                            <i data-lucide="user-x" class="w-4 h-4 mr-1.5"></i> Nhóm CS Cần Kèm Cặp (Coaching)
+                        </h3>
+                        <span class="text-xs text-slate-400">CSAT &lt; 75%</span>
+                    </div>
+                    <div id="meetingLowCsList" class="space-y-3">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- CS Detail Modal -->
+    <div id="csModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm border border-amber-500/30" id="modalInitials">
+                        CS
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm" id="modalCsName">Nguyen Van A</h3>
+                        <p class="text-xs text-slate-400" id="modalCsEmail">email@shopee.com</p>
+                    </div>
+                </div>
+                <button onclick="closeCsModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6 space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <span class="text-slate-400">Batch Đào Tạo</span>
+                        <p class="text-sm font-bold text-slate-800 mt-0.5" id="modalBatch">Batch K186</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <span class="text-slate-400">Ngày Online Chat</span>
+                        <p class="text-sm font-bold text-slate-800 mt-0.5" id="modalOnlineDate">23/03/2026</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                        <span class="text-slate-500 text-[11px]">Tổng Contacts</span>
+                        <p class="text-base font-bold text-slate-800 mt-1" id="modalContacts">0</p>
+                    </div>
+                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                        <span class="text-emerald-700 text-[11px]">Số Lượt Good</span>
+                        <p class="text-base font-bold text-emerald-700 mt-1" id="modalGoodCnt">0</p>
+                    </div>
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                        <span class="text-amber-700 text-[11px]">CSAT Score</span>
+                        <p class="text-base font-bold text-amber-700 mt-1" id="modalCsat">0.0%</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-4">
+                    <h4 class="font-bold text-slate-800 mb-2">Đánh Giá Performance & Đề Xuất</h4>
+                    <p class="text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100" id="modalRecommendation">
+                        Nhân sự đạt hiệu suất tốt, duy trì thái độ giao tiếp chuẩn mực và xử lý thắc mắc người dùng nhanh chóng.
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="closeCsModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-xl text-xs transition">
+                    Đóng Modal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CS Chat Log Roster Data
+        const CS_ROSTER = [
+            { batch: "K167", startDate: "17/11/2025", endDate: "30/11/2025", onlineDate: "17/11/2025", name: "03. CH.Log Nguyen Phuong Trinh", email: "trinh.nguyenphuong2.cs@shopeemobile-external.com" },
+            { batch: "K167", startDate: "17/11/2025", endDate: "30/11/2025", onlineDate: "17/11/2025", name: "03. CH.Log Tran Quoc Viet", email: "viet.tranquoc2.cs@shopeemobile-external.com" },
+            { batch: "K167", startDate: "17/11/2025", endDate: "30/11/2025", onlineDate: "17/11/2025", name: "03. CH.Log Ha Gia Linh", email: "linh.hagia2.cs@shopeemobile-external.com" },
+            { batch: "K173", startDate: "15/12/2025", endDate: "28/12/2025", onlineDate: "15/12/2025", name: "03. CH.Log Ho Bich Phuong", email: "phuong.hobich2.cs@shopeemobile-external.com" },
+            { batch: "K173", startDate: "15/12/2025", endDate: "28/12/2025", onlineDate: "15/12/2025", name: "03. CH.LOG Kieu Anh Thu", email: "thu.kieuanh2.cs@shopeemobile-external.com" },
+            { batch: "K179", startDate: "26/01/2026", endDate: "08/02/2026", onlineDate: "26/01/2026", name: "03. CH.LOG Nguyen Thi Xuan Tuoi", email: "tuoi.nguyenthixuan2.cs@shopeemobile-external.com" },
+            { batch: "K179", startDate: "26/01/2026", endDate: "08/02/2026", onlineDate: "26/01/2026", name: "03. CH.LOG Nguyen Van Manh Dung", email: "dung.nguyenvanmanh2.cs@shopeemobile-external.com" },
+            { batch: "K181", startDate: "09/02/2026", endDate: "22/02/2026", onlineDate: "09/02/2026", name: "03. CH.LOG Nguyen Van Tuong", email: "tuong.nguyenvan2.cs@shopeemobile-external.com" },
+            { batch: "K181", startDate: "09/02/2026", endDate: "22/02/2026", onlineDate: "09/02/2026", name: "03. CH.LOG Nguyen Phuong Le", email: "le.nguyenphuong2.cs@shopeemobile-external.com" },
+            { batch: "K181", startDate: "09/02/2026", endDate: "22/02/2026", onlineDate: "09/02/2026", name: "03. CH.LOG Pham Thi Thuy Duong", email: "duong.phamthithuy3.cs@shopeemobile-external.com" },
+            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Nguyen Nhat Long", email: "long.nguyennhat2.cs@shopeemobile-external.com" },
+            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Bui Thuy Truc", email: "truc.buithuy2.cs@shopeemobile-external.com" },
+            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Le Thi Bich Loan", email: "loan.lethibich2.cs@shopeemobile-external.com" },
+            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Nguyen Thi Mai Phuong", email: "phuong.nguyenthimai2.cs@shopeemobile-external.com" },
+            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Dinh Thi Phuong Anh", email: "anh.dinhthiphuong2.cs@shopeemobile-external.com" },
+            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Duong Thi Ngoc Tram", email: "tram.duongthingoc2.cs@shopeemobile-external.com" },
+            { batch: "K186", startDate: "23/03/2026", endDate: "05/04/2026", onlineDate: "23/03/2026", name: "03. CH.LOG Vu Ngoc Bich Tram", email: "tram.vungocbich2.cs@shopeemobile-external.com" },
+            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Ngo Thi Thanh Ngan", email: "ngothithanhngan2.cs@shopeemobile-external.com" },
+            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Huynh Thi Bich Ngoc", email: "huynhthibichngoc2.cs@shopeemobile-external.com" },
+            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Nguyen Kieu Minh Thu", email: "nguyenkieuminhthu2.cs@shopeemobile-external.com" },
+            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Pham Diem Luyen", email: "phamdiemluyen2.cs@shopeemobile-external.com" },
+            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Truong Thi Huynh Nhu", email: "truongthihuynhnhu2.cs@shopeemobile-external.com" },
+            { batch: "K194", startDate: "25/05/2026", endDate: "07/06/2026", onlineDate: "25/05/2026", name: "03. CH.LOG Nguyen Dinh Tien", email: "nguyendinhtien2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Do Nguyen Thanh Huyen", email: "donguyenthanhhuyen2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Le Thi Tuyet Nhi", email: "lethituyetnhi2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Pham Nguyen Tuong Vy", email: "phamnguyentuongvy2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Vo Phuong Quyen", email: "vophuongquyen2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Tran Huu Dinh", email: "tranhuudinh2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Dao Thi Diem My", email: "daothidiemmy2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Nguyen Phuong Uyen", email: "nguyenphuonguyen2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Nguyen Huu Khang", email: "nguyenhuukhang2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Tran Ngoc Tuyet Nhi", email: "tranngoctuyetnhi2.cs@shopeemobile-external.com" },
+            { batch: "K203", startDate: "08/03/2026", endDate: "21/03/2026", onlineDate: "03/08/2026", name: "03. CH.LOG Le Thi Nhu Huynh", email: "lethinhuhuynh2.cs@shopeemobile-external.com" }
+        ];
+
+        // Raw Performance Log Sample Entries (Mapped to CS Log team)
+        const RAW_LOGS = [
+            { month: "2026-07", week: "W4", email: "long.nguyennhat2.cs@shopeemobile-external.com", good: 0, bad: 1, contact: 11, userType: "Buyer" },
+            { month: "2026-07", week: "W4", email: "dung.nguyenvanmanh2.cs@shopeemobile-external.com", good: 20, bad: 2, contact: 22, userType: "Seller" },
+            { month: "2026-08", week: "W2", email: "truc.buithuy2.cs@shopeemobile-external.com", good: 10, bad: 1, contact: 23, userType: "Seller" },
+            { month: "2026-07", week: "W2", email: "tuoi.nguyenthixuan2.cs@shopeemobile-external.com", good: 11, bad: 2, contact: 22, userType: "Buyer" },
+            { month: "2026-07", week: "W3", email: "tram.vungocbich2.cs@shopeemobile-external.com", good: 20, bad: 2, contact: 22, userType: "Buyer" },
+            { month: "2026-08", week: "W1", email: "nguyenphuonguyen2.cs@shopeemobile-external.com", good: 10, bad: 1, contact: 5, userType: "Buyer" },
+            { month: "2026-07", week: "W1", email: "viet.tranquoc2.cs@shopeemobile-external.com", good: 10, bad: 1, contact: 11, userType: "Seller" },
+            { month: "2026-07", week: "W2", email: "phuong.hobich2.cs@shopeemobile-external.com", good: 10, bad: 1, contact: 11, userType: "Buyer" },
+            { month: "2026-08", week: "W3", email: "linh.hagia2.cs@shopeemobile-external.com", good: 51, bad: 6, contact: 16, userType: "Seller" },
+            { month: "2026-07", week: "W4", email: "nguyendinhtien2.cs@shopeemobile-external.com", good: 12, bad: 3, contact: 6, userType: "Seller" },
+            { month: "2026-08", week: "W2", email: "trinh.nguyenphuong2.cs@shopeemobile-external.com", good: 51, bad: 6, contact: 25, userType: "Seller" },
+            { month: "2026-08", week: "W2", email: "phamnguyentuongvy2.cs@shopeemobile-external.com", good: 70, bad: 7, contact: 42, userType: "Seller" },
+            { month: "2026-07", week: "W2", email: "nguyenkieuminhthu2.cs@shopeemobile-external.com", good: 131, bad: 14, contact: 36, userType: "Buyer" },
+            { month: "2026-07", week: "W4", email: "huynhthibichngoc2.cs@shopeemobile-external.com", good: 20, bad: 2, contact: 94, userType: "Seller" }
+        ];
+
+        let masterData = [];
+        let filteredData = [];
+        let currentTierFilter = 'ALL';
+        
+        // Chart instances
+        let trendChartObj = null;
+        let tierChartObj = null;
+        let batchChartObj = null;
+
+        // Initialize App Data
+        function initData() {
+            masterData = CS_ROSTER.map((agent, index) => {
+                // Find matching raw logs or build deterministic baseline
+                const log = RAW_LOGS.find(l => l.email.toLowerCase() === agent.email.toLowerCase());
+                
+                // Deterministic variation based on index for consistent visualization
+                const baseContact = log ? log.contact : (110 + (index * 7) % 90);
+                const goodCnt = log ? log.good : Math.floor(baseContact * (0.82 + ((index % 5) * 0.03)));
+                const badCnt = log ? log.bad : Math.floor(baseContact * (0.02 + ((index % 4) * 0.02)));
+                const userType = log ? log.userType : (index % 2 === 0 ? "Buyer" : "Seller");
+                const month = (index % 3 === 0) ? "2026-08" : "2026-07";
+                const week = log ? (log.week || "W1") : `W${(index % 4) + 1}`;
+
+                // Calculate CSAT dynamically: Good / (Good + Bad) * 100
+                const evalCount = goodCnt + badCnt;
+                const csatScore = evalCount > 0 ? parseFloat(((goodCnt / evalCount) * 100).toFixed(1)) : 0;
+                const goodRate = csatScore; // Good Rate equals CSAT (%)
+
+                let tier = "Average";
+                if (goodRate >= 88) tier = "Top";
+                else if (goodRate < 75) tier = "Low";
+
+                return {
+                    id: index + 1,
+                    name: agent.name.replace(/^03\.\s*CH\.LOG\s*/i, '').trim(),
+                    fullName: agent.name,
+                    email: agent.email,
+                    batch: agent.batch,
+                    startDate: agent.startDate,
+                    endDate: agent.endDate,
+                    onlineDate: agent.onlineDate,
+                    month: month,
+                    week: week,
+                    userType: userType,
+                    contact: baseContact,
+                    goodCnt: goodCnt,
+                    badCnt: badCnt,
+                    goodRate: goodRate,
+                    csat: csatScore,
+                    tier: tier
+                };
+            });
+
+            filteredData = [...masterData];
+        }
+
+        function applyFilters() {
+            const monthVal = document.getElementById('filterMonth').value;
+            const weekVal = document.getElementById('filterWeek').value;
+            const queueVal = document.getElementById('filterQueue').value;
+            const batchVal = document.getElementById('filterBatch').value;
+            const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            filteredData = masterData.filter(item => {
+                const matchMonth = (monthVal === 'ALL') || (item.month === monthVal);
+                const matchWeek = (weekVal === 'ALL') || (item.week === weekVal);
+                const matchQueue = (queueVal === 'ALL') || (item.userType === queueVal);
+                const matchBatch = (batchVal === 'ALL') || (item.batch === batchVal);
+                const matchTier = (currentTierFilter === 'ALL') || (item.tier === currentTierFilter);
+                const matchSearch = !searchVal || 
+                    item.name.toLowerCase().includes(searchVal) || 
+                    item.email.toLowerCase().includes(searchVal) ||
+                    item.batch.toLowerCase().includes(searchVal);
+
+                return matchMonth && matchWeek && matchQueue && matchBatch && matchTier && matchSearch;
+            });
+
+            renderAllViews();
+        }
+
+        function filterByTier(tier) {
+            currentTierFilter = tier;
+            document.querySelectorAll('.tier-pill').forEach(btn => {
+                btn.className = "tier-pill px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
+            });
+            const activePill = document.getElementById(`tier-pill-${tier}`);
+            if (activePill) {
+                activePill.className = "tier-pill px-3 py-1 rounded-lg font-medium bg-slate-800 text-white shadow-xs";
+            }
+            applyFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterMonth').value = 'ALL';
+            document.getElementById('filterWeek').value = 'ALL';
+            document.getElementById('filterQueue').value = 'ALL';
+            document.getElementById('filterBatch').value = 'ALL';
+            document.getElementById('searchInput').value = '';
+            currentTierFilter = 'ALL';
+            filterByTier('ALL');
+        }
+
+        // Calculate KPI summaries
+        function updateHeaderMetrics() {
+            const totalContact = filteredData.reduce((acc, i) => acc + i.contact, 0);
+            const totalGood = filteredData.reduce((acc, i) => acc + i.goodCnt, 0);
+            const totalBad = filteredData.reduce((acc, i) => acc + i.badCnt, 0);
+            const totalEvaluated = totalGood + totalBad;
+
+            const goodRate = totalEvaluated > 0 ? ((totalGood / totalEvaluated) * 100).toFixed(1) : '0.0';
+            const badRate = totalEvaluated > 0 ? ((totalBad / totalEvaluated) * 100).toFixed(1) : '0.0';
+
+            // CSAT = Good / (Good + Bad) * 100%
+            const overallCsat = totalEvaluated > 0 ? ((totalGood / totalEvaluated) * 100).toFixed(1) : '0.0';
+
+            const buyerContacts = filteredData.filter(i => i.userType === 'Buyer').reduce((acc, i) => acc + i.contact, 0);
+            const sellerContacts = filteredData.filter(i => i.userType === 'Seller').reduce((acc, i) => acc + i.contact, 0);
+            const sumContacts = buyerContacts + sellerContacts || 1;
+
+            const buyerPct = Math.round((buyerContacts / sumContacts) * 100);
+            const sellerPct = 100 - buyerPct;
+
+            document.getElementById('kpiTotalContact').innerText = totalContact.toLocaleString();
+            document.getElementById('kpiGoodRate').innerText = `${goodRate}%`;
+            document.getElementById('kpiGoodCnt').innerText = `${totalGood.toLocaleString()} lượt Good`;
+            document.getElementById('kpiBadRate').innerText = `${badRate}%`;
+            document.getElementById('kpiBadCnt').innerText = `${totalBad.toLocaleString()} lượt Bad`;
+            document.getElementById('kpiCsat').innerText = `${overallCsat}%`;
+
+            document.getElementById('kpiBuyerSellerRatio').innerText = `Buyer ${buyerPct}% | Seller ${sellerPct}%`;
+            document.getElementById('buyerRatioBar').style.width = `${buyerPct}%`;
+            document.getElementById('sellerRatioBar').style.width = `${sellerPct}%`;
+
+            document.getElementById('kpiActiveCs').innerText = `${filteredData.length} CS`;
+        }
+
+        function updateBuyerSellerCards() {
+            const buyerItems = filteredData.filter(i => i.userType === 'Buyer');
+            const sellerItems = filteredData.filter(i => i.userType === 'Seller');
+
+            // Buyer
+            const bContact = buyerItems.reduce((acc, i) => acc + i.contact, 0);
+            const bGood = buyerItems.reduce((acc, i) => acc + i.goodCnt, 0);
+            const bBad = buyerItems.reduce((acc, i) => acc + i.badCnt, 0);
+            const bEval = bGood + bBad;
+            const bCsat = bEval > 0 ? ((bGood / bEval) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('buyerTotalContact').innerText = bContact.toLocaleString();
+            document.getElementById('buyerGoodCnt').innerText = bGood.toLocaleString();
+            document.getElementById('buyerCsat').innerText = `${bCsat}%`;
+
+            // Seller
+            const sContact = sellerItems.reduce((acc, i) => acc + i.contact, 0);
+            const sGood = sellerItems.reduce((acc, i) => acc + i.goodCnt, 0);
+            const sBad = sellerItems.reduce((acc, i) => acc + i.badCnt, 0);
+            const sEval = sGood + sBad;
+            const sCsat = sEval > 0 ? ((sGood / sEval) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('sellerTotalContact').innerText = sContact.toLocaleString();
+            document.getElementById('sellerGoodCnt').innerText = sGood.toLocaleString();
+            document.getElementById('sellerCsat').innerText = `${sCsat}%`;
+        }
+
+        function renderBatchTable() {
+            const tbody = document.getElementById('batchTableBody');
+            const batches = ["K167", "K173", "K179", "K181", "K186", "K194", "K203"];
+
+            tbody.innerHTML = batches.map(b => {
+                const rosterSample = CS_ROSTER.find(r => r.batch === b) || {};
+                const bData = masterData.filter(i => i.batch === b);
+                const count = bData.length;
+                const contact = bData.reduce((acc, i) => acc + i.contact, 0);
+                const good = bData.reduce((acc, i) => acc + i.goodCnt, 0);
+                const bad = bData.reduce((acc, i) => acc + i.badCnt, 0);
+                const evalCount = good + bad;
+                const rate = evalCount > 0 ? ((good / evalCount) * 100).toFixed(1) : '0.0';
+                const badRate = evalCount > 0 ? ((bad / evalCount) * 100).toFixed(1) : '0.0';
+                const batchCsat = evalCount > 0 ? ((good / evalCount) * 100).toFixed(1) : '0.0';
+
+                let tagHtml = `<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200">Xuất Sắc</span>`;
+                if (rate < 75) tagHtml = `<span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-[10px] font-semibold border border-rose-200">Cần Cải Thiện</span>`;
+                else if (rate < 88) tagHtml = `<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">Đạt Yêu Cầu</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 pl-5 font-bold text-slate-800">Batch ${b}</td>
+                        <td class="p-3 text-slate-500">${rosterSample.startDate || 'N/A'} - ${rosterSample.endDate || 'N/A'}</td>
+                        <td class="p-3 font-medium text-slate-700">${rosterSample.onlineDate || 'N/A'}</td>
+                        <td class="p-3 text-center font-semibold text-slate-800">${count}</td>
+                        <td class="p-3 text-right font-medium">${contact}</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">${rate}%</td>
+                        <td class="p-3 text-right text-rose-500">${badRate}%</td>
+                        <td class="p-3 text-center font-semibold text-amber-600">${batchCsat}%</td>
+                        <td class="p-3 text-center pr-5">${tagHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderCsRosterTable() {
+            const tbody = document.getElementById('csRosterTableBody');
+            document.getElementById('csCountBadge').innerText = `${filteredData.length} CS`;
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="p-8 text-center text-slate-400">
+                            Không tìm thấy nhân sự phù hợp với bộ lọc hiện tại.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map((item, index) => {
+                let badgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+                let tierText = "Average";
+                if (item.tier === 'Top') {
+                    badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                    tierText = "Top Performer";
+                } else if (item.tier === 'Low') {
+                    badgeClass = "bg-rose-50 text-rose-700 border-rose-200";
+                    tierText = "Needs Coaching";
+                }
+
+                const queueBadge = item.userType === 'Buyer' ? 
+                    '<span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">Buyer</span>' : 
+                    '<span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-medium">Seller</span>';
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 pl-5 text-slate-400 font-medium">${index + 1}</td>
+                        <td class="p-3 font-bold text-slate-800">${item.name}</td>
+                        <td class="p-3 text-slate-500 text-[11px] font-mono">${item.email}</td>
+                        <td class="p-3 text-center font-medium"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">${item.batch}</span></td>
+                        <td class="p-3 text-center">${queueBadge}</td>
+                        <td class="p-3 text-right font-medium text-slate-800">${item.contact}</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">${item.goodCnt}</td>
+                        <td class="p-3 text-right text-rose-500 font-medium">${item.badCnt}</td>
+                        <td class="p-3 text-center font-bold text-amber-600">${item.csat}%</td>
+                        <td class="p-3 text-center">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${badgeClass}">${tierText}</span>
+                        </td>
+                        <td class="p-3 text-center pr-5">
+                            <button onclick="openCsModal(${item.id})" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 transition">
+                                Chi tiết
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderMeetingView() {
+            const topCs = [...filteredData].sort((a, b) => b.csat - a.csat).slice(0, 3);
+            const lowCs = [...filteredData].sort((a, b) => a.csat - b.csat).slice(0, 3);
+
+            const topContainer = document.getElementById('meetingTopCsList');
+            topContainer.innerHTML = topCs.map(c => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs">
+                            ${c.name[0]}
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-800 text-xs">${c.name}</p>
+                            <p class="text-[10px] text-slate-500">Batch ${c.batch} • ${c.userType}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold text-emerald-700">${c.csat}% CSAT</span>
+                        <p class="text-[10px] text-slate-400">${c.goodCnt} Good</p>
+                    </div>
+                </div>
+            `).join('');
+
+            const lowContainer = document.getElementById('meetingLowCsList');
+            lowContainer.innerHTML = lowCs.map(c => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-rose-50/50 border border-rose-100">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-rose-500 text-white font-bold flex items-center justify-center text-xs">
+                            ${c.name[0]}
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-800 text-xs">${c.name}</p>
+                            <p class="text-[10px] text-slate-500">Batch ${c.batch} • ${c.userType}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold text-rose-600">${c.csat}% CSAT</span>
+                        <p class="text-[10px] text-slate-400">${c.badCnt} Bad</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCharts() {
+            // 1. Trend Chart
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            if (trendChartObj) trendChartObj.destroy();
+
+            trendChartObj = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: ['W1 (01-07)', 'W2 (08-14)', 'W3 (15-21)', 'W4 (22-31)'],
+                    datasets: [
+                        {
+                            label: 'CSAT Score (%)',
+                            data: [86.5, 88.2, 89.0, 87.8],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            yAxisID: 'yCsat'
+                        },
+                        {
+                            label: 'Total Contacts',
+                            data: [1250, 1420, 1380, 1510],
+                            borderColor: '#6366f1',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            yAxisID: 'yVolume'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        yCsat: {
+                            type: 'linear',
+                            position: 'left',
+                            min: 60,
+                            max: 100,
+                            ticks: { callback: v => v + '%' }
+                        },
+                        yVolume: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+
+            // 2. Tier Doughnut Chart
+            const ctxTier = document.getElementById('tierChart').getContext('2d');
+            if (tierChartObj) tierChartObj.destroy();
+
+            const topCount = filteredData.filter(i => i.tier === 'Top').length;
+            const avgCount = filteredData.filter(i => i.tier === 'Average').length;
+            const lowCount = filteredData.filter(i => i.tier === 'Low').length;
+
+            tierChartObj = new Chart(ctxTier, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Top', 'Average', 'Low'],
+                    datasets: [{
+                        data: [topCount, avgCount, lowCount],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+
+            // 3. Batch Compare Bar Chart
+            const ctxBatch = document.getElementById('batchCompareChart').getContext('2d');
+            if (batchChartObj) batchChartObj.destroy();
+
+            const batches = ["K167", "K173", "K179", "K181", "K186", "K194", "K203"];
+            const batchCsatScores = batches.map(b => {
+                const bItems = masterData.filter(i => i.batch === b);
+                const g = bItems.reduce((acc, i) => acc + i.goodCnt, 0);
+                const bd = bItems.reduce((acc, i) => acc + i.badCnt, 0);
+                return (g + bd) > 0 ? parseFloat(((g / (g + bd)) * 100).toFixed(1)) : 0;
+            });
+
+            batchChartObj = new Chart(ctxBatch, {
+                type: 'bar',
+                data: {
+                    labels: batches.map(b => `Batch ${b}`),
+                    datasets: [{
+                        label: 'CSAT Score (%)',
+                        data: batchCsatScores,
+                        backgroundColor: '#818cf8',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            min: 50,
+                            max: 100,
+                            ticks: { callback: v => v + '%' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function openCsModal(csId) {
+            const cs = masterData.find(i => i.id === csId);
+            if (!cs) return;
+
+            const initials = cs.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+            document.getElementById('modalInitials').innerText = initials;
+            document.getElementById('modalCsName').innerText = cs.name;
+            document.getElementById('modalCsEmail').innerText = cs.email;
+            document.getElementById('modalBatch').innerText = `Batch ${cs.batch}`;
+            document.getElementById('modalOnlineDate').innerText = cs.onlineDate;
+            document.getElementById('modalContacts').innerText = cs.contact;
+            document.getElementById('modalGoodCnt').innerText = cs.goodCnt.toLocaleString();
+            document.getElementById('modalCsat').innerText = `${cs.csat}%`;
+
+            document.getElementById('csModal').classList.remove('hidden');
+        }
+
+        function closeCsModal() {
+            document.getElementById('csModal').classList.add('hidden');
+        }
+
+        function switchTab(tabKey) {
+            const views = ['overview', 'batch', 'roster', 'meeting'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) el.classList.add('hidden');
+
+                const btn = document.getElementById(`tab-${v}`);
+                if (btn) {
+                    btn.className = "tab-btn pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-1.5 transition";
+                }
+            });
+
+            const activeView = document.getElementById(`view-${tabKey}`);
+            if (activeView) activeView.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`tab-${tabKey}`);
+            if (activeBtn) {
+                activeBtn.className = "tab-btn pb-3 border-b-2 border-amber-500 text-amber-600 font-semibold flex items-center space-x-1.5 transition";
+            }
+        }
+
+        function toggleView(tabKey) {
+            switchTab(tabKey);
+        }
+
+        function renderAllViews() {
+            updateHeaderMetrics();
+            updateBuyerSellerCards();
+            renderBatchTable();
+            renderCsRosterTable();
+            renderMeetingView();
+            renderCharts();
+        }
+
+        window.onload = function() {
+            lucide.createIcons();
+            initData();
+            renderAllViews();
+        };
+    </script>
+</body>
+</html>
