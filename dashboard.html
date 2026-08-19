@@ -829,6 +829,9 @@ async function renderUser() {
   CUR = { name: name, email: email, picture: picture };
   refreshHeader();
 
+  // Mở đúng tool theo hash trong URL (vd #cqm) — sau khi đã biết quyền.
+  routeFromHash();
+
   // Xác thực xong -> hiện nội dung.
   document.body.style.visibility = 'visible';
 }
@@ -962,22 +965,40 @@ function showTool(src, title) {
   toolView.classList.add('visible');
 }
 
-document.querySelectorAll('.nav-item').forEach(el => {
+// Mỗi mục có "key" cho URL: tool -> data-tool, còn lại -> data-view (home/settings)
+function navKey(el){ return el.dataset.tool !== undefined ? el.dataset.tool : (el.dataset.view || 'home'); }
+function navByKey(key){
+  return Array.prototype.slice.call(document.querySelectorAll('.nav-item')).find(function(n){
+    return (n.dataset.tool !== undefined && n.dataset.tool === key) || n.dataset.view === key;
+  }) || null;
+}
+function activateNav(el){
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  el.classList.add('active');
+  if (el.dataset.tool !== undefined) showTool(el.dataset.src, el.dataset.title || 'Tool');
+  else if (el.dataset.view === 'settings') showSettings();
+  else showHome();
+}
+// Điều hướng theo hash (vd #cqm). Không có hash -> Home.
+function routeFromHash(){
+  var key = decodeURIComponent((location.hash || '').replace(/^#/, '')) || 'home';
+  var el = navByKey(key);
+  if (el && el.classList.contains('qa-only') && document.body.classList.contains('ops-view')) el = null; // vận hành: chặn mục QA-only
+  if (!el) el = navByKey('home');
+  if (el) activateNav(el);
+}
+
+document.querySelectorAll('.nav-item').forEach(function(el){
   el.addEventListener('click', function (e) {
-    if (this.dataset.external !== undefined) return;  // link ngoài -> mở tab mới bình thường
+    if (this.dataset.external !== undefined) return;  // link ngoài -> mở tab mới
     e.preventDefault();
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    this.classList.add('active');
-    if (this.dataset.tool !== undefined) {
-      showTool(this.dataset.src, this.dataset.title || 'Tool');
-    } else if (this.dataset.view === 'settings') {
-      showSettings();
-    } else {
-      showHome();
-    }
+    var key = navKey(this);
+    if ((location.hash || '').replace(/^#/, '') === key) routeFromHash();  // bấm lại chính nó
+    else location.hash = key;                                             // đổi URL -> hashchange
     if (window.innerWidth < 768) document.body.classList.add('sb-collapsed');
   });
 });
+window.addEventListener('hashchange', routeFromHash);
 
 document.getElementById('tool-reload').addEventListener('click', () => {
   if (toolFrame.src && toolFrame.src !== 'about:blank') {
