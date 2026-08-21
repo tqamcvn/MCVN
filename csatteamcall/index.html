@@ -438,7 +438,8 @@
         const CONFIG = {
             // /exec URL của Web App. Đổi tại đây nếu bạn redeploy ra URL mới.
             ENDPOINT: 'https://script.google.com/a/macros/shopeemobile-external.com/s/AKfycbyG0AvDCJrkpBBKbcJBPmb3IIDkEV8Hp79l21h7MUPbQQzO6IXlNXXbsqEW8c7_Qb6d/exec',
-            REFRESH_MS: 30 * 60 * 1000
+            REFRESH_MS: 30 * 60 * 1000,
+            CACHE_KEY: 'csat_dashboard_cache_v1'  // dữ liệu backup trong trình duyệt
         };
 
         // Data holders — nạp từ Google Sheet khi trang chạy
@@ -515,28 +516,63 @@
         function setDataStatus(msg, tone) {
             const el = document.getElementById('data-status');
             if (!el) return;
-            const colors = { loading: 'text-earth-700', ok: 'text-emerald-700', error: 'text-rose-700' };
+            const colors = { loading: 'text-earth-700', ok: 'text-emerald-700', error: 'text-rose-700', warn: 'text-amber-700' };
             el.className = 'font-semibold ' + (colors[tone] || 'text-stone-600');
             el.innerHTML = msg;
         }
 
+        // ===== Backup dữ liệu trong trình duyệt (localStorage) =====
+        function saveCache(updated) {
+            try {
+                localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify({
+                    enriched: enrichedCSAT, projectMap: projectMap,
+                    updated: updated || new Date().toISOString()
+                }));
+            } catch (e) { /* quota/private mode — bỏ qua */ }
+        }
+
+        // Hiển thị NGAY dữ liệu đã lưu để user không phải chờ. Trả về true nếu có cache.
+        function renderFromCache() {
+            try {
+                const raw = localStorage.getItem(CONFIG.CACHE_KEY);
+                if (!raw) return false;
+                const c = JSON.parse(raw);
+                if (!c || !Array.isArray(c.enriched) || !c.enriched.length) return false;
+                enrichedCSAT = c.enriched;
+                projectMap = c.projectMap || {};
+                initFilterDropdowns();
+                applyFilters();
+                const up = document.getElementById('data-updated');
+                if (up) up.textContent = 'Dữ liệu đã lưu lúc ' + new Date(c.updated).toLocaleString('vi-VN') + ' · ' + enrichedCSAT.length + ' dòng';
+                setDataStatus('<i class="fa-solid fa-clock-rotate-left"></i> Đang hiển thị dữ liệu đã lưu, cập nhật nền…', 'loading');
+                return true;
+            } catch (e) { return false; }
+        }
+
         async function loadData(isManual) {
             const btn = document.getElementById('btn-refresh');
+            const hasData = enrichedCSAT.length > 0;
             if (btn) { btn.disabled = true; btn.classList.add('opacity-60', 'cursor-not-allowed'); }
-            setDataStatus('<i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu…', 'loading');
+            setDataStatus('<i class="fa-solid fa-spinner fa-spin"></i> ' + (hasData ? 'Đang cập nhật…' : 'Đang tải dữ liệu…'), 'loading');
             const prevFilters = saveFilterState();
             try {
                 const payload = await fetchViaJsonp(CONFIG.ENDPOINT);
                 mapPayloadToData(payload);
+                const when = payload.updated ? new Date(payload.updated) : new Date();
+                saveCache(payload.updated);
                 initFilterDropdowns();
                 restoreFilterState(prevFilters);
                 applyFilters();
-                const when = payload.updated ? new Date(payload.updated) : new Date();
                 setDataStatus('<i class="fa-solid fa-circle-check"></i> Đã cập nhật', 'ok');
                 const up = document.getElementById('data-updated');
                 if (up) up.textContent = 'Cập nhật lúc ' + when.toLocaleString('vi-VN') + ' · ' + enrichedCSAT.length + ' dòng';
             } catch (err) {
-                setDataStatus('<i class="fa-solid fa-triangle-exclamation"></i> ' + (err.message || 'Lỗi tải dữ liệu'), 'error');
+                if (enrichedCSAT.length > 0) {
+                    // Vẫn còn dữ liệu (cache hoặc lần tải trước) → giữ nguyên, chỉ báo nhẹ.
+                    setDataStatus('<i class="fa-solid fa-triangle-exclamation"></i> Chưa cập nhật được — đang dùng dữ liệu đã lưu.', 'warn');
+                } else {
+                    setDataStatus('<i class="fa-solid fa-triangle-exclamation"></i> ' + (err.message || 'Lỗi tải dữ liệu'), 'error');
+                }
             } finally {
                 if (btn) { btn.disabled = false; btn.classList.remove('opacity-60', 'cursor-not-allowed'); }
             }
@@ -1174,7 +1210,8 @@
         }
 
         window.onload = function () {
-            loadData(false);
+            renderFromCache();   // hiện ngay dữ liệu đã lưu (nếu có) — user không phải chờ
+            loadData(false);     // rồi cập nhật mới ngầm phía sau
             startAutoRefresh();
         };
     </script>
