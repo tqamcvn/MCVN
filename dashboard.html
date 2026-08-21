@@ -476,9 +476,9 @@ body.sb-collapsed .theme-toggle { justify-content: center; padding: 8px 0; }
 body.sb-collapsed .sb-toggle svg { transform: rotate(180deg); }
 
 /* =========================================================
-   GIAO DIỆN TỐI — chỉ đổi bảng màu qua biến CSS
+   GIAO DIỆN TỐI — đặt bảng màu ở cấp cao nhất (html hoặc body)
    ========================================================= */
-body.theme-dark {
+.theme-dark {
   --white: #1e2023;
   --gray-50: #141517;
   --gray-100: #202327;
@@ -1033,6 +1033,7 @@ syncSbTitle();
 const THEME_KEY = 'tqa_theme';
 function applyTheme() {
   const dark = localStorage.getItem(THEME_KEY) === 'dark';
+  document.documentElement.classList.toggle('theme-dark', dark);
   document.body.classList.toggle('theme-dark', dark);
   const label = document.querySelector('.theme-label');
   if (label) label.textContent = dark ? 'Giao diện sáng' : 'Giao diện tối';
