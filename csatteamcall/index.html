@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSAT Analytics & Alert Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Roboto -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                    },
+                    colors: {
+                        earth: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                            950: '#451a03',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Roboto', sans-serif !important; }
+        body { background-color: #fcfaf7; color: #292524; }
+        .earth-card {
+            background-color: #ffffff;
+            border: 1px solid #f3ebd8;
+            box-shadow: 0 4px 6px -1px rgba(180, 83, 9, 0.05), 0 2px 4px -1px rgba(180, 83, 9, 0.03);
+            border-radius: 0.75rem;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #fef3c7; border-radius: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d97706; border-radius: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #b45309; }
+        .tab-btn.active {
+            background-color: #d97706;
+            color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[#fcfaf7] text-stone-800 antialiased font-sans pb-12">
+
+    <!-- Top Header -->
+    <header class="bg-gradient-to-r from-earth-900 via-earth-800 to-earth-700 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-earth-500/30 flex items-center justify-center border border-earth-300/40 shadow-inner">
+                    <i class="fa-solid fa-chart-line text-amber-300 text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-amber-100">CSAT Analytics & Alert Dashboard</h1>
+                    <p class="text-[11px] text-amber-200/80">Hệ thống Phân tích CSAT & Cảnh báo Good Thiếu (Target ≥ 96%)</p>
+                </div>
+            </div>
+
+            <!-- Time Granularity Selector -->
+            <div class="flex items-center bg-earth-950/40 p-1 rounded-xl border border-earth-600/50">
+                <span class="text-xs text-amber-200 font-medium px-2 flex items-center gap-1">
+                    <i class="fa-regular fa-clock"></i> Xem theo:
+                </span>
+                <div class="inline-flex rounded-lg bg-earth-900/80 p-0.5">
+                    <button id="btn-monthly" onclick="setGranularity('monthly')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-white bg-earth-600 shadow-sm">Tháng</button>
+                    <button id="btn-weekly" onclick="setGranularity('weekly')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-amber-200 hover:text-white">Tuần</button>
+                    <button id="btn-daily" onclick="setGranularity('daily')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-amber-200 hover:text-white">Ngày</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-4">
+
+        <!-- Data status + manual refresh -->
+        <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 earth-card px-3 py-2 bg-white">
+            <div class="text-[11px] flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-0.5">
+                <span id="data-status" class="font-semibold text-stone-600"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu…</span>
+                <span id="data-updated" class="text-stone-400"></span>
+            </div>
+            <button id="btn-refresh" onclick="manualRefresh()" class="px-3 py-1.5 bg-earth-700 hover:bg-earth-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shrink-0 shadow transition">
+                <i class="fa-solid fa-rotate"></i> Cập nhật ngay
+            </button>
+        </section>
+
+        <!-- Compact Filter Bar -->
+        <section class="earth-card p-3 bg-gradient-to-b from-amber-50/40 to-white">
+            <div class="flex items-center justify-between mb-2 pb-1 border-b border-amber-100">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-earth-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-filter text-earth-600"></i> BỘ LỌC DỮ LIỆU
+                </h2>
+                <button onclick="resetFilters()" class="text-[11px] font-semibold text-earth-700 hover:text-earth-900 flex items-center gap-1 bg-amber-100/60 px-2 py-0.5 rounded hover:bg-amber-200/60 transition">
+                    <i class="fa-solid fa-rotate-left"></i> Đặt lại
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                <div>
+                    <label class="block text-[11px] font-semibold text-stone-600 mb-0.5">QA Pic</label>
+                    <select id="filter-qa" onchange="applyFilters()" class="w-full text-xs bg-stone-50 border border-amber-200 rounded-md p-1.5 focus:ring-1 focus:ring-earth-500 focus:outline-none">
+                        <option value="ALL">Tất cả QA</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-stone-600 mb-0.5">Team Lead (TL)</label>
+                    <select id="filter-tl" onchange="applyFilters()" class="w-full text-xs bg-stone-50 border border-amber-200 rounded-md p-1.5 focus:ring-1 focus:ring-earth-500 focus:outline-none">
+                        <option value="ALL">Tất cả TL</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-stone-600 mb-0.5">Project</label>
+                    <select id="filter-project" onchange="applyFilters()" class="w-full text-xs bg-stone-50 border border-amber-200 rounded-md p-1.5 focus:ring-1 focus:ring-earth-500 focus:outline-none">
+                        <option value="ALL">Tất cả Project</option>
+                        <option value="Lift Off (MCVN)">Lift Off (MCVN)</option>
+                        <option value="Bottom agent (IH)">Bottom agent (IH)</option>
+                        <option value="Repeated (IH)">Repeated (IH)</option>
+                        <option value="Non-Project">Non-Project</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-stone-600 mb-0.5">Queue</label>
+                    <select id="filter-queue" onchange="applyFilters()" class="w-full text-xs bg-stone-50 border border-amber-200 rounded-md p-1.5 focus:ring-1 focus:ring-earth-500 focus:outline-none">
+                        <option value="ALL">Tất cả Queue</option>
+                        <option value="Buyer">Buyer</option>
+                        <option value="Seller">Seller</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-stone-600 mb-0.5">Channel</label>
+                    <select id="filter-channel" onchange="applyFilters()" class="w-full text-xs bg-stone-50 border border-amber-200 rounded-md p-1.5 focus:ring-1 focus:ring-earth-500 focus:outline-none">
+                        <option value="ALL">Tất cả Channel</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label id="lbl-granularity" class="block text-[11px] font-semibold text-stone-600 mb-0.5">Thời gian</label>
+                    <select id="filter-granularity-val" onchange="applyFilters()" class="w-full text-xs bg-stone-50 border border-amber-200 rounded-md p-1.5 focus:ring-1 focus:ring-earth-500 focus:outline-none">
+                        <option value="ALL">Tất cả thời gian</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Summary Cards Section -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- Overall CSAT Rate -->
+            <div class="earth-card p-3 border-l-4 border-l-earth-600 flex justify-between items-center">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-stone-500">Tỷ lệ CSAT Overall</p>
+                    <h3 id="kpi-csat-rate" class="text-2xl font-black text-earth-800 mt-0.5">0.0%</h3>
+                    <p id="kpi-csat-status" class="text-[11px] font-medium text-emerald-600 mt-0.5">
+                        <i class="fa-solid fa-check-circle"></i> Good / (Good + Bad)
+                    </p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-earth-700 text-lg font-bold shadow-sm">
+                    %
+                </div>
+            </div>
+
+            <!-- Good Shortage KPI -->
+            <div class="earth-card p-3 border-l-4 border-l-amber-500 flex justify-between items-center bg-amber-50/20">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-stone-500">Good Thiếu (Target 96%)</p>
+                    <h3 id="kpi-good-shortage" class="text-2xl font-black text-earth-700 mt-0.5">0</h3>
+                    <p id="kpi-good-shortage-desc" class="text-[11px] font-medium text-stone-600 mt-0.5">
+                        Cần thêm lượt Good để đạt target
+                    </p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-earth-600 text-white flex items-center justify-center text-lg shadow">
+                    <i class="fa-solid fa-bullseye"></i>
+                </div>
+            </div>
+
+            <!-- Total Rated Cases -->
+            <div class="earth-card p-3 border-l-4 border-l-stone-600 flex justify-between items-center">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-stone-500">Tổng Đánh giá (Rated)</p>
+                    <h3 id="kpi-rated-cases" class="text-2xl font-black text-stone-800 mt-0.5">0</h3>
+                    <p class="text-[11px] font-medium text-stone-500 mt-0.5">
+                        Good: <span id="kpi-good-cnt" class="text-emerald-700 font-bold">0</span> | Bad: <span id="kpi-bad-cnt" class="text-rose-700 font-bold">0</span>
+                    </p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-earth-700 text-lg shadow-sm">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- MAIN DASHBOARD NAVIGATION TABS -->
+        <nav class="flex space-x-2 border-b border-amber-200 pb-1 bg-amber-50/30 p-1.5 rounded-xl border">
+            <button id="main-tab-overview" onclick="switchMainTab('overview')" class="tab-btn active px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie"></i> 1. Tổng Quan & Cảnh Báo CSAT Drop
+            </button>
+            <button id="main-tab-project" onclick="switchMainTab('project')" class="tab-btn px-4 py-2 text-xs font-semibold text-stone-600 hover:text-earth-800 rounded-lg transition-all flex items-center gap-2">
+                <i class="fa-solid fa-folder-tree"></i> 2. Chi Tiết CS Tham Gia Project
+            </button>
+            <button id="main-tab-agent" onclick="switchMainTab('agent')" class="tab-btn px-4 py-2 text-xs font-semibold text-stone-600 hover:text-earth-800 rounded-lg transition-all flex items-center gap-2">
+                <i class="fa-solid fa-users"></i> 3. Bảng Xếp Hạng Agent Chi Tiết
+            </button>
+        </nav>
+
+        <!-- TAB CONTENT 1: OVERVIEW & WARNING ALERTS -->
+        <div id="content-tab-overview" class="space-y-4">
+            <!-- Warning Drop Panel -->
+            <section class="earth-card overflow-hidden border-2 border-amber-300">
+                <div class="bg-gradient-to-r from-earth-900 to-earth-800 text-white p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 rounded-lg bg-red-500/20 text-red-300 border border-red-400/30">
+                            <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                        </span>
+                        <div>
+                            <h3 class="font-bold text-amber-100 text-sm">CẢNH BÁO CSAT DROP & GOOD THIẾU</h3>
+                            <p class="text-[11px] text-amber-200/80">Nhóm / Nhân sự có CSAT thấp (&lt; 96%) và số lượt Good thiếu cao nhất</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1.5 text-xs">
+                        <button onclick="switchWarningSubTab('agent')" id="tab-warn-agent" class="px-2.5 py-1 rounded-md font-bold bg-amber-500 text-stone-900 shadow">Agent Drop</button>
+                        <button onclick="switchWarningSubTab('qa')" id="tab-warn-qa" class="px-2.5 py-1 rounded-md font-semibold bg-earth-950/60 text-amber-200 hover:text-white">QA Drop</button>
+                        <button onclick="switchWarningSubTab('tl')" id="tab-warn-tl" class="px-2.5 py-1 rounded-md font-semibold bg-earth-950/60 text-amber-200 hover:text-white">TL Drop</button>
+                        <button onclick="switchWarningSubTab('queue')" id="tab-warn-queue" class="px-2.5 py-1 rounded-md font-semibold bg-earth-950/60 text-amber-200 hover:text-white">Queue/Channel Drop</button>
+                    </div>
+                </div>
+
+                <div class="p-3 overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-amber-100/70 text-earth-950 border-b border-amber-200 font-bold uppercase text-[11px]">
+                                <th class="p-2">Tên / Đối tượng</th>
+                                <th class="p-2">Phân loại / Role</th>
+                                <th class="p-2 text-center">CSAT %</th>
+                                <th class="p-2 text-center">Good</th>
+                                <th class="p-2 text-center">Bad</th>
+                                <th class="p-2 text-center bg-amber-200/70 font-black text-earth-900">Good Thiếu (Target 96%)</th>
+                                <th class="p-2 text-center">Mức độ Cảnh báo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="warning-table-body" class="divide-y divide-amber-100">
+                            <!-- Dynamic Warning Data -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Charts Grid (2 columns layout) -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="earth-card p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-earth-900 text-xs uppercase tracking-wide">CSAT % Theo QA Pic</h3>
+                        <span class="text-[10px] bg-amber-100 text-earth-800 font-semibold px-2 py-0.5 rounded border border-amber-300">High &rarr; Low</span>
+                    </div>
+                    <div class="relative h-[200px]">
+                        <canvas id="chart-qa"></canvas>
+                    </div>
+                </div>
+
+                <div class="earth-card p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-earth-900 text-xs uppercase tracking-wide">CSAT % Theo Team Lead (TL)</h3>
+                        <span class="text-[10px] bg-amber-100 text-earth-800 font-semibold px-2 py-0.5 rounded border border-amber-300">High &rarr; Low</span>
+                    </div>
+                    <div class="relative h-[200px]">
+                        <canvas id="chart-tl"></canvas>
+                    </div>
+                </div>
+
+                <div class="earth-card p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-earth-900 text-xs uppercase tracking-wide">CSAT % Theo Queue (Buyer / Seller)</h3>
+                        <span class="text-[10px] bg-amber-100 text-earth-800 font-semibold px-2 py-0.5 rounded border border-amber-300">High &rarr; Low</span>
+                    </div>
+                    <div class="relative h-[180px]">
+                        <canvas id="chart-queue"></canvas>
+                    </div>
+                </div>
+
+                <div class="earth-card p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-earth-900 text-xs uppercase tracking-wide">CSAT % Theo Channel (Kênh)</h3>
+                        <span class="text-[10px] bg-amber-100 text-earth-800 font-semibold px-2 py-0.5 rounded border border-amber-300">High &rarr; Low</span>
+                    </div>
+                    <div class="relative h-[180px]">
+                        <canvas id="chart-channel"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- TAB CONTENT 2: DETAILED PROJECT & CS PARTICIPATION -->
+        <div id="content-tab-project" class="space-y-4 hidden">
+            <!-- Project Overall Chart & Stats Summary -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="earth-card p-4 lg:col-span-1 bg-amber-50/30 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-earth-900 text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-diagram-project text-earth-600"></i> Tổng Quan Tham Gia Project
+                        </h3>
+                        <p class="text-xs text-stone-600 mb-4">Thống kê CS theo số lượng Project tham gia & so sánh hiệu suất CSAT.</p>
+                        
+                        <div class="space-y-2">
+                            <div class="p-2.5 bg-white rounded-lg border border-amber-200 flex justify-between items-center shadow-sm">
+                                <span class="text-xs font-medium text-stone-700">Tổng số Project đang chạy:</span>
+                                <span class="text-sm font-black text-earth-800">3 Projects</span>
+                            </div>
+                            <div class="p-2.5 bg-white rounded-lg border border-amber-200 flex justify-between items-center shadow-sm">
+                                <span class="text-xs font-medium text-stone-700">CS tham gia Project:</span>
+                                <span id="cnt-cs-in-project" class="text-sm font-black text-emerald-700">0 CS</span>
+                            </div>
+                            <div class="p-2.5 bg-white rounded-lg border border-amber-200 flex justify-between items-center shadow-sm">
+                                <span class="text-xs font-medium text-stone-700">CS Không tham gia Project:</span>
+                                <span id="cnt-cs-non-project" class="text-sm font-black text-stone-600">0 CS</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-2.5 bg-amber-100/70 rounded-lg text-[11px] text-earth-900 font-medium">
+                        <i class="fa-solid fa-circle-info text-earth-700"></i> Bảng bên dưới so sánh **CSAT của CS trong Project** so với **CSAT Overall** của chính CS đó để đánh giá sức ảnh hưởng của Project.
+                    </div>
+                </div>
+
+                <div class="earth-card p-4 lg:col-span-2">
+                    <h3 class="font-bold text-earth-900 text-xs uppercase tracking-wide mb-3">Tỷ lệ CSAT % Theo Từng Project</h3>
+                    <div class="relative h-[210px]">
+                        <canvas id="chart-project-tab"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Agent Project Comparison Table -->
+            <section class="earth-card p-4 space-y-3">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-amber-100 pb-3">
+                    <div>
+                        <h3 class="font-bold text-earth-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-earth-600"></i> BẢNG PHÂN TÍCH CHI TIẾT CS & SO SÁNH CSAT PROJECT VS OVERALL
+                        </h3>
+                        <p class="text-xs text-stone-500">Chi tiết từng CS, số lượng Project tham gia, CSAT từng Project & Chênh lệch (+/-) so với Overall CSAT</p>
+                    </div>
+                    <div class="relative w-full sm:w-64">
+                        <i class="fa-solid fa-search absolute left-2.5 top-2 text-stone-400 text-xs"></i>
+                        <input id="project-cs-search" type="text" onkeyup="filterProjectCsTable()" placeholder="Tìm tên CS hoặc Project..." class="w-full pl-8 pr-3 py-1 text-xs bg-stone-50 border border-amber-200 rounded-lg focus:ring-1 focus:ring-earth-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto max-h-96 custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="sticky top-0 bg-stone-100 text-stone-700 font-bold uppercase border-b border-stone-200 shadow-sm z-10 text-[11px]">
+                            <tr>
+                                <th class="p-2.5">Tên CS Agent</th>
+                                <th class="p-2.5">Email</th>
+                                <th class="p-2.5 text-center">Số Project Tham Gia</th>
+                                <th class="p-2.5">Chi Tiết Project Tham Gia</th>
+                                <th class="p-2.5 text-center bg-amber-100 text-earth-900">CSAT trong Project</th>
+                                <th class="p-2.5 text-center bg-amber-200 text-earth-950">CSAT Overall (Toàn Bộ)</th>
+                                <th class="p-2.5 text-center">So Sánh với Overall</th>
+                            </tr>
+                        </thead>
+                        <tbody id="project-cs-table-body" class="divide-y divide-amber-100">
+                            <!-- Dynamic Detailed Project CS Data -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- TAB CONTENT 3: AGENT LEADERBOARD TABLE -->
+        <div id="content-tab-agent" class="space-y-4 hidden">
+            <section class="earth-card p-4 space-y-3">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-amber-100 pb-3">
+                    <div>
+                        <h3 class="font-bold text-earth-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-600"></i> BẢNG XẾP HẠNG HIỆU SUẤT CSAT THEO AGENT
+                        </h3>
+                        <p class="text-xs text-stone-500">Sắp xếp theo thứ tự CSAT từ Cao &rarr; Thấp, kèm tính toán lượt Good thiếu theo target 96%</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <div class="relative w-full md:w-64">
+                            <i class="fa-solid fa-search absolute left-2.5 top-2 text-stone-400 text-xs"></i>
+                            <input id="agent-search" type="text" onkeyup="filterAgentTable()" placeholder="Tìm theo tên CS / email..." class="w-full pl-8 pr-3 py-1 text-xs bg-stone-50 border border-amber-200 rounded-lg focus:ring-1 focus:ring-earth-500 focus:outline-none">
+                        </div>
+                        <button onclick="exportTableToCSV()" class="px-3 py-1 bg-earth-700 hover:bg-earth-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shrink-0 shadow">
+                            <i class="fa-solid fa-file-csv"></i> Xuất CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto max-h-[480px] custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="sticky top-0 bg-stone-100 text-stone-700 font-bold uppercase border-b border-stone-200 shadow-sm z-10 text-[11px]">
+                            <tr>
+                                <th class="p-2.5 text-center">Hạng</th>
+                                <th class="p-2.5">Tên Agent</th>
+                                <th class="p-2.5">Email</th>
+                                <th class="p-2.5">Project</th>
+                                <th class="p-2.5">QA Pic</th>
+                                <th class="p-2.5">Team Lead</th>
+                                <th class="p-2.5 text-center">Good</th>
+                                <th class="p-2.5 text-center">Avg</th>
+                                <th class="p-2.5 text-center">Bad</th>
+                                <th class="p-2.5 text-center bg-amber-100 text-earth-900">CSAT %</th>
+                                <th class="p-2.5 text-center font-black bg-amber-200 text-earth-950">Good Thiếu (Target 96%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agent-table-body" class="divide-y divide-amber-100">
+                            <!-- Dynamic Agent Table Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <script>
+        // ===== CONFIG (Google Apps Script proxy) =====
+        const CONFIG = {
+            // /exec URL của Web App. Đổi tại đây nếu bạn redeploy ra URL mới.
+            ENDPOINT: 'https://script.google.com/a/macros/shopeemobile-external.com/s/AKfycbyG0AvDCJrkpBBKbcJBPmb3IIDkEV8Hp79l21h7MUPbQQzO6IXlNXXbsqEW8c7_Qb6d/exec',
+            REFRESH_MS: 30 * 60 * 1000
+        };
+
+        // Data holders — nạp từ Google Sheet khi trang chạy
+        let enrichedCSAT = [];
+        let projectMap = {};
+
+        // ===== Nạp dữ liệu từ Google Sheet qua Apps Script proxy (JSONP) =====
+        let refreshTimer = null;
+
+        function fetchViaJsonp(endpoint) {
+            return new Promise((resolve, reject) => {
+                const cb = '__csat_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+                let s = null;
+                const timer = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Hết thời gian chờ. Kiểm tra bạn đã đăng nhập tài khoản @shopeemobile-external.com và có quyền truy cập proxy.'));
+                }, 25000);
+                function cleanup() {
+                    try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+                    if (s && s.parentNode) s.parentNode.removeChild(s);
+                    clearTimeout(timer);
+                }
+                window[cb] = (payload) => { cleanup(); resolve(payload); };
+                s = document.createElement('script');
+                s.onerror = () => { cleanup(); reject(new Error('Không tải được dữ liệu (có thể chưa đăng nhập nội bộ, hoặc URL proxy sai).')); };
+                s.src = endpoint + (endpoint.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cb + '&t=' + Date.now();
+                document.body.appendChild(s);
+            });
+        }
+
+        function mapPayloadToData(payload) {
+            if (!payload || !payload.ok) throw new Error((payload && payload.error) || 'Dữ liệu trả về không hợp lệ.');
+            projectMap = payload.projects || {};
+            const lowerMap = {};
+            for (const [p, emails] of Object.entries(projectMap)) {
+                lowerMap[p] = new Set((emails || []).map(e => String(e).toLowerCase()));
+            }
+            const rows = payload.raw || [];
+            enrichedCSAT = rows.map(r => {
+                const email = String(r.agent_email || '').toLowerCase();
+                let project = 'Non-Project';
+                for (const [p, set] of Object.entries(lowerMap)) {
+                    if (set.has(email)) { project = p; break; }
+                }
+                return {
+                    report_month: r.report_month, report_week: r.report_week, report_date: r.report_date,
+                    agent_id: r.agent_id, agent_name: r.agent_name, agent_email: r.agent_email,
+                    QA_Pic: r.qa_pic ? r.qa_pic : 'Chưa phân công',
+                    TL: r.tl ? r.tl : 'Chưa phân công',
+                    team: r.team, full_team: r.full_team, channel_name: r.channel_name,
+                    good_cnt: Number(r.good_cnt) || 0, avg_cnt: Number(r.avg_cnt) || 0, bad_cnt: Number(r.bad_cnt) || 0,
+                    good_bad_cnt: Number(r.good_bad_cnt) || 0, csat_rating: Number(r.csat_rating) || 0,
+                    shopee_user_type: r.shopee_user_type,
+                    queue: r.shopee_user_type || 'Khác',
+                    channel: r.sub_channel || r.channel_name || 'Khác',
+                    project
+                };
+            });
+        }
+
+        function saveFilterState() {
+            const ids = ['filter-qa', 'filter-tl', 'filter-project', 'filter-queue', 'filter-channel', 'filter-granularity-val'];
+            const st = {};
+            ids.forEach(id => { const el = document.getElementById(id); if (el) st[id] = el.value; });
+            return st;
+        }
+        function restoreFilterState(st) {
+            Object.entries(st).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (el && [...el.options].some(o => o.value === val)) el.value = val;
+            });
+        }
+
+        function setDataStatus(msg, tone) {
+            const el = document.getElementById('data-status');
+            if (!el) return;
+            const colors = { loading: 'text-earth-700', ok: 'text-emerald-700', error: 'text-rose-700' };
+            el.className = 'font-semibold ' + (colors[tone] || 'text-stone-600');
+            el.innerHTML = msg;
+        }
+
+        async function loadData(isManual) {
+            const btn = document.getElementById('btn-refresh');
+            if (btn) { btn.disabled = true; btn.classList.add('opacity-60', 'cursor-not-allowed'); }
+            setDataStatus('<i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu…', 'loading');
+            const prevFilters = saveFilterState();
+            try {
+                const payload = await fetchViaJsonp(CONFIG.ENDPOINT);
+                mapPayloadToData(payload);
+                initFilterDropdowns();
+                restoreFilterState(prevFilters);
+                applyFilters();
+                const when = payload.updated ? new Date(payload.updated) : new Date();
+                setDataStatus('<i class="fa-solid fa-circle-check"></i> Đã cập nhật', 'ok');
+                const up = document.getElementById('data-updated');
+                if (up) up.textContent = 'Cập nhật lúc ' + when.toLocaleString('vi-VN') + ' · ' + enrichedCSAT.length + ' dòng';
+            } catch (err) {
+                setDataStatus('<i class="fa-solid fa-triangle-exclamation"></i> ' + (err.message || 'Lỗi tải dữ liệu'), 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.classList.remove('opacity-60', 'cursor-not-allowed'); }
+            }
+        }
+
+        function manualRefresh() { loadData(true); }
+
+        function startAutoRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(() => loadData(false), CONFIG.REFRESH_MS);
+        }
+
+        // Global State variables
+        let currentGranularity = 'monthly';
+        let currentWarningSubTab = 'agent';
+        let chartInstances = {};
+
+        // Helper: Calculate CSAT Target 96% Good Shortage
+        function calcGoodShortage(good, bad) {
+            const rated = good + bad;
+            if (rated === 0) return 0;
+            const currentCSAT = (good / rated) * 100;
+            if (currentCSAT >= 96) return 0;
+            const shortage = Math.ceil((0.96 * rated - good) / 0.04);
+            return shortage > 0 ? shortage : 0;
+        }
+
+        function initFilterDropdowns() {
+            const qas = [...new Set(enrichedCSAT.map(i => i.QA_Pic))].filter(Boolean);
+            const tls = [...new Set(enrichedCSAT.map(i => i.TL))].filter(Boolean);
+            const channels = [...new Set(enrichedCSAT.map(i => i.channel))].filter(Boolean);
+
+            populateSelect('filter-qa', qas);
+            populateSelect('filter-tl', tls);
+            populateSelect('filter-channel', channels);
+
+            updateGranularityOptions();
+        }
+
+        function populateSelect(elemId, items) {
+            const select = document.getElementById(elemId);
+            const firstOption = select.options[0];
+            select.innerHTML = '';
+            select.appendChild(firstOption);
+            items.sort().forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.textContent = item;
+                select.appendChild(opt);
+            });
+        }
+
+        function switchMainTab(tabId) {
+            ['overview', 'project', 'agent'].forEach(id => {
+                const btn = document.getElementById(`main-tab-${id}`);
+                const content = document.getElementById(`content-tab-${id}`);
+                if (id === tabId) {
+                    btn.className = 'tab-btn active px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2';
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = 'tab-btn px-4 py-2 text-xs font-semibold text-stone-600 hover:text-earth-800 rounded-lg transition-all flex items-center gap-2';
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        function setGranularity(type) {
+            currentGranularity = type;
+            ['monthly', 'weekly', 'daily'].forEach(t => {
+                const btn = document.getElementById(`btn-${t}`);
+                if (t === type) {
+                    btn.className = 'px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-white bg-earth-600 shadow-sm';
+                } else {
+                    btn.className = 'px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-amber-200 hover:text-white';
+                }
+            });
+            updateGranularityOptions();
+            applyFilters();
+        }
+
+        function updateGranularityOptions() {
+            const label = document.getElementById('lbl-granularity');
+            let field = 'report_month';
+            if (currentGranularity === 'monthly') {
+                label.innerText = 'Tháng';
+                field = 'report_month';
+            } else if (currentGranularity === 'weekly') {
+                label.innerText = 'Tuần';
+                field = 'report_week';
+            } else {
+                label.innerText = 'Ngày';
+                field = 'report_date';
+            }
+
+            const dates = [...new Set(enrichedCSAT.map(i => i[field]))].filter(Boolean).sort().reverse();
+            populateSelect('filter-granularity-val', dates);
+        }
+
+        function getFilteredData() {
+            const qaVal = document.getElementById('filter-qa').value;
+            const tlVal = document.getElementById('filter-tl').value;
+            const projectVal = document.getElementById('filter-project').value;
+            const queueVal = document.getElementById('filter-queue').value;
+            const channelVal = document.getElementById('filter-channel').value;
+            const granVal = document.getElementById('filter-granularity-val').value;
+
+            let field = currentGranularity === 'monthly' ? 'report_month' : (currentGranularity === 'weekly' ? 'report_week' : 'report_date');
+
+            return enrichedCSAT.filter(item => {
+                if (qaVal !== 'ALL' && item.QA_Pic !== qaVal) return false;
+                if (tlVal !== 'ALL' && item.TL !== tlVal) return false;
+                if (projectVal !== 'ALL' && item.project !== projectVal) return false;
+                if (queueVal !== 'ALL' && item.queue !== queueVal) return false;
+                if (channelVal !== 'ALL' && item.channel !== channelVal) return false;
+                if (granVal !== 'ALL' && item[field] !== granVal) return false;
+                return true;
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-qa').value = 'ALL';
+            document.getElementById('filter-tl').value = 'ALL';
+            document.getElementById('filter-project').value = 'ALL';
+            document.getElementById('filter-queue').value = 'ALL';
+            document.getElementById('filter-channel').value = 'ALL';
+            document.getElementById('filter-granularity-val').value = 'ALL';
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const data = getFilteredData();
+            updateKPIs(data);
+            renderWarningTable(data);
+            renderCharts(data);
+            renderAgentTable(data);
+            renderProjectCsDetails(data);
+        }
+
+        function updateKPIs(data) {
+            const totalGood = data.reduce((acc, i) => acc + i.good_cnt, 0);
+            const totalBad = data.reduce((acc, i) => acc + i.bad_cnt, 0);
+            const ratedCases = totalGood + totalBad;
+
+            const csatRate = ratedCases > 0 ? ((totalGood / ratedCases) * 100).toFixed(1) : '0.0';
+            const goodShortage = calcGoodShortage(totalGood, totalBad);
+
+            document.getElementById('kpi-csat-rate').innerText = `${csatRate}%`;
+            document.getElementById('kpi-good-shortage').innerText = goodShortage;
+            document.getElementById('kpi-rated-cases').innerText = ratedCases;
+            document.getElementById('kpi-good-cnt').innerText = totalGood;
+            document.getElementById('kpi-bad-cnt').innerText = totalBad;
+
+            const statusElem = document.getElementById('kpi-csat-status');
+            const descElem = document.getElementById('kpi-good-shortage-desc');
+
+            if (parseFloat(csatRate) >= 96.0) {
+                statusElem.className = 'text-[11px] font-bold text-emerald-600 mt-0.5';
+                statusElem.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đã Đạt Target CSAT ≥ 96%';
+                descElem.className = 'text-[11px] font-bold text-emerald-600 mt-0.5';
+                descElem.innerText = 'Xuất sắc! Không bị thiếu Good';
+            } else {
+                statusElem.className = 'text-[11px] font-bold text-amber-700 mt-0.5';
+                statusElem.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Cần Cải Thiện Để Đạt 96%';
+                descElem.className = 'text-[11px] font-bold text-amber-800 mt-0.5';
+                descElem.innerText = `Đang thiếu ${goodShortage} lượt Good để đạt 96% CSAT`;
+            }
+        }
+
+        function switchWarningSubTab(tab) {
+            currentWarningSubTab = tab;
+            ['agent', 'qa', 'tl', 'queue'].forEach(t => {
+                const btn = document.getElementById(`tab-warn-${t}`);
+                if (t === tab) {
+                    btn.className = 'px-2.5 py-1 rounded-md font-bold bg-amber-500 text-stone-900 shadow';
+                } else {
+                    btn.className = 'px-2.5 py-1 rounded-md font-semibold bg-earth-950/60 text-amber-200 hover:text-white';
+                }
+            });
+            renderWarningTable(getFilteredData());
+        }
+
+        function renderWarningTable(data) {
+            const tbody = document.getElementById('warning-table-body');
+            tbody.innerHTML = '';
+
+            let warningList = [];
+
+            if (currentWarningSubTab === 'agent') {
+                const map = {};
+                data.forEach(i => {
+                    if (!map[i.agent_email]) {
+                        map[i.agent_email] = { name: i.agent_name, role: i.project, good: 0, bad: 0 };
+                    }
+                    map[i.agent_email].good += i.good_cnt;
+                    map[i.agent_email].bad += i.bad_cnt;
+                });
+                warningList = Object.values(map);
+            } else if (currentWarningSubTab === 'qa') {
+                const map = {};
+                data.forEach(i => {
+                    if (!map[i.QA_Pic]) {
+                        map[i.QA_Pic] = { name: i.QA_Pic, role: 'QA Pic', good: 0, bad: 0 };
+                    }
+                    map[i.QA_Pic].good += i.good_cnt;
+                    map[i.QA_Pic].bad += i.bad_cnt;
+                });
+                warningList = Object.values(map);
+            } else if (currentWarningSubTab === 'tl') {
+                const map = {};
+                data.forEach(i => {
+                    if (!map[i.TL]) {
+                        map[i.TL] = { name: i.TL, role: 'Team Lead', good: 0, bad: 0 };
+                    }
+                    map[i.TL].good += i.good_cnt;
+                    map[i.TL].bad += i.bad_cnt;
+                });
+                warningList = Object.values(map);
+            } else if (currentWarningSubTab === 'queue') {
+                const map = {};
+                data.forEach(i => {
+                    const key = `${i.queue} - ${i.channel}`;
+                    if (!map[key]) {
+                        map[key] = { name: key, role: 'Queue/Channel', good: 0, bad: 0 };
+                    }
+                    map[key].good += i.good_cnt;
+                    map[key].bad += i.bad_cnt;
+                });
+                warningList = Object.values(map);
+            }
+
+            warningList = warningList.map(item => {
+                const rated = item.good + item.bad;
+                const csat = rated > 0 ? (item.good / rated) * 100 : 0;
+                const shortage = calcGoodShortage(item.good, item.bad);
+                return { ...item, rated, csat, shortage };
+            });
+
+            warningList.sort((a, b) => {
+                if (a.csat !== b.csat) return a.csat - b.csat;
+                return b.shortage - a.shortage;
+            });
+
+            if (warningList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-stone-500 italic">Không có dữ liệu cảnh báo.</td></tr>`;
+                return;
+            }
+
+            warningList.forEach(item => {
+                const csatFormatted = item.rated > 0 ? `${item.csat.toFixed(1)}%` : '0.0%';
+                let badgeClass = 'bg-red-100 text-red-800 border-red-200';
+                let badgeText = 'Thấp (< 88%)';
+
+                if (item.csat >= 96) {
+                    badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                    badgeText = 'Đạt Target (≥ 96%)';
+                } else if (item.csat >= 90) {
+                    badgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+                    badgeText = 'Cảnh Báo (90-95%)';
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-amber-50/60 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-2 font-bold text-stone-800">${item.name}</td>
+                    <td class="p-2 text-stone-600">${item.role}</td>
+                    <td class="p-2 text-center font-bold ${item.csat < 96 ? 'text-rose-700' : 'text-emerald-700'}">${csatFormatted}</td>
+                    <td class="p-2 text-center text-emerald-700 font-semibold">${item.good}</td>
+                    <td class="p-2 text-center text-rose-700 font-semibold">${item.bad}</td>
+                    <td class="p-2 text-center font-black text-amber-900 bg-amber-100/70">${item.shortage}</td>
+                    <td class="p-2 text-center">
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border ${badgeClass}">
+                            ${badgeText}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function groupAndSortCSAT(data, keyExtractor) {
+            const map = {};
+            data.forEach(item => {
+                const key = keyExtractor(item) || 'Khác';
+                if (!map[key]) {
+                    map[key] = { good: 0, bad: 0 };
+                }
+                map[key].good += item.good_cnt;
+                map[key].bad += item.bad_cnt;
+            });
+
+            const result = Object.keys(map).map(key => {
+                const rated = map[key].good + map[key].bad;
+                const csat = rated > 0 ? (map[key].good / rated) * 100 : 0;
+                return { key, csat, good: map[key].good, bad: map[key].bad, rated };
+            });
+
+            result.sort((a, b) => b.csat - a.csat);
+            return result;
+        }
+
+        function createOrUpdateHorizontalChart(chartId, labels, datasets) {
+            if (chartInstances[chartId]) {
+                chartInstances[chartId].destroy();
+            }
+
+            const ctx = document.getElementById(chartId).getContext('2d');
+            chartInstances[chartId] = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    categoryPercentage: 0.6,
+                    barPercentage: 0.8,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` CSAT: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: value => value + '%',
+                                font: { family: 'Roboto', size: 10 }
+                            },
+                            grid: {
+                                color: function(context) {
+                                    if (context.tick.value === 96) return '#ef4444';
+                                    return '#f3ebd8';
+                                },
+                                lineWidth: function(context) {
+                                    if (context.tick.value === 96) return 2;
+                                    return 1;
+                                }
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                font: { family: 'Roboto', size: 11, weight: '500' },
+                                color: '#44403c'
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCharts(data) {
+            // QA Chart
+            const qaData = groupAndSortCSAT(data, i => i.QA_Pic);
+            createOrUpdateHorizontalChart('chart-qa', qaData.map(i => i.key), [{
+                data: qaData.map(i => parseFloat(i.csat.toFixed(1))),
+                backgroundColor: qaData.map(i => i.csat >= 96 ? '#10b981' : (i.csat >= 90 ? '#d97706' : '#ef4444')),
+                borderRadius: 4,
+                maxBarThickness: 16
+            }]);
+
+            // TL Chart
+            const tlData = groupAndSortCSAT(data, i => i.TL);
+            createOrUpdateHorizontalChart('chart-tl', tlData.map(i => i.key), [{
+                data: tlData.map(i => parseFloat(i.csat.toFixed(1))),
+                backgroundColor: tlData.map(i => i.csat >= 96 ? '#10b981' : (i.csat >= 90 ? '#b45309' : '#ef4444')),
+                borderRadius: 4,
+                maxBarThickness: 16
+            }]);
+
+            // Queue Chart
+            const queueData = groupAndSortCSAT(data, i => i.queue);
+            createOrUpdateHorizontalChart('chart-queue', queueData.map(i => i.key), [{
+                data: queueData.map(i => parseFloat(i.csat.toFixed(1))),
+                backgroundColor: queueData.map(i => i.csat >= 96 ? '#10b981' : '#f59e0b'),
+                borderRadius: 4,
+                maxBarThickness: 16
+            }]);
+
+            // Channel Chart
+            const channelData = groupAndSortCSAT(data, i => i.channel);
+            createOrUpdateHorizontalChart('chart-channel', channelData.map(i => i.key), [{
+                data: channelData.map(i => parseFloat(i.csat.toFixed(1))),
+                backgroundColor: channelData.map(i => i.csat >= 96 ? '#10b981' : '#78350f'),
+                borderRadius: 4,
+                maxBarThickness: 16
+            }]);
+
+            // Project Tab Chart
+            const projData = groupAndSortCSAT(data, i => i.project);
+            createOrUpdateHorizontalChart('chart-project-tab', projData.map(i => i.key), [{
+                data: projData.map(i => parseFloat(i.csat.toFixed(1))),
+                backgroundColor: projData.map(i => i.csat >= 96 ? '#10b981' : '#d97706'),
+                borderRadius: 4,
+                maxBarThickness: 18
+            }]);
+        }
+
+        // Render Detailed Project Participation & Comparison
+        function renderProjectCsDetails(data) {
+            const tbody = document.getElementById('project-cs-table-body');
+            tbody.innerHTML = '';
+
+            const agentMap = {};
+            
+            // First gather overall CSAT for each agent
+            data.forEach(item => {
+                const email = item.agent_email;
+                if (!agentMap[email]) {
+                    agentMap[email] = {
+                        name: item.agent_name,
+                        email: item.agent_email,
+                        overallGood: 0,
+                        overallBad: 0,
+                        projects: {}
+                    };
+                }
+                agentMap[email].overallGood += item.good_cnt;
+                agentMap[email].overallBad += item.bad_cnt;
+
+                // Track project specific
+                const proj = item.project;
+                if (!agentMap[email].projects[proj]) {
+                    agentMap[email].projects[proj] = { good: 0, bad: 0 };
+                }
+                agentMap[email].projects[proj].good += item.good_cnt;
+                agentMap[email].projects[proj].bad += item.bad_cnt;
+            });
+
+            let csInProjCnt = 0;
+            let csNonProjCnt = 0;
+
+            const list = Object.values(agentMap).map(cs => {
+                // Find all projects this agent belongs to from projectMap
+                const assignedProjects = [];
+                for (const [pName, emails] of Object.entries(projectMap)) {
+                    if (emails.includes(cs.email)) {
+                        assignedProjects.push(pName);
+                    }
+                }
+
+                if (assignedProjects.length > 0) csInProjCnt++;
+                else csNonProjCnt++;
+
+                const overallRated = cs.overallGood + cs.overallBad;
+                const csatOverall = overallRated > 0 ? (cs.overallGood / overallRated) * 100 : 0;
+
+                return {
+                    ...cs,
+                    assignedProjects: assignedProjects.length > 0 ? assignedProjects : ['Non-Project'],
+                    projCount: assignedProjects.length,
+                    csatOverall
+                };
+            });
+
+            document.getElementById('cnt-cs-in-project').innerText = `${csInProjCnt} CS`;
+            document.getElementById('cnt-cs-non-project').innerText = `${csNonProjCnt} CS`;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-stone-500 italic">Không có dữ liệu CS.</td></tr>`;
+                return;
+            }
+
+            list.forEach(cs => {
+                cs.assignedProjects.forEach(projName => {
+                    const projData = cs.projects[projName] || { good: 0, bad: 0 };
+                    const projRated = projData.good + projData.bad;
+                    const csatProj = projRated > 0 ? (projData.good / projRated) * 100 : 0;
+                    
+                    const delta = projRated > 0 ? (csatProj - cs.csatOverall) : 0;
+
+                    let deltaBadge = `<span class="text-stone-400 font-medium text-[11px]">-</span>`;
+                    if (projRated > 0) {
+                        if (delta > 0) {
+                            deltaBadge = `<span class="px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800 text-[11px]"><i class="fa-solid fa-arrow-up text-[10px]"></i> +${delta.toFixed(1)}% so với Overall</span>`;
+                        } else if (delta < 0) {
+                            deltaBadge = `<span class="px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800 text-[11px]"><i class="fa-solid fa-arrow-down text-[10px]"></i> ${delta.toFixed(1)}% so với Overall</span>`;
+                        } else {
+                            deltaBadge = `<span class="px-2 py-0.5 rounded font-bold bg-stone-100 text-stone-700 text-[11px]">Bằng với Overall</span>`;
+                        }
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-amber-50/50 transition-colors project-cs-row';
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-bold text-stone-800">${cs.name}</td>
+                        <td class="p-2.5 text-stone-500 font-mono text-[11px]">${cs.email}</td>
+                        <td class="p-2.5 text-center">
+                            <span class="px-2 py-0.5 rounded-full font-black text-[10px] ${cs.projCount > 1 ? 'bg-amber-200 text-amber-950 border border-amber-300' : 'bg-stone-100 text-stone-700'}">
+                                ${cs.projCount} Project
+                            </span>
+                        </td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-amber-100 text-earth-800 font-bold text-[11px]">${projName}</span></td>
+                        <td class="p-2.5 text-center font-black ${csatProj >= 96 ? 'text-emerald-700 bg-emerald-50/40' : 'text-earth-800 bg-amber-50/40'}">
+                            ${projRated > 0 ? csatProj.toFixed(1) + '%' : 'N/A'}
+                        </td>
+                        <td class="p-2.5 text-center font-black text-stone-900 bg-amber-100/50">
+                            ${cs.csatOverall.toFixed(1)}%
+                        </td>
+                        <td class="p-2.5 text-center">${deltaBadge}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        function filterProjectCsTable() {
+            const query = document.getElementById('project-cs-search').value.toLowerCase();
+            const rows = document.querySelectorAll('#project-cs-table-body tr.project-cs-row');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function renderAgentTable(data) {
+            const tbody = document.getElementById('agent-table-body');
+            tbody.innerHTML = '';
+
+            const agentMap = {};
+            data.forEach(item => {
+                const email = item.agent_email;
+                if (!agentMap[email]) {
+                    agentMap[email] = {
+                        name: item.agent_name,
+                        email: item.agent_email,
+                        project: item.project,
+                        qa: item.QA_Pic,
+                        tl: item.TL,
+                        good: 0,
+                        avg: 0,
+                        bad: 0
+                    };
+                }
+                agentMap[email].good += item.good_cnt;
+                agentMap[email].avg += item.avg_cnt;
+                agentMap[email].bad += item.bad_cnt;
+            });
+
+            let list = Object.values(agentMap).map(agent => {
+                const rated = agent.good + agent.bad;
+                const csat = rated > 0 ? (agent.good / rated) * 100 : 0;
+                const shortage = calcGoodShortage(agent.good, agent.bad);
+                return { ...agent, rated, csat, shortage };
+            });
+
+            list.sort((a, b) => b.csat - a.csat);
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-stone-500 italic">Không tìm thấy dữ liệu nhân viên.</td></tr>`;
+                return;
+            }
+
+            list.forEach((agent, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-amber-50/50 transition-colors agent-row';
+
+                const rank = idx + 1;
+                let rankBadge = `<span class="font-bold text-stone-600">${rank}</span>`;
+                if (rank === 1) rankBadge = `<span class="w-5 h-5 rounded-full bg-amber-400 text-amber-950 font-black inline-flex items-center justify-center text-xs shadow-sm">1</span>`;
+                else if (rank === 2) rankBadge = `<span class="w-5 h-5 rounded-full bg-stone-300 text-stone-900 font-black inline-flex items-center justify-center text-xs shadow-sm">2</span>`;
+                else if (rank === 3) rankBadge = `<span class="w-5 h-5 rounded-full bg-amber-700 text-white font-black inline-flex items-center justify-center text-xs shadow-sm">3</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-2.5 text-center">${rankBadge}</td>
+                    <td class="p-2.5 font-bold text-stone-900">${agent.name}</td>
+                    <td class="p-2.5 text-stone-500 font-mono text-[11px]">${agent.email}</td>
+                    <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-amber-100 text-earth-800 font-medium text-[11px]">${agent.project}</span></td>
+                    <td class="p-2.5 text-stone-700">${agent.qa}</td>
+                    <td class="p-2.5 text-stone-700">${agent.tl}</td>
+                    <td class="p-2.5 text-center font-bold text-emerald-700">${agent.good}</td>
+                    <td class="p-2.5 text-center font-medium text-amber-700">${agent.avg}</td>
+                    <td class="p-2.5 text-center font-bold text-rose-700">${agent.bad}</td>
+                    <td class="p-2.5 text-center font-black ${agent.csat >= 96 ? 'text-emerald-700 bg-emerald-50/50' : 'text-rose-700 bg-rose-50/50'}">
+                        ${agent.rated > 0 ? agent.csat.toFixed(1) + '%' : '0.0%'}
+                    </td>
+                    <td class="p-2.5 text-center font-black text-earth-950 bg-amber-200/50">${agent.shortage}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterAgentTable() {
+            const query = document.getElementById('agent-search').value.toLowerCase();
+            const rows = document.querySelectorAll('#agent-table-body tr.agent-row');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function exportTableToCSV() {
+            const data = getFilteredData();
+            let csv = 'Agent Name,Email,Project,QA Pic,Team Lead,Good,Avg,Bad,CSAT Rate %,Good Shortage Target 96%\n';
+
+            const agentMap = {};
+            data.forEach(item => {
+                const email = item.agent_email;
+                if (!agentMap[email]) {
+                    agentMap[email] = {
+                        name: item.agent_name,
+                        email: item.agent_email,
+                        project: item.project,
+                        qa: item.QA_Pic,
+                        tl: item.TL,
+                        good: 0,
+                        avg: 0,
+                        bad: 0
+                    };
+                }
+                agentMap[email].good += item.good_cnt;
+                agentMap[email].avg += item.avg_cnt;
+                agentMap[email].bad += item.bad_cnt;
+            });
+
+            Object.values(agentMap).forEach(agent => {
+                const rated = agent.good + agent.bad;
+                const csat = rated > 0 ? (agent.good / rated) * 100 : 0;
+                const shortage = calcGoodShortage(agent.good, agent.bad);
+                csv += `"${agent.name}","${agent.email}","${agent.project}","${agent.qa}","${agent.tl}",${agent.good},${agent.avg},${agent.bad},${csat.toFixed(1)}%,${shortage}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `CSAT_Report_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = function () {
+            loadData(false);
+            startAutoRefresh();
+        };
+    </script>
+</body>
+</html>
