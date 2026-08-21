@@ -1,57 +1,18 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- TQA-AUTH-GUARD -->
-<script>document.documentElement.style.visibility="hidden";</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-(async function(){
-  var U="https://ytbcydursrpjqnaalhxc.supabase.co", K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
-  var DOMS=["shopeemobile-external.com","shopee.com"], QA_ONLY=false;
-  function deny(){ location.replace("/"); }
-  try{
-    var sb=window.supabase.createClient(U,K);
-    var ss=(await sb.auth.getSession()).data.session;
-    if(!ss){ deny(); return; }
-    var email=(ss.user.email||"").toLowerCase();
-    if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
-    if(QA_ONLY){
-      var role=""; try{ var d=(await sb.from("app_users").select("role").eq("email",email).maybeSingle()).data; if(d) role=d.role||""; }catch(e){}
-      if(!(/qa/i.test(role)||role==="Trainer")){ deny(); return; }
-    }
-    document.documentElement.style.visibility="";
-  }catch(e){ deny(); }
-})();
-</script>
-<!-- Theme tối THẬT (thiết kế amber) — đồng bộ dashboard -->
-<style>
-body.tqa-dark{ background:#141517 !important; color:#e6e9ee !important; }
-body.tqa-dark .bg-white{ background-color:#1e2023 !important; }
-body.tqa-dark .bg-amber-50{ background-color:#201a10 !important; }
-body.tqa-dark .bg-amber-100{ background-color:#28200f !important; }
-body.tqa-dark .bg-amber-200{ background-color:#322611 !important; }
-body.tqa-dark [class*="text-slate"], body.tqa-dark [class*="text-gray"], body.tqa-dark [class*="text-amber-8"], body.tqa-dark [class*="text-amber-9"]{ color:#e6e9ee !important; }
-body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.tqa-dark .shadow-lg, body.tqa-dark .shadow-xl{ box-shadow:0 2px 10px rgba(0,0,0,.45) !important; }
-</style>
-<script>
-(function(){
-  function setChart(dark){
-    if(!window.Chart) return;
-    Chart.defaults.color = dark ? "#a8b0bd" : "#475569";
-    Chart.defaults.borderColor = dark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.08)";
-    try{ document.querySelectorAll("canvas").forEach(function(cv){ var ch=Chart.getChart(cv); if(ch) ch.update(); }); }catch(e){}
-  }
-  var T=null; try{ T=new URLSearchParams(location.search).get("theme"); }catch(e){}
-  function apply(t){ (document.body||document.documentElement).classList.toggle("tqa-dark", t==="dark"); setChart(t==="dark"); }
-  function go(){ if(T) apply(T); }
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", go); else go();
-  window.addEventListener("load", go);
-  window.addEventListener("message", function(e){ if(e.data&&e.data.type==="tqa-theme"){ T=e.data.theme; apply(T); } });
-})();
-</script>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Đặt theme sớm để tránh nháy sáng khi mở trang -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('csat_theme');
+                if (!t) t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                if (t === 'dark') document.documentElement.classList.add('dark');
+            } catch (e) {}
+        })();
+    </script>
     <title>CSAT Analytics & Alert Dashboard</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -109,6 +70,57 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
             font-weight: 700;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        /* ===================== DARK THEME ===================== */
+        html.dark body { background-color: #1c1917; color: #e7e5e4; }
+
+        html.dark .earth-card {
+            background-color: #292524 !important;
+            border-color: #44403c !important;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,.45), 0 2px 4px -1px rgba(0,0,0,.35);
+        }
+
+        /* Tắt gradient sáng (vd thẻ Bộ lọc from-amber-50 to-white) trong dark */
+        html.dark [class*="to-white"] { background-image: none !important; }
+
+        /* Bề mặt sáng (trắng/stone/amber nhạt) -> tối */
+        html.dark .bg-white,
+        html.dark [class*="bg-stone-50"],
+        html.dark [class*="bg-stone-100"],
+        html.dark [class*="bg-amber-50"],
+        html.dark [class*="bg-amber-100"],
+        html.dark [class*="bg-amber-200"] { background-color: #211d1a !important; }
+
+        /* Ô nhập liệu */
+        html.dark select,
+        html.dark input { background-color: #1c1917 !important; border-color: #44403c !important; color: #e7e5e4 !important; }
+        html.dark select option { background-color: #1c1917; color: #e7e5e4; }
+
+        /* Chữ tối (stone/earth đậm) -> sáng */
+        html.dark [class*="text-stone-9"],
+        html.dark [class*="text-stone-8"],
+        html.dark [class*="text-stone-7"],
+        html.dark [class*="text-stone-6"],
+        html.dark [class*="text-earth-6"],
+        html.dark [class*="text-earth-7"],
+        html.dark [class*="text-earth-8"],
+        html.dark [class*="text-earth-9"] { color: #ede9e4 !important; }
+        html.dark [class*="text-stone-5"],
+        html.dark [class*="text-stone-4"] { color: #a8a29e !important; }
+
+        /* Viền / đường kẻ */
+        html.dark [class*="border-amber-"],
+        html.dark [class*="border-stone-"] { border-color: #44403c !important; }
+        html.dark [class*="divide-amber-"] > :not([hidden]) ~ :not([hidden]),
+        html.dark [class*="divide-stone-"] > :not([hidden]) ~ :not([hidden]) { border-color: #3a352f !important; }
+
+        /* Chip màu đậm giữ chữ tối cho dễ đọc */
+        html.dark .bg-amber-400,
+        html.dark .bg-amber-500,
+        html.dark .bg-stone-300 { color: #1c1917 !important; }
+
+        /* Thanh cuộn */
+        html.dark .custom-scrollbar::-webkit-scrollbar-track { background: #292524; }
     </style>
 </head>
 <body class="min-h-screen bg-[#fcfaf7] text-stone-800 antialiased font-sans pb-12">
@@ -126,15 +138,19 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
                 </div>
             </div>
 
-            <!-- Time Granularity Selector -->
-            <div class="flex items-center bg-earth-950/40 p-1 rounded-xl border border-earth-600/50">
-                <span class="text-xs text-amber-200 font-medium px-2 flex items-center gap-1">
-                    <i class="fa-regular fa-clock"></i> Xem theo:
-                </span>
-                <div class="inline-flex rounded-lg bg-earth-900/80 p-0.5">
-                    <button id="btn-monthly" onclick="setGranularity('monthly')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-white bg-earth-600 shadow-sm">Tháng</button>
-                    <button id="btn-weekly" onclick="setGranularity('weekly')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-amber-200 hover:text-white">Tuần</button>
-                    <button id="btn-daily" onclick="setGranularity('daily')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-amber-200 hover:text-white">Ngày</button>
+            <!-- Right controls: theme toggle + granularity -->
+            <div class="flex items-center gap-2">
+                <button id="theme-toggle" onclick="toggleTheme()" title="Đổi giao diện Sáng / Tối"
+                    class="w-9 h-9 flex items-center justify-center rounded-xl bg-earth-950/40 border border-earth-600/50 text-lg leading-none hover:bg-earth-900/70 transition shrink-0">🌙</button>
+                <div class="flex items-center bg-earth-950/40 p-1 rounded-xl border border-earth-600/50">
+                    <span class="text-xs text-amber-200 font-medium px-2 flex items-center gap-1">
+                        <i class="fa-regular fa-clock"></i> Xem theo:
+                    </span>
+                    <div class="inline-flex rounded-lg bg-earth-900/80 p-0.5">
+                        <button id="btn-monthly" onclick="setGranularity('monthly')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-white bg-earth-600 shadow-sm">Tháng</button>
+                        <button id="btn-weekly" onclick="setGranularity('weekly')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-amber-200 hover:text-white">Tuần</button>
+                        <button id="btn-daily" onclick="setGranularity('daily')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-amber-200 hover:text-white">Ngày</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -143,7 +159,7 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-4">
 
         <!-- Data status + manual refresh -->
-        <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 earth-card px-3 py-2 bg-white">
+        <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 earth-card px-3 py-2">
             <div class="text-[11px] flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-0.5">
                 <span id="data-status" class="font-semibold text-stone-600"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu…</span>
                 <span id="data-updated" class="text-stone-400"></span>
@@ -488,7 +504,7 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
             // File data.json cùng thư mục, do Apps Script tự đẩy lên GitHub mỗi 30 phút.
             DATA_URL: 'data.json',
             REFRESH_MS: 30 * 60 * 1000,
-            CACHE_KEY: 'csat_dashboard_cache_v1'  // dữ liệu backup trong trình duyệt
+            CACHE_KEY: 'csat_dashboard_cache_v2'  // dữ liệu backup trong trình duyệt
         };
 
         // Data holders — nạp từ Google Sheet khi trang chạy
@@ -522,15 +538,12 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
                 }
                 return {
                     report_month: r.report_month, report_week: r.report_week, report_date: r.report_date,
-                    agent_id: r.agent_id, agent_name: r.agent_name, agent_email: r.agent_email,
+                    agent_name: r.agent_name, agent_email: r.agent_email,
                     QA_Pic: r.qa_pic ? r.qa_pic : 'Chưa phân công',
                     TL: r.tl ? r.tl : 'Chưa phân công',
-                    team: r.team, full_team: r.full_team, channel_name: r.channel_name,
                     good_cnt: Number(r.good_cnt) || 0, avg_cnt: Number(r.avg_cnt) || 0, bad_cnt: Number(r.bad_cnt) || 0,
-                    good_bad_cnt: Number(r.good_bad_cnt) || 0, csat_rating: Number(r.csat_rating) || 0,
-                    shopee_user_type: r.shopee_user_type,
-                    queue: r.shopee_user_type || 'Khác',
-                    channel: r.sub_channel || r.channel_name || 'Khác',
+                    queue: r.queue || r.shopee_user_type || 'Khác',
+                    channel: r.channel || r.sub_channel || r.channel_name || 'Khác',
                     project
                 };
             });
@@ -557,22 +570,48 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
             el.innerHTML = msg;
         }
 
-        // ===== Backup dữ liệu trong trình duyệt (localStorage) =====
+        // ===== Backup dữ liệu trong trình duyệt (IndexedDB — chứa được file lớn) =====
+        const IDB = {
+            _open() {
+                return new Promise((res, rej) => {
+                    const rq = indexedDB.open('csat_dashboard', 1);
+                    rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+                    rq.onsuccess = () => res(rq.result);
+                    rq.onerror = () => rej(rq.error);
+                });
+            },
+            async get(key) {
+                try {
+                    const db = await this._open();
+                    return await new Promise((res, rej) => {
+                        const t = db.transaction('kv', 'readonly').objectStore('kv').get(key);
+                        t.onsuccess = () => res(t.result); t.onerror = () => rej(t.error);
+                    });
+                } catch (e) { return null; }
+            },
+            async set(key, val) {
+                try {
+                    const db = await this._open();
+                    return await new Promise((res, rej) => {
+                        const tx = db.transaction('kv', 'readwrite');
+                        tx.objectStore('kv').put(val, key);
+                        tx.oncomplete = () => res(true); tx.onerror = () => rej(tx.error);
+                    });
+                } catch (e) { return false; }
+            }
+        };
+
         function saveCache(updated) {
-            try {
-                localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify({
-                    enriched: enrichedCSAT, projectMap: projectMap,
-                    updated: updated || new Date().toISOString()
-                }));
-            } catch (e) { /* quota/private mode — bỏ qua */ }
+            IDB.set(CONFIG.CACHE_KEY, {
+                enriched: enrichedCSAT, projectMap: projectMap,
+                updated: updated || new Date().toISOString()
+            });
         }
 
         // Hiển thị NGAY dữ liệu đã lưu để user không phải chờ. Trả về true nếu có cache.
-        function renderFromCache() {
+        async function renderFromCache() {
             try {
-                const raw = localStorage.getItem(CONFIG.CACHE_KEY);
-                if (!raw) return false;
-                const c = JSON.parse(raw);
+                const c = await IDB.get(CONFIG.CACHE_KEY);
                 if (!c || !Array.isArray(c.enriched) || !c.enriched.length) return false;
                 enrichedCSAT = c.enriched;
                 projectMap = c.projectMap || {};
@@ -915,6 +954,10 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
                 chartInstances[chartId].destroy();
             }
 
+            const isDark = document.documentElement.classList.contains('dark');
+            const tickColor = isDark ? '#d6d3d1' : '#44403c';
+            const gridColor = isDark ? '#3a352f' : '#f3ebd8';
+
             const ctx = document.getElementById(chartId).getContext('2d');
             chartInstances[chartId] = new Chart(ctx, {
                 type: 'bar',
@@ -941,12 +984,13 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
                             max: 100,
                             ticks: {
                                 callback: value => value + '%',
+                                color: tickColor,
                                 font: { family: 'Roboto', size: 10 }
                             },
                             grid: {
                                 color: function(context) {
                                     if (context.tick.value === 96) return '#ef4444';
-                                    return '#f3ebd8';
+                                    return gridColor;
                                 },
                                 lineWidth: function(context) {
                                     if (context.tick.value === 96) return 2;
@@ -957,7 +1001,7 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
                         y: {
                             ticks: {
                                 font: { family: 'Roboto', size: 11, weight: '500' },
-                                color: '#44403c'
+                                color: tickColor
                             },
                             grid: { display: false }
                         }
@@ -1246,9 +1290,30 @@ body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.
             document.body.removeChild(link);
         }
 
-        window.onload = function () {
-            renderFromCache();   // hiện ngay dữ liệu đã lưu (nếu có) — user không phải chờ
-            loadData(false);     // rồi cập nhật mới ngầm phía sau
+        // ===== Theme sáng / tối =====
+        function applyTheme(theme) {
+            const dark = theme === 'dark';
+            document.documentElement.classList.toggle('dark', dark);
+            const btn = document.getElementById('theme-toggle');
+            if (btn) { btn.textContent = dark ? '🌞' : '🌙'; btn.title = dark ? 'Chuyển sang Sáng' : 'Chuyển sang Tối'; }
+            try { localStorage.setItem('csat_theme', theme); } catch (e) {}
+            // Vẽ lại chart cho khớp màu theme (nếu đã có dữ liệu)
+            if (enrichedCSAT && enrichedCSAT.length) renderCharts(getFilteredData());
+        }
+        function toggleTheme() {
+            applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+        }
+        function initTheme() {
+            let t;
+            try { t = localStorage.getItem('csat_theme'); } catch (e) {}
+            if (!t) t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+            applyTheme(t);
+        }
+
+        window.onload = async function () {
+            initTheme();               // đặt icon + class theo lựa chọn đã lưu
+            await renderFromCache();   // hiện ngay dữ liệu đã lưu (nếu có) — user không phải chờ
+            loadData(false);           // rồi cập nhật mới ngầm phía sau
             startAutoRefresh();
         };
     </script>
