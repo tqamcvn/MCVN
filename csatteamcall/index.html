@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+<!-- TQA-AUTH-GUARD -->
+<script>document.documentElement.style.visibility="hidden";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function(){
+  var U="https://ytbcydursrpjqnaalhxc.supabase.co", K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
+  var DOMS=["shopeemobile-external.com","shopee.com"];
+  function deny(){ location.replace("/"); }
+  try{
+    var sb=window.supabase.createClient(U,K);
+    var ss=(await sb.auth.getSession()).data.session;
+    if(!ss){ deny(); return; }
+    var email=(ss.user.email||"").toLowerCase();
+    if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
+    document.documentElement.style.visibility="";
+  }catch(e){ deny(); }
+})();
+</script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Đặt theme sớm để tránh nháy sáng khi mở trang -->
@@ -1317,5 +1336,13 @@
             startAutoRefresh();
         };
     </script>
+<script>
+/* Đồng bộ theme theo dashboard TQA (dùng applyTheme gốc của v2) */
+(function(){
+  function apply(t){ if(typeof applyTheme==="function") applyTheme(t==="dark"?"dark":"light"); }
+  try{ var p=new URLSearchParams(location.search).get("theme"); if(p) apply(p); }catch(e){}
+  window.addEventListener("message", function(e){ if(e.data&&e.data.type==="tqa-theme") apply(e.data.theme); });
+})();
+</script>
 </body>
 </html>
