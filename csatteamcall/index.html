@@ -436,8 +436,8 @@
     <script>
         // ===== CONFIG (Google Apps Script proxy) =====
         const CONFIG = {
-            // /exec URL của Web App. Đổi tại đây nếu bạn redeploy ra URL mới.
-            ENDPOINT: 'https://script.google.com/a/macros/shopeemobile-external.com/s/AKfycbyG0AvDCJrkpBBKbcJBPmb3IIDkEV8Hp79l21h7MUPbQQzO6IXlNXXbsqEW8c7_Qb6d/exec',
+            // File data.json cùng thư mục, do Apps Script tự đẩy lên GitHub mỗi 30 phút.
+            DATA_URL: 'data.json',
             REFRESH_MS: 30 * 60 * 1000,
             CACHE_KEY: 'csat_dashboard_cache_v1'  // dữ liệu backup trong trình duyệt
         };
@@ -446,32 +446,19 @@
         let enrichedCSAT = [];
         let projectMap = {};
 
-        // ===== Nạp dữ liệu từ Google Sheet qua Apps Script proxy (JSONP) =====
+        // ===== Đọc data.json (cùng thư mục, same-origin — không cần đăng nhập) =====
         let refreshTimer = null;
 
-        function fetchViaJsonp(endpoint) {
-            return new Promise((resolve, reject) => {
-                const cb = '__csat_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
-                let s = null;
-                const timer = setTimeout(() => {
-                    cleanup();
-                    reject(new Error('Hết thời gian chờ. Kiểm tra bạn đã đăng nhập tài khoản @shopeemobile-external.com và có quyền truy cập proxy.'));
-                }, 25000);
-                function cleanup() {
-                    try { delete window[cb]; } catch (e) { window[cb] = undefined; }
-                    if (s && s.parentNode) s.parentNode.removeChild(s);
-                    clearTimeout(timer);
-                }
-                window[cb] = (payload) => { cleanup(); resolve(payload); };
-                s = document.createElement('script');
-                s.onerror = () => { cleanup(); reject(new Error('Không tải được dữ liệu (có thể chưa đăng nhập nội bộ, hoặc URL proxy sai).')); };
-                s.src = endpoint + (endpoint.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cb + '&t=' + Date.now();
-                document.body.appendChild(s);
+        function fetchData() {
+            const url = CONFIG.DATA_URL + (CONFIG.DATA_URL.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+            return fetch(url, { cache: 'no-store' }).then(r => {
+                if (!r.ok) throw new Error('Không tải được data.json (HTTP ' + r.status + ')');
+                return r.json();
             });
         }
 
         function mapPayloadToData(payload) {
-            if (!payload || !payload.ok) throw new Error((payload && payload.error) || 'Dữ liệu trả về không hợp lệ.');
+            if (!payload || !Array.isArray(payload.raw)) throw new Error((payload && payload.error) || 'data.json không hợp lệ.');
             projectMap = payload.projects || {};
             const lowerMap = {};
             for (const [p, emails] of Object.entries(projectMap)) {
@@ -556,10 +543,11 @@
             setDataStatus('<i class="fa-solid fa-spinner fa-spin"></i> ' + (hasData ? 'Đang cập nhật…' : 'Đang tải dữ liệu…'), 'loading');
             const prevFilters = saveFilterState();
             try {
-                const payload = await fetchViaJsonp(CONFIG.ENDPOINT);
+                const payload = await fetchData();
                 mapPayloadToData(payload);
-                const when = payload.updated ? new Date(payload.updated) : new Date();
-                saveCache(payload.updated);
+                const stamp = payload.generated_at || payload.updated;
+                const when = stamp ? new Date(stamp) : new Date();
+                saveCache(stamp);
                 initFilterDropdowns();
                 restoreFilterState(prevFilters);
                 applyFilters();
