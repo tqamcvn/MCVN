@@ -521,6 +521,27 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
   </div>
   <div class="wrap">
 
+    <!-- NEWBIE BY MONTH -->
+    <div class="panel">
+      <div class="ph">
+        <span class="pt">Newbie theo tháng — người mới vào</span>
+        <span class="pm" id="nb-meta">—</span>
+      </div>
+      <div class="pb"><table>
+        <thead><tr>
+          <th>Tháng</th>
+          <th class="c">New</th>
+          <th class="c">Δ MoM</th>
+          <th class="c" style="color:#3fb950">CALL</th>
+          <th class="c" style="color:#4493f8">CHAT</th>
+          <th class="c" style="color:#a371f7">MULTI</th>
+          <th class="c">Batches</th>
+          <th style="width:26%">Trend</th>
+        </tr></thead>
+        <tbody id="nb-tbody"></tbody>
+      </table></div>
+    </div>
+
     <!-- BATCH SUMMARY -->
     <div class="panel">
       <div class="ph">
@@ -1894,6 +1915,41 @@ let batAll=[], batFiltered=[], batSortKey='batch_num', batSortAsc=false, batPage
 const BAT_PER_PAGE=30;
 let batFilterMode='all';
 
+// New joins (newbie) per month: total, MoM delta, team split, batch count.
+function renderNewbie(){
+  const byMonth={};
+  CS_AGENTS.forEach(a=>{
+    if(!a.online_date) return;
+    const m=a.online_date.slice(0,7);            // YYYY-MM
+    if(!byMonth[m]) byMonth[m]={total:0,CALL:0,CHAT:0,MULTI:0,EMAIL:0,batches:new Set()};
+    const o=byMonth[m]; o.total++;
+    if(o[a.team]!==undefined) o[a.team]++;
+    if(a.batch) o.batches.add(a.batch);
+  });
+  const asc=Object.keys(byMonth).sort();
+  if(!asc.length){ document.getElementById('nb-tbody').innerHTML=''; return; }
+  const show=asc.slice(-12);                     // last 12 months
+  const maxT=Math.max(...show.map(m=>byMonth[m].total),1);
+  document.getElementById('nb-meta').textContent=`${show.length} tháng gần nhất`;
+  document.getElementById('nb-tbody').innerHTML=show.slice().reverse().map(m=>{
+    const o=byMonth[m];
+    const i=asc.indexOf(m);
+    const delta=i>0?o.total-byMonth[asc[i-1]].total:null;
+    const mlabel='T'+(+m.slice(5,7))+'/'+m.slice(0,4);
+    const barW=Math.round(o.total/maxT*100);
+    return `<tr>
+      <td class="b mn" style="color:var(--acc)">${mlabel}</td>
+      <td class="c b mn">${o.total}</td>
+      <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
+      <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
+      <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
+      <td class="c mn" style="color:#a371f7">${o.MULTI||'—'}</td>
+      <td class="c mn" style="color:var(--t2)">${o.batches.size}</td>
+      <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
+    </tr>`;
+  }).join('');
+}
+
 function computeBatchData(agents){
   const map={};
   agents.forEach(a=>{
@@ -2025,7 +2081,7 @@ function switchTab(name, btn){
   if(name==='cs')     renderCS();
 initBatch();
   if(name==='mng')    renderMNG();
-  if(name==='agents'){ renderAgents(); initBatch(); }
+  if(name==='agents'){ renderAgents(); initBatch(); renderNewbie(); }
   if(name==='hccsat') renderHCCSAT();
 }
 
@@ -2094,7 +2150,7 @@ function renderActive(){
   const el=document.querySelector('.tab-content.active');
   const id=el?el.id.replace('tab-',''):'cs';
   if(id==='mng') renderMNG();
-  else if(id==='agents'){ renderAgents(); initBatch(); }
+  else if(id==='agents'){ renderAgents(); initBatch(); renderNewbie(); }
   else if(id==='hccsat') renderHCCSAT();
   else renderCS();
 }
