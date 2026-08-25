@@ -719,9 +719,14 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
         <div id="modal-title" style="font-size:14px;font-weight:700;color:var(--t1)">—</div>
         <div id="modal-sub" style="font-size:10px;color:var(--t2);margin-top:3px">—</div>
       </div>
-      <button onclick="closeModal()" style="background:var(--s2);border:1px solid var(--b1);
-        color:var(--t2);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;
-        font-family:var(--sans)">✕ Close</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <button id="modal-back" style="display:none;background:var(--s2);border:1px solid var(--acc);
+          color:var(--acc);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;
+          font-family:var(--sans)"></button>
+        <button onclick="closeModal()" style="background:var(--s2);border:1px solid var(--b1);
+          color:var(--t2);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;
+          font-family:var(--sans)">✕ Close</button>
+      </div>
     </div>
     <div id="modal-body" style="padding:16px 18px;max-height:70vh;overflow-y:auto"></div>
   </div>
@@ -1747,6 +1752,7 @@ function openGroupModal(grp){
   body+='</div>';
 
   document.getElementById('modal-body').innerHTML=body;
+  setModalBack(null,null);
   document.getElementById('agent-modal').style.display='block';
   document.body.style.overflow='hidden';
 }
@@ -1759,8 +1765,15 @@ function closeModal(e){
 
 function showModal(){ document.getElementById('agent-modal').style.display='block'; document.body.style.overflow='hidden'; }
 
+// Set/clear the modal's Back button.
+function setModalBack(label, fn){
+  const b=document.getElementById('modal-back');
+  if(fn){ b.style.display=''; b.textContent=label; b.onclick=fn; }
+  else { b.style.display='none'; b.onclick=null; }
+}
+
 // Detail of one batch: online date(s) + CALL/CHAT × Buyer/Seller/Log/All counts + agent list.
-function openBatchModal(batch){
+function openBatchModal(batch, fromMonth){
   const list=CS_AGENTS.filter(a=>a.batch===batch);
   if(!list.length) return;
   const dates=[...new Set(list.map(a=>a.online_date).filter(Boolean))].sort();
@@ -1789,6 +1802,8 @@ function openBatchModal(batch){
     <div style="margin-top:10px;font-size:11px;color:var(--t2)">Trạng thái: ${stStr}</div>
     <div style="margin-top:12px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Danh sách (${list.length})</div>
     <div style="margin-top:4px">${agentRows}</div>`;
+  if(fromMonth){ const ml='T'+(+fromMonth.slice(5,7))+'/'+fromMonth.slice(0,4); setModalBack('← Batch '+ml, ()=>openMonthBatches(fromMonth)); }
+  else setModalBack(null,null);
   showModal();
 }
 
@@ -1805,12 +1820,13 @@ function openMonthBatches(month){
       const list=CS_AGENTS.filter(a=>a.batch===b);
       const d=[...new Set(list.map(a=>a.online_date).filter(Boolean))].sort()[0]||'';
       const call=list.filter(a=>a.team==='CALL').length, chat=list.filter(a=>a.team==='CHAT').length;
-      return `<div onclick="openBatchModal('${b}')" style="cursor:pointer;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center"
+      return `<div onclick="openBatchModal('${b}','${month}')" style="cursor:pointer;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center"
         onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--b1)'">
         <div><b style="color:var(--acc);font-family:var(--mono)">${b}</b> <span style="color:var(--t3);font-size:10px">${d}</span></div>
         <div style="font-size:11px;font-family:var(--mono)"><span style="color:#3fb950">CALL ${call}</span> · <span style="color:#4493f8">CHAT ${chat}</span></div>
       </div>`;
     }).join('')}</div>`;
+  setModalBack(null,null);
   showModal();
 }
 
