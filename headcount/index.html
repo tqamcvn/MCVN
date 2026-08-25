@@ -485,6 +485,30 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
 
 <!-- TAB AGENTS -->
 <div class="tab-content" id="tab-agents">
+
+  <!-- NEWBIE BY MONTH (độc lập — KHÔNG bị filter bên dưới lọc) -->
+  <div class="wrap">
+    <div class="panel">
+      <div class="ph">
+        <span class="pt">Newbie theo tháng — người mới vào</span>
+        <span class="pm" id="nb-meta">—</span>
+      </div>
+      <div class="pb"><table>
+        <thead><tr>
+          <th>Tháng</th>
+          <th class="c">New</th>
+          <th class="c">Δ MoM</th>
+          <th class="c" style="color:#3fb950">CALL</th>
+          <th class="c" style="color:#4493f8">CHAT</th>
+          <th class="c">Batches</th>
+          <th style="width:26%">Trend</th>
+        </tr></thead>
+        <tbody id="nb-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- Filters below apply to Batch Summary + Agent List only -->
   <div class="fb">
     <div class="fg"><span class="fl">Team</span>
       <select id="ag-team" onchange="renderAgents()">
@@ -514,26 +538,6 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
     </div>
   </div>
   <div class="wrap">
-
-    <!-- NEWBIE BY MONTH -->
-    <div class="panel">
-      <div class="ph">
-        <span class="pt">Newbie theo tháng — người mới vào</span>
-        <span class="pm" id="nb-meta">—</span>
-      </div>
-      <div class="pb"><table>
-        <thead><tr>
-          <th>Tháng</th>
-          <th class="c">New</th>
-          <th class="c">Δ MoM</th>
-          <th class="c" style="color:#3fb950">CALL</th>
-          <th class="c" style="color:#4493f8">CHAT</th>
-          <th class="c">Batches</th>
-          <th style="width:26%">Trend</th>
-        </tr></thead>
-        <tbody id="nb-tbody"></tbody>
-      </table></div>
-    </div>
 
     <!-- BATCH SUMMARY -->
     <div class="panel">
