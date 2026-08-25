@@ -534,7 +534,6 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
           <th class="c">Δ MoM</th>
           <th class="c" style="color:#3fb950">CALL</th>
           <th class="c" style="color:#4493f8">CHAT</th>
-          <th class="c" style="color:#a371f7">MULTI</th>
           <th class="c">Batches</th>
           <th style="width:26%">Trend</th>
         </tr></thead>
@@ -1920,10 +1919,10 @@ function renderNewbie(){
   const byMonth={};
   CS_AGENTS.forEach(a=>{
     if(!a.online_date) return;
-    const m=a.online_date.slice(0,7);            // YYYY-MM
-    if(!byMonth[m]) byMonth[m]={total:0,CALL:0,CHAT:0,MULTI:0,EMAIL:0,batches:new Set()};
-    const o=byMonth[m]; o.total++;
-    if(o[a.team]!==undefined) o[a.team]++;
+    if(a.team!=='CALL' && a.team!=='CHAT') return;   // CALL & CHAT only
+    const m=a.online_date.slice(0,7);            // YYYY-MM (online_date)
+    if(!byMonth[m]) byMonth[m]={total:0,CALL:0,CHAT:0,batches:new Set()};
+    const o=byMonth[m]; o.total++; o[a.team]++;
     if(a.batch) o.batches.add(a.batch);
   });
   const asc=Object.keys(byMonth).sort();
@@ -1943,7 +1942,6 @@ function renderNewbie(){
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
-      <td class="c mn" style="color:#a371f7">${o.MULTI||'—'}</td>
       <td class="c mn" style="color:var(--t2)">${o.batches.size}</td>
       <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
     </tr>`;
