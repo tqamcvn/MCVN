@@ -1757,6 +1757,63 @@ function closeModal(e){
   document.body.style.overflow='';
 }
 
+function showModal(){ document.getElementById('agent-modal').style.display='block'; document.body.style.overflow='hidden'; }
+
+// Detail of one batch: online date(s) + CALL/CHAT × Buyer/Seller/Log/All counts + agent list.
+function openBatchModal(batch){
+  const list=CS_AGENTS.filter(a=>a.batch===batch);
+  if(!list.length) return;
+  const dates=[...new Set(list.map(a=>a.online_date).filter(Boolean))].sort();
+  const dateStr=dates.length?(dates.length===1?dates[0]:dates[0]+' → '+dates[dates.length-1]):'—';
+  document.getElementById('modal-title').textContent='Batch '+batch;
+  document.getElementById('modal-title').style.color='var(--acc)';
+  document.getElementById('modal-sub').textContent=`${list.length} người · Online date: ${dateStr}`;
+  const queues=['Buyer','Seller','Log','All'];
+  const teams=['CALL','CHAT','MULTI','EMAIL'].filter(t=>list.some(a=>a.team===t));
+  const head=`<tr><th>Team</th>${queues.map(q=>`<th class="c">${q}</th>`).join('')}<th class="c">Tổng</th></tr>`;
+  const rows=teams.map(t=>{
+    const tot=list.filter(a=>a.team===t).length;
+    return `<tr><td class="b" style="color:${TC[t]||'var(--t1)'}">${t}</td>${queues.map(q=>{
+      const v=list.filter(a=>a.team===t&&(a.queue||'')===q).length; return `<td class="c mn">${v||'—'}</td>`;
+    }).join('')}<td class="c b mn">${tot}</td></tr>`;
+  }).join('');
+  const st={}; list.forEach(a=>st[a.status]=(st[a.status]||0)+1);
+  const stStr=Object.keys(st).map(s=>`${s}: ${st[s]}`).join(' · ');
+  const agentRows=list.slice().sort((a,b)=>(a.team+a.queue).localeCompare(b.team+b.queue)).map(a=>`
+    <div style="display:flex;justify-content:space-between;padding:5px 2px;border-bottom:1px solid var(--b1);font-size:11px">
+      <div>${a.name} <span style="color:var(--t3);font-size:10px">${a.online_date||''}</span></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--t2)">${a.team}·${a.queue||'—'} ${sdot(a.status)}</div>
+    </div>`).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="pb" style="padding:0"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--t2)">Trạng thái: ${stStr}</div>
+    <div style="margin-top:12px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Danh sách (${list.length})</div>
+    <div style="margin-top:4px">${agentRows}</div>`;
+  showModal();
+}
+
+// Batches of a given month (CALL/CHAT newbies) as clickable rows -> openBatchModal.
+function openMonthBatches(month){
+  const inMonth=CS_AGENTS.filter(a=>a.online_date&&a.online_date.slice(0,7)===month&&(a.team==='CALL'||a.team==='CHAT')&&a.batch);
+  const batches=[...new Set(inMonth.map(a=>a.batch))].sort((x,y)=>(parseInt(y.replace(/\D/g,''))||0)-(parseInt(x.replace(/\D/g,''))||0));
+  const mlabel='T'+(+month.slice(5,7))+'/'+month.slice(0,4);
+  document.getElementById('modal-title').textContent='Batch tháng '+mlabel;
+  document.getElementById('modal-title').style.color='var(--acc)';
+  document.getElementById('modal-sub').textContent=`${batches.length} batch · click để xem chi tiết`;
+  document.getElementById('modal-body').innerHTML=`<div style="display:flex;flex-direction:column;gap:6px">
+    ${batches.map(b=>{
+      const list=CS_AGENTS.filter(a=>a.batch===b);
+      const d=[...new Set(list.map(a=>a.online_date).filter(Boolean))].sort()[0]||'';
+      const call=list.filter(a=>a.team==='CALL').length, chat=list.filter(a=>a.team==='CHAT').length;
+      return `<div onclick="openBatchModal('${b}')" style="cursor:pointer;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center"
+        onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--b1)'">
+        <div><b style="color:var(--acc);font-family:var(--mono)">${b}</b> <span style="color:var(--t3);font-size:10px">${d}</span></div>
+        <div style="font-size:11px;font-family:var(--mono)"><span style="color:#3fb950">CALL ${call}</span> · <span style="color:#4493f8">CHAT ${chat}</span></div>
+      </div>`;
+    }).join('')}</div>`;
+  showModal();
+}
+
 // ── INSIGHT ────────────────────────────────────────────────
 function renderHCCSATInsight(){
   const insights=[];
@@ -1940,7 +1997,7 @@ function renderNewbie(){
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
-      <td class="c mn" title="Batch: ${[...o.batches].sort((x,y)=>(parseInt(y.replace(/\D/g,''))||0)-(parseInt(x.replace(/\D/g,''))||0)).join(', ')}"><span style="border-bottom:1px dashed var(--t3);color:var(--t2);cursor:help">${o.batches.size}</span></td>
+      <td class="c mn" title="Bấm để xem chi tiết batch" onclick="openMonthBatches('${m}')"><span style="border-bottom:1px dashed var(--acc);color:var(--acc);cursor:pointer">${o.batches.size}</span></td>
       <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
     </tr>`;
   }).join('');
@@ -2045,7 +2102,7 @@ function batRenderPage(){
     const lPct=b.total?Math.round(b.long_leave/b.total*100):0;
     const sPct=b.total?Math.round(b.stopped/b.total*100):0;
     return `<tr>
-      <td class="b mn" style="color:var(--acc)">${b.batch}</td>
+      <td class="b mn" style="color:var(--acc);cursor:pointer;text-decoration:underline dotted" onclick="openBatchModal('${b.batch}')" title="Bấm xem chi tiết batch">${b.batch}</td>
       <td class="c mn">${b.total}</td>
       <td class="c mn" style="color:var(--g)">${b.working||'—'}</td>
       <td class="c mn" style="color:var(--w)">${b.training||'—'}</td>
