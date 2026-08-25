@@ -486,12 +486,6 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
 <!-- TAB AGENTS -->
 <div class="tab-content" id="tab-agents">
   <div class="fb">
-    <div class="fg"><span class="fl">Scope</span>
-      <select id="ag-scope" onchange="renderAgents()">
-        <option value="cs">CS only</option>
-        <option value="all">All</option>
-      </select>
-    </div>
     <div class="fg"><span class="fl">Team</span>
       <select id="ag-team" onchange="renderAgents()">
         <option value="ALL">All Teams</option>
@@ -1942,7 +1936,7 @@ function renderNewbie(){
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
-      <td class="c mn" style="color:var(--t2)">${o.batches.size}</td>
+      <td class="c mn" title="Batch: ${[...o.batches].sort((x,y)=>(parseInt(y.replace(/\D/g,''))||0)-(parseInt(x.replace(/\D/g,''))||0)).join(', ')}"><span style="border-bottom:1px dashed var(--t3);color:var(--t2);cursor:help">${o.batches.size}</span></td>
       <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
     </tr>`;
   }).join('');
