@@ -186,7 +186,7 @@ function toggleTheme(){
     </select>
     <select class="fs" id="fWeek" onchange="applyGlobalFilter()"><option value="">All Weeks</option></select>
     <select class="fs" id="fTeam" onchange="applyGlobalFilter()"><option value="">All Teams</option></select>
-    <a href="#" onclick="exportReport(event)" style="display:none;background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;align-items:center;gap:5px">⬇ Export Excel</a>
+    <a href="#" onclick="exportReport(event)" style="display:inline-flex;background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;align-items:center;gap:5px">⬇ Tải file (CSV)</a>
     <span class="badge red" id="ztpBadge">ZTP: 26</span>
     <button id="cqm-theme-btn" onclick="toggleTheme()" title="Chuyển sáng/tối" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center">🌙</button>
   </div>
@@ -578,8 +578,10 @@ function applyTeamFilter(){
 function exportReport(e){
   if(e) e.preventDefault();
   const ct=getSelectedCard();
+  const tg=getSelectedTeam();
   const weeks=ALL_WEEKS.length?ALL_WEEKS:[];
-  const list=(E.agent_trends||[]).filter(a=>!ct||a.card_type===ct)
+  const list=(E.agent_trends||[])
+    .filter(a=>(!ct||a.card_type===ct) && (!tg||teamGroupOf(a.team)===tg))
     .slice().sort((a,b)=>a.overall_avg-b.overall_avg);
   if(!list.length){ alert('Chưa có dữ liệu để xuất.'); return; }
   const esc=v=>{v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
@@ -587,7 +589,7 @@ function exportReport(e){
   const rows=list.map(a=>[a.display_name,a.team,a.card_type,
     ...weeks.map(w=>a.weeks[w]!=null?a.weeks[w]:''),a.overall_avg,a.total_cases]);
   const csv=[headers,...rows].map(r=>r.map(esc).join(',')).join('\r\n');
-  const scope=(ct||'AllCards')+(weeks.length?('_W'+weeks[0]+'-W'+weeks[weeks.length-1]):'');
+  const scope=(ct||'AllCards')+(tg?('_'+tg):'')+(weeks.length?('_W'+weeks[0]+'-W'+weeks[weeks.length-1]):'');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
