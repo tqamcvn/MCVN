@@ -497,6 +497,8 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
         <thead><tr>
           <th>Tháng</th>
           <th class="c">New</th>
+          <th class="c" style="color:#4493f8">Buyer</th>
+          <th class="c" style="color:#f0883e">Seller</th>
           <th class="c">Δ MoM</th>
           <th class="c" style="color:#3fb950">CALL</th>
           <th class="c" style="color:#4493f8">CHAT</th>
@@ -1992,8 +1994,9 @@ function renderNewbie(){
     if(!a.online_date) return;
     if(a.team!=='CALL' && a.team!=='CHAT') return;   // CALL & CHAT only
     const m=a.online_date.slice(0,7);            // YYYY-MM (online_date)
-    if(!byMonth[m]) byMonth[m]={total:0,CALL:0,CHAT:0,batches:new Set()};
+    if(!byMonth[m]) byMonth[m]={total:0,CALL:0,CHAT:0,Buyer:0,Seller:0,batches:new Set()};
     const o=byMonth[m]; o.total++; o[a.team]++;
+    if(a.queue==='Buyer') o.Buyer++; else if(a.queue==='Seller') o.Seller++;
     if(a.batch) o.batches.add(a.batch);
   });
   const asc=Object.keys(byMonth).sort();
@@ -2010,6 +2013,8 @@ function renderNewbie(){
     return `<tr>
       <td class="b mn" style="color:var(--acc)">${mlabel}</td>
       <td class="c b mn">${o.total}</td>
+      <td class="c mn" style="color:#4493f8">${o.Buyer||'—'}</td>
+      <td class="c mn" style="color:#f0883e">${o.Seller||'—'}</td>
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
