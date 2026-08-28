@@ -629,13 +629,6 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
 <!-- TAB HC × CSAT -->
 <div class="tab-content" id="tab-hccsat">
   <div class="fb">
-    <div class="fg"><span class="fl">View</span>
-      <select id="hc-csat-view" onchange="renderHCCSAT()">
-        <option value="week">By Week</option>
-        <option value="month">By Month</option>
-        <option value="agent">By Agent</option>
-      </select>
-    </div>
     <div class="fg"><span class="fl">Group</span>
       <select id="hc-csat-grp" onchange="renderHCCSAT()">
         <option value="ALL">All Groups</option>
@@ -683,7 +676,14 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
     <!-- DETAIL TABLE — by week or month -->
     <div>
       <div class="sh"><span class="sl" id="hccsat-tbl-lbl">Group × Period</span>
-        <div class="sd"></div><span class="sn" id="hccsat-tbl-meta">—</span></div>
+        <div class="sd"></div>
+        <select id="hc-csat-view" onchange="renderHCCSAT()"
+          style="background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:11px;padding:4px 9px;border-radius:5px;font-family:var(--sans);cursor:pointer;margin-right:10px">
+          <option value="week">By Week</option>
+          <option value="month">By Month</option>
+          <option value="agent">By Agent</option>
+        </select>
+        <span class="sn" id="hccsat-tbl-meta">—</span></div>
       <div class="panel">
         <div class="ph"><span class="pt" id="hccsat-tbl-title">—</span>
           <span class="pm">CSAT = good/(good+bad)</span></div>
