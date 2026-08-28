@@ -490,13 +490,19 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
   <div class="wrap">
     <div class="panel">
       <div class="ph">
-        <span class="pt">Newbie theo tháng — người mới vào</span>
-        <span class="pm" id="nb-meta">—</span>
+        <span class="pt">Newbie theo tháng</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <select id="nb-view" onchange="renderNewbie()" style="background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:11px;padding:3px 8px;border-radius:5px;font-family:var(--sans);cursor:pointer">
+            <option value="new">New — mới vào trong tháng</option>
+            <option value="total">Total — CS 0–2 tháng</option>
+          </select>
+          <span class="pm" id="nb-meta">—</span>
+        </div>
       </div>
       <div class="pb"><table>
         <thead><tr>
           <th>Tháng</th>
-          <th class="c">New</th>
+          <th class="c" id="nb-col-total">New</th>
           <th class="c" style="color:#4493f8">Buyer</th>
           <th class="c" style="color:#f0883e">Seller</th>
           <th class="c">Δ MoM</th>
@@ -1775,7 +1781,7 @@ function setModalBack(label, fn){
 }
 
 // Detail of one batch: online date(s) + CALL/CHAT × Buyer/Seller/Log/All counts + agent list.
-function openBatchModal(batch, fromMonth){
+function openBatchModal(batch, fromMonth, fromView){
   const list=CS_AGENTS.filter(a=>a.batch===batch);
   if(!list.length) return;
   const dates=[...new Set(list.map(a=>a.online_date).filter(Boolean))].sort();
@@ -1804,17 +1810,18 @@ function openBatchModal(batch, fromMonth){
     <div style="margin-top:10px;font-size:11px;color:var(--t2)">Trạng thái: ${stStr}</div>
     <div style="margin-top:12px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Danh sách (${list.length})</div>
     <div style="margin-top:4px">${agentRows}</div>`;
-  if(fromMonth){ const ml='T'+(+fromMonth.slice(5,7))+'/'+fromMonth.slice(0,4); setModalBack('← Batch '+ml, ()=>openMonthBatches(fromMonth)); }
+  if(fromMonth){ const ml='T'+(+fromMonth.slice(5,7))+'/'+fromMonth.slice(0,4); setModalBack('← Batch '+ml, ()=>openMonthBatches(fromMonth, fromView)); }
   else setModalBack(null,null);
   showModal();
 }
 
 // Batches of a given month (CALL/CHAT newbies) as clickable rows -> openBatchModal.
-function openMonthBatches(month){
-  const inMonth=CS_AGENTS.filter(a=>a.online_date&&a.online_date.slice(0,7)===month&&(a.team==='CALL'||a.team==='CHAT')&&a.batch);
-  const batches=[...new Set(inMonth.map(a=>a.batch))].sort((x,y)=>(parseInt(y.replace(/\D/g,''))||0)-(parseInt(x.replace(/\D/g,''))||0));
+function openMonthBatches(month, view){
+  view=view||'new';
+  const set=newbieSetFor(month, view).filter(a=>a.batch);
+  const batches=[...new Set(set.map(a=>a.batch))].sort((x,y)=>(parseInt(y.replace(/\D/g,''))||0)-(parseInt(x.replace(/\D/g,''))||0));
   const mlabel='T'+(+month.slice(5,7))+'/'+month.slice(0,4);
-  document.getElementById('modal-title').textContent='Batch tháng '+mlabel;
+  document.getElementById('modal-title').textContent=(view==='total'?'Batch (CS 0–2 tháng) ':'Batch tháng ')+mlabel;
   document.getElementById('modal-title').style.color='var(--acc)';
   document.getElementById('modal-sub').textContent=`${batches.length} batch · click để xem chi tiết`;
   document.getElementById('modal-body').innerHTML=`<div style="display:flex;flex-direction:column;gap:6px">
@@ -1822,7 +1829,7 @@ function openMonthBatches(month){
       const list=CS_AGENTS.filter(a=>a.batch===b);
       const d=[...new Set(list.map(a=>a.online_date).filter(Boolean))].sort()[0]||'';
       const call=list.filter(a=>a.team==='CALL').length, chat=list.filter(a=>a.team==='CHAT').length;
-      return `<div onclick="openBatchModal('${b}','${month}')" style="cursor:pointer;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center"
+      return `<div onclick="openBatchModal('${b}','${month}','${view}')" style="cursor:pointer;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center"
         onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--b1)'">
         <div><b style="color:var(--acc);font-family:var(--mono)">${b}</b> <span style="color:var(--t3);font-size:10px">${d}</span></div>
         <div style="font-size:11px;font-family:var(--mono)"><span style="color:#3fb950">CALL ${call}</span> · <span style="color:#4493f8">CHAT ${chat}</span></div>
@@ -1987,27 +1994,47 @@ let batAll=[], batFiltered=[], batSortKey='batch_num', batSortAsc=false, batPage
 const BAT_PER_PAGE=30;
 let batFilterMode='all';
 
-// New joins (newbie) per month: total, MoM delta, team split, batch count.
+function nbStart(m){ return new Date(+m.slice(0,4), +m.slice(5,7)-1, 1); }
+function nbEnd(m){ return new Date(+m.slice(0,4), +m.slice(5,7), 0); }
+// Agents in the Newbie view for a month.
+//   'new'   = joined that month (online_date month === m)
+//   'total' = tenure 0–2 months as of month m AND still present that month
+function newbieSetFor(month, view){
+  const cc=CS_AGENTS.filter(a=>a.online_date&&(a.team==='CALL'||a.team==='CHAT'));
+  if(view==='total'){
+    const start=nbStart(month), end=nbEnd(month);
+    const cutoff=new Date(start.getFullYear(), start.getMonth()-2, 1);  // first day of month m-2
+    return cc.filter(a=>{
+      const od=new Date(a.online_date);
+      if(od>end || od<cutoff) return false;              // tenure 0–2 months as of month m
+      const lwd=a.lwd?new Date(a.lwd):null;
+      if(lwd && lwd<start) return false;                 // already left before month m
+      return true;
+    });
+  }
+  return cc.filter(a=>a.online_date.slice(0,7)===month);
+}
+
+// Newbie per month — view = 'new' (joined that month) or 'total' (CS 0–2 months tenure).
 function renderNewbie(){
-  const byMonth={};
-  CS_AGENTS.forEach(a=>{
-    if(!a.online_date) return;
-    if(a.team!=='CALL' && a.team!=='CHAT') return;   // CALL & CHAT only
-    const m=a.online_date.slice(0,7);            // YYYY-MM (online_date)
-    if(!byMonth[m]) byMonth[m]={total:0,CALL:0,CHAT:0,Buyer:0,Seller:0,batches:new Set()};
-    const o=byMonth[m]; o.total++; o[a.team]++;
-    if(a.queue==='Buyer') o.Buyer++; else if(a.queue==='Seller') o.Seller++;
-    if(a.batch) o.batches.add(a.batch);
-  });
-  const asc=Object.keys(byMonth).sort();
+  const vsel=document.getElementById('nb-view');
+  const view=vsel?vsel.value:'new';
+  const cc=CS_AGENTS.filter(a=>a.online_date&&(a.team==='CALL'||a.team==='CHAT'));
+  const monthsSet={}; cc.forEach(a=>monthsSet[a.online_date.slice(0,7)]=1);
+  const asc=Object.keys(monthsSet).sort();
   if(!asc.length){ document.getElementById('nb-tbody').innerHTML=''; return; }
-  const show=asc.slice(-12);                     // last 12 months
-  const maxT=Math.max(...show.map(m=>byMonth[m].total),1);
-  document.getElementById('nb-meta').textContent=`${show.length} tháng gần nhất`;
+  const met={};
+  asc.forEach(m=>{ const s=newbieSetFor(m,view); met[m]={
+    total:s.length, CALL:s.filter(a=>a.team==='CALL').length, CHAT:s.filter(a=>a.team==='CHAT').length,
+    Buyer:s.filter(a=>a.queue==='Buyer').length, Seller:s.filter(a=>a.queue==='Seller').length,
+    nBatch:new Set(s.map(a=>a.batch).filter(Boolean)).size }; });
+  const show=asc.slice(-12);
+  const maxT=Math.max(...show.map(m=>met[m].total),1);
+  const col=document.getElementById('nb-col-total'); if(col) col.textContent=view==='total'?'Total':'New';
+  document.getElementById('nb-meta').textContent=`${show.length} tháng · ${view==='total'?'CS 0–2 tháng (tại thời điểm)':'mới vào trong tháng'}`;
   document.getElementById('nb-tbody').innerHTML=show.slice().reverse().map(m=>{
-    const o=byMonth[m];
-    const i=asc.indexOf(m);
-    const delta=i>0?o.total-byMonth[asc[i-1]].total:null;
+    const o=met[m], i=asc.indexOf(m);
+    const delta=i>0?o.total-met[asc[i-1]].total:null;
     const mlabel='T'+(+m.slice(5,7))+'/'+m.slice(0,4);
     const barW=Math.round(o.total/maxT*100);
     return `<tr>
@@ -2018,7 +2045,7 @@ function renderNewbie(){
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
-      <td class="c mn" title="Bấm để xem chi tiết batch" onclick="openMonthBatches('${m}')"><span style="border-bottom:1px dashed var(--acc);color:var(--acc);cursor:pointer">${o.batches.size}</span></td>
+      <td class="c mn" title="Bấm để xem chi tiết batch" onclick="openMonthBatches('${m}','${view}')"><span style="border-bottom:1px dashed var(--acc);color:var(--acc);cursor:pointer">${o.nBatch}</span></td>
       <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
     </tr>`;
   }).join('');
