@@ -2032,14 +2032,18 @@ function openMonthStops(month){
       const v=list.filter(a=>a.team===t&&(a.queue||'')===q).length; return `<td class="c mn">${v||'—'}</td>`;
     }).join('')}<td class="c b mn">${tot}</td></tr>`;
   }).join('');
-  const arows=list.slice().sort((a,b)=>(a.lwd||'').localeCompare(b.lwd||'')).map(a=>`
+  const arows=list.slice().sort((a,b)=>(a.lwd||'').localeCompare(b.lwd||'')).map(a=>{
+    const dd=(a.online_date&&a.lwd)?days(pd(a.online_date),pd(a.lwd)):null;
+    const tenure=dd!==null?`${dd} ngày${dd>=30?` (~${Math.round(dd/30)} tháng)`:''}`:'—';
+    return `
     <div style="display:flex;justify-content:space-between;gap:12px;padding:7px 2px;border-bottom:1px solid var(--b1);font-size:11px">
       <div style="min-width:0"><div style="font-weight:600">${a.name}</div>
-        <div style="color:var(--t3);font-size:10px">${a.team}·${a.queue||'—'}</div></div>
+        <div style="color:var(--t3);font-size:10px">${a.team}·${a.queue||'—'} · làm <b style="color:var(--w)">${tenure}</b></div></div>
       <div style="text-align:right;flex-shrink:0;max-width:58%">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--t3)">Online ${a.online_date||'—'}</div>
         <div style="font-family:var(--mono);font-size:10px;color:#f85149">LWD ${a.lwd||'—'}</div>
         <div style="font-size:10px;color:var(--t2)">${a.reason||'—'}</div></div>
-    </div>`).join('');
+    </div>`;}).join('');
   document.getElementById('modal-body').innerHTML=`
     <div class="pb" style="padding:0"><table><thead>${head}</thead><tbody>${mrows}</tbody></table></div>
     <div style="margin-top:12px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Danh sách (${list.length}) — tên · LWD · lý do nghỉ</div>
