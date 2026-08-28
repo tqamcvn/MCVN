@@ -2026,12 +2026,19 @@ function newbieSetFor(month, view){
 }
 
 // CS who stopped in a month (by LWD) — Team×Queue matrix + name/LWD/reason list.
-function openMonthStops(month){
-  const list=CS_AGENTS.filter(a=>isNewbieStop(a) && a.lwd.slice(0,7)===month);
+function openMonthStops(month, view){
+  view=view||'new';
+  const list=CS_AGENTS.filter(a=>{
+    if(!isNewbieStop(a) || a.lwd.slice(0,7)!==month) return false;
+    if(view==='new' && a.online_date.slice(0,7)!==month) return false;   // New: vào & nghỉ cùng tháng
+    return true;
+  });
   const mlabel='T'+(+month.slice(5,7))+'/'+month.slice(0,4);
-  document.getElementById('modal-title').textContent='Newbie nghỉ trong '+mlabel;
+  document.getElementById('modal-title').textContent=view==='new' ? ('Newbie vào & nghỉ trong '+mlabel) : ('Newbie nghỉ trong '+mlabel);
   document.getElementById('modal-title').style.color='#f85149';
-  document.getElementById('modal-sub').textContent=`${list.length} newbie (≤2 tháng) nghỉ trong tháng — theo LWD`;
+  document.getElementById('modal-sub').textContent=view==='new'
+    ? `${list.length} newbie vào & nghỉ ngay trong tháng (≤2 tháng)`
+    : `${list.length} newbie nghỉ trong tháng — theo LWD (≤2 tháng)`;
   const queues=['Buyer','Seller','Log','All'];
   const teams=['CALL','CHAT'].filter(t=>list.some(a=>a.team===t));
   const head=`<tr><th>Team</th>${queues.map(q=>`<th class="c">${q}</th>`).join('')}<th class="c">Tổng</th></tr>`;
@@ -2069,9 +2076,13 @@ function renderNewbie(){
   const monthsSet={}; cc.forEach(a=>monthsSet[a.online_date.slice(0,7)]=1);
   const asc=Object.keys(monthsSet).sort();
   if(!asc.length){ document.getElementById('nb-tbody').innerHTML=''; return; }
-  // Newbie stops per month — attributed to the month they actually stopped (LWD month)
+  // Newbie stops by month (LWD in that month). New view also requires joining that month.
   const stopBy={};
-  CS_AGENTS.forEach(a=>{ if(isNewbieStop(a)){ const k=a.lwd.slice(0,7); stopBy[k]=(stopBy[k]||0)+1; } });
+  CS_AGENTS.forEach(a=>{ if(!isNewbieStop(a)) return;
+    const lm=a.lwd.slice(0,7);
+    if(view==='new' && a.online_date.slice(0,7)!==lm) return;   // New: vào & nghỉ cùng tháng
+    stopBy[lm]=(stopBy[lm]||0)+1;
+  });
   const met={};
   asc.forEach(m=>{ const s=newbieSetFor(m,view); met[m]={
     total:s.length, CALL:s.filter(a=>a.team==='CALL').length, CHAT:s.filter(a=>a.team==='CHAT').length,
@@ -2095,7 +2106,7 @@ function renderNewbie(){
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
-      <td class="c mn" title="Newbie (≤2 tháng) nghỉ trong tháng — bấm xem" onclick="openMonthStops('${m}')">${stop?`<span style="border-bottom:1px dashed #f85149;color:#f85149;cursor:pointer">${stop}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td class="c mn" title="Newbie (≤2 tháng) nghỉ — bấm xem" onclick="openMonthStops('${m}','${view}')">${stop?`<span style="border-bottom:1px dashed #f85149;color:#f85149;cursor:pointer">${stop}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td class="c mn" title="Bấm để xem chi tiết batch" onclick="openMonthBatches('${m}','${view}')"><span style="border-bottom:1px dashed var(--acc);color:var(--acc);cursor:pointer">${o.nBatch}</span></td>
       <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
     </tr>`;
