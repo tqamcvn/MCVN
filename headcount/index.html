@@ -1995,6 +1995,7 @@ let batAll=[], batFiltered=[], batSortKey='batch_num', batSortAsc=false, batPage
 const BAT_PER_PAGE=30;
 let batFilterMode='all';
 
+const NEWBIE_MAX_DAYS=62;   // "newbie" = tenure ≤ 2 months (LWD − online date)
 function nbStart(m){ return new Date(+m.slice(0,4), +m.slice(5,7)-1, 1); }
 function nbEnd(m){ return new Date(+m.slice(0,4), +m.slice(5,7), 0); }
 // Agents in the Newbie view for a month.
@@ -2018,11 +2019,16 @@ function newbieSetFor(month, view){
 
 // CS who stopped in a month (by LWD) — Team×Queue matrix + name/LWD/reason list.
 function openMonthStops(month){
-  const list=CS_AGENTS.filter(a=>(a.team==='CALL'||a.team==='CHAT')&&a.status==='Stopped'&&a.lwd&&a.lwd.slice(0,7)===month);
+  const list=CS_AGENTS.filter(a=>{
+    if(!(a.team==='CALL'||a.team==='CHAT')) return false;
+    if(a.status!=='Stopped'||!a.lwd||!a.online_date||a.lwd.slice(0,7)!==month) return false;
+    const ten=days(pd(a.online_date),pd(a.lwd));
+    return ten>=0&&ten<=NEWBIE_MAX_DAYS;               // newbie: tenure ≤ 2 months
+  });
   const mlabel='T'+(+month.slice(5,7))+'/'+month.slice(0,4);
-  document.getElementById('modal-title').textContent='CS nghỉ — '+mlabel;
+  document.getElementById('modal-title').textContent='Newbie nghỉ — '+mlabel;
   document.getElementById('modal-title').style.color='#f85149';
-  document.getElementById('modal-sub').textContent=`${list.length} người nghỉ trong tháng`;
+  document.getElementById('modal-sub').textContent=`${list.length} newbie (≤2 tháng) nghỉ trong tháng`;
   const queues=['Buyer','Seller','Log','All'];
   const teams=['CALL','CHAT'].filter(t=>list.some(a=>a.team===t));
   const head=`<tr><th>Team</th>${queues.map(q=>`<th class="c">${q}</th>`).join('')}<th class="c">Tổng</th></tr>`;
@@ -2060,9 +2066,12 @@ function renderNewbie(){
   const monthsSet={}; cc.forEach(a=>monthsSet[a.online_date.slice(0,7)]=1);
   const asc=Object.keys(monthsSet).sort();
   if(!asc.length){ document.getElementById('nb-tbody').innerHTML=''; return; }
-  // CS stopped per month (by actual last working day) — independent of the New/Total view
+  // Newbie stops per month: agents who stopped while still ≤2 months tenure (by LWD)
   const stopBy={};
-  cc.forEach(a=>{ if(a.status==='Stopped'&&a.lwd){ const sm=a.lwd.slice(0,7); stopBy[sm]=(stopBy[sm]||0)+1; } });
+  cc.forEach(a=>{ if(a.status==='Stopped'&&a.lwd&&a.online_date){
+    const ten=days(pd(a.online_date),pd(a.lwd));
+    if(ten>=0&&ten<=NEWBIE_MAX_DAYS){ const sm=a.lwd.slice(0,7); stopBy[sm]=(stopBy[sm]||0)+1; }
+  }});
   const met={};
   asc.forEach(m=>{ const s=newbieSetFor(m,view); met[m]={
     total:s.length, CALL:s.filter(a=>a.team==='CALL').length, CHAT:s.filter(a=>a.team==='CHAT').length,
@@ -2086,7 +2095,7 @@ function renderNewbie(){
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
-      <td class="c mn" title="Bấm xem CS nghỉ trong tháng" onclick="openMonthStops('${m}')">${stop?`<span style="border-bottom:1px dashed #f85149;color:#f85149;cursor:pointer">${stop}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td class="c mn" title="Newbie (≤2 tháng) nghỉ trong tháng — bấm xem" onclick="openMonthStops('${m}')">${stop?`<span style="border-bottom:1px dashed #f85149;color:#f85149;cursor:pointer">${stop}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td class="c mn" title="Bấm để xem chi tiết batch" onclick="openMonthBatches('${m}','${view}')"><span style="border-bottom:1px dashed var(--acc);color:var(--acc);cursor:pointer">${o.nBatch}</span></td>
       <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
     </tr>`;
