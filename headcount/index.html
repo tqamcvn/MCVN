@@ -508,6 +508,7 @@ body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
           <th class="c">Δ MoM</th>
           <th class="c" style="color:#3fb950">CALL</th>
           <th class="c" style="color:#4493f8">CHAT</th>
+          <th class="c" style="color:#f85149">Stop</th>
           <th class="c">Batches</th>
           <th style="width:26%">Trend</th>
         </tr></thead>
@@ -2015,6 +2016,38 @@ function newbieSetFor(month, view){
   return cc.filter(a=>a.online_date.slice(0,7)===month);
 }
 
+// CS who stopped in a month (by LWD) — Team×Queue matrix + name/LWD/reason list.
+function openMonthStops(month){
+  const list=CS_AGENTS.filter(a=>(a.team==='CALL'||a.team==='CHAT')&&a.status==='Stopped'&&a.lwd&&a.lwd.slice(0,7)===month);
+  const mlabel='T'+(+month.slice(5,7))+'/'+month.slice(0,4);
+  document.getElementById('modal-title').textContent='CS nghỉ — '+mlabel;
+  document.getElementById('modal-title').style.color='#f85149';
+  document.getElementById('modal-sub').textContent=`${list.length} người nghỉ trong tháng`;
+  const queues=['Buyer','Seller','Log','All'];
+  const teams=['CALL','CHAT'].filter(t=>list.some(a=>a.team===t));
+  const head=`<tr><th>Team</th>${queues.map(q=>`<th class="c">${q}</th>`).join('')}<th class="c">Tổng</th></tr>`;
+  const mrows=teams.map(t=>{
+    const tot=list.filter(a=>a.team===t).length;
+    return `<tr><td class="b" style="color:${TC[t]||'var(--t1)'}">${t}</td>${queues.map(q=>{
+      const v=list.filter(a=>a.team===t&&(a.queue||'')===q).length; return `<td class="c mn">${v||'—'}</td>`;
+    }).join('')}<td class="c b mn">${tot}</td></tr>`;
+  }).join('');
+  const arows=list.slice().sort((a,b)=>(a.lwd||'').localeCompare(b.lwd||'')).map(a=>`
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:7px 2px;border-bottom:1px solid var(--b1);font-size:11px">
+      <div style="min-width:0"><div style="font-weight:600">${a.name}</div>
+        <div style="color:var(--t3);font-size:10px">${a.team}·${a.queue||'—'}</div></div>
+      <div style="text-align:right;flex-shrink:0;max-width:58%">
+        <div style="font-family:var(--mono);font-size:10px;color:#f85149">LWD ${a.lwd||'—'}</div>
+        <div style="font-size:10px;color:var(--t2)">${a.reason||'—'}</div></div>
+    </div>`).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="pb" style="padding:0"><table><thead>${head}</thead><tbody>${mrows}</tbody></table></div>
+    <div style="margin-top:12px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Danh sách (${list.length}) — tên · LWD · lý do nghỉ</div>
+    <div style="margin-top:4px">${arows||'<div style="color:var(--t3);font-size:11px">—</div>'}</div>`;
+  setModalBack(null,null);
+  showModal();
+}
+
 // Newbie per month — view = 'new' (joined that month) or 'total' (CS 0–2 months tenure).
 function renderNewbie(){
   const vsel=document.getElementById('nb-view');
@@ -2023,6 +2056,9 @@ function renderNewbie(){
   const monthsSet={}; cc.forEach(a=>monthsSet[a.online_date.slice(0,7)]=1);
   const asc=Object.keys(monthsSet).sort();
   if(!asc.length){ document.getElementById('nb-tbody').innerHTML=''; return; }
+  // CS stopped per month (by actual last working day) — independent of the New/Total view
+  const stopBy={};
+  cc.forEach(a=>{ if(a.status==='Stopped'&&a.lwd){ const sm=a.lwd.slice(0,7); stopBy[sm]=(stopBy[sm]||0)+1; } });
   const met={};
   asc.forEach(m=>{ const s=newbieSetFor(m,view); met[m]={
     total:s.length, CALL:s.filter(a=>a.team==='CALL').length, CHAT:s.filter(a=>a.team==='CHAT').length,
@@ -2035,6 +2071,7 @@ function renderNewbie(){
   document.getElementById('nb-tbody').innerHTML=show.slice().reverse().map(m=>{
     const o=met[m], i=asc.indexOf(m);
     const delta=i>0?o.total-met[asc[i-1]].total:null;
+    const stop=stopBy[m]||0;
     const mlabel='T'+(+m.slice(5,7))+'/'+m.slice(0,4);
     const barW=Math.round(o.total/maxT*100);
     return `<tr>
@@ -2045,6 +2082,7 @@ function renderNewbie(){
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
+      <td class="c mn" title="Bấm xem CS nghỉ trong tháng" onclick="openMonthStops('${m}')">${stop?`<span style="border-bottom:1px dashed #f85149;color:#f85149;cursor:pointer">${stop}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td class="c mn" title="Bấm để xem chi tiết batch" onclick="openMonthBatches('${m}','${view}')"><span style="border-bottom:1px dashed var(--acc);color:var(--acc);cursor:pointer">${o.nBatch}</span></td>
       <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
     </tr>`;
