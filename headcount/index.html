@@ -1995,6 +1995,15 @@ let batAll=[], batFiltered=[], batSortKey='batch_num', batSortAsc=false, batPage
 const BAT_PER_PAGE=30;
 let batFilterMode='all';
 
+const NEWBIE_MAX_DAYS=62;   // "newbie" = tenure ≤ 2 months (LWD − online date)
+// A CALL/CHAT agent who has ALREADY stopped (LWD ≤ today) while still a newbie (≤2 months).
+function isNewbieStop(a){
+  if(!(a.team==='CALL'||a.team==='CHAT')) return false;
+  if(a.status!=='Stopped'||!a.lwd||!a.online_date) return false;
+  if(pd(a.lwd)>TODAY_D) return false;                  // chỉ tính đã nghỉ thật (không tính LWD tương lai)
+  const ten=days(pd(a.online_date),pd(a.lwd));
+  return ten>=0&&ten<=NEWBIE_MAX_DAYS;
+}
 function nbStart(m){ return new Date(+m.slice(0,4), +m.slice(5,7)-1, 1); }
 function nbEnd(m){ return new Date(+m.slice(0,4), +m.slice(5,7), 0); }
 // Agents in the Newbie view for a month.
@@ -2017,12 +2026,19 @@ function newbieSetFor(month, view){
 }
 
 // CS who stopped in a month (by LWD) — Team×Queue matrix + name/LWD/reason list.
-function openMonthStops(month){
-  const list=CS_AGENTS.filter(a=>(a.team==='CALL'||a.team==='CHAT')&&a.status==='Stopped'&&a.lwd&&a.lwd.slice(0,7)===month);
+function openMonthStops(month, view){
+  view=view||'new';
+  const list=CS_AGENTS.filter(a=>{
+    if(!isNewbieStop(a) || a.lwd.slice(0,7)!==month) return false;
+    if(view==='new' && a.online_date.slice(0,7)!==month) return false;   // New: vào & nghỉ cùng tháng
+    return true;
+  });
   const mlabel='T'+(+month.slice(5,7))+'/'+month.slice(0,4);
-  document.getElementById('modal-title').textContent='CS nghỉ — '+mlabel;
+  document.getElementById('modal-title').textContent=view==='new' ? ('Newbie vào & nghỉ trong '+mlabel) : ('Newbie nghỉ trong '+mlabel);
   document.getElementById('modal-title').style.color='#f85149';
-  document.getElementById('modal-sub').textContent=`${list.length} người nghỉ trong tháng`;
+  document.getElementById('modal-sub').textContent=view==='new'
+    ? `${list.length} newbie vào & nghỉ ngay trong tháng (≤2 tháng)`
+    : `${list.length} newbie nghỉ trong tháng — theo LWD (≤2 tháng)`;
   const queues=['Buyer','Seller','Log','All'];
   const teams=['CALL','CHAT'].filter(t=>list.some(a=>a.team===t));
   const head=`<tr><th>Team</th>${queues.map(q=>`<th class="c">${q}</th>`).join('')}<th class="c">Tổng</th></tr>`;
@@ -2032,14 +2048,18 @@ function openMonthStops(month){
       const v=list.filter(a=>a.team===t&&(a.queue||'')===q).length; return `<td class="c mn">${v||'—'}</td>`;
     }).join('')}<td class="c b mn">${tot}</td></tr>`;
   }).join('');
-  const arows=list.slice().sort((a,b)=>(a.lwd||'').localeCompare(b.lwd||'')).map(a=>`
+  const arows=list.slice().sort((a,b)=>(a.lwd||'').localeCompare(b.lwd||'')).map(a=>{
+    const dd=(a.online_date&&a.lwd)?days(pd(a.online_date),pd(a.lwd)):null;
+    const tenure=dd!==null?`${dd} ngày${dd>=30?` (~${Math.round(dd/30)} tháng)`:''}`:'—';
+    return `
     <div style="display:flex;justify-content:space-between;gap:12px;padding:7px 2px;border-bottom:1px solid var(--b1);font-size:11px">
       <div style="min-width:0"><div style="font-weight:600">${a.name}</div>
-        <div style="color:var(--t3);font-size:10px">${a.team}·${a.queue||'—'}</div></div>
+        <div style="color:var(--t3);font-size:10px">${a.team}·${a.queue||'—'} · làm <b style="color:var(--w)">${tenure}</b></div></div>
       <div style="text-align:right;flex-shrink:0;max-width:58%">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--t3)">Online ${a.online_date||'—'}</div>
         <div style="font-family:var(--mono);font-size:10px;color:#f85149">LWD ${a.lwd||'—'}</div>
         <div style="font-size:10px;color:var(--t2)">${a.reason||'—'}</div></div>
-    </div>`).join('');
+    </div>`;}).join('');
   document.getElementById('modal-body').innerHTML=`
     <div class="pb" style="padding:0"><table><thead>${head}</thead><tbody>${mrows}</tbody></table></div>
     <div style="margin-top:12px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Danh sách (${list.length}) — tên · LWD · lý do nghỉ</div>
@@ -2056,9 +2076,13 @@ function renderNewbie(){
   const monthsSet={}; cc.forEach(a=>monthsSet[a.online_date.slice(0,7)]=1);
   const asc=Object.keys(monthsSet).sort();
   if(!asc.length){ document.getElementById('nb-tbody').innerHTML=''; return; }
-  // CS stopped per month (by actual last working day) — independent of the New/Total view
+  // Newbie stops by month (LWD in that month). New view also requires joining that month.
   const stopBy={};
-  cc.forEach(a=>{ if(a.status==='Stopped'&&a.lwd){ const sm=a.lwd.slice(0,7); stopBy[sm]=(stopBy[sm]||0)+1; } });
+  CS_AGENTS.forEach(a=>{ if(!isNewbieStop(a)) return;
+    const lm=a.lwd.slice(0,7);
+    if(view==='new' && a.online_date.slice(0,7)!==lm) return;   // New: vào & nghỉ cùng tháng
+    stopBy[lm]=(stopBy[lm]||0)+1;
+  });
   const met={};
   asc.forEach(m=>{ const s=newbieSetFor(m,view); met[m]={
     total:s.length, CALL:s.filter(a=>a.team==='CALL').length, CHAT:s.filter(a=>a.team==='CHAT').length,
@@ -2082,7 +2106,7 @@ function renderNewbie(){
       <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
       <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
       <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
-      <td class="c mn" title="Bấm xem CS nghỉ trong tháng" onclick="openMonthStops('${m}')">${stop?`<span style="border-bottom:1px dashed #f85149;color:#f85149;cursor:pointer">${stop}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td class="c mn" title="Newbie (≤2 tháng) nghỉ — bấm xem" onclick="openMonthStops('${m}','${view}')">${stop?`<span style="border-bottom:1px dashed #f85149;color:#f85149;cursor:pointer">${stop}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td class="c mn" title="Bấm để xem chi tiết batch" onclick="openMonthBatches('${m}','${view}')"><span style="border-bottom:1px dashed var(--acc);color:var(--acc);cursor:pointer">${o.nBatch}</span></td>
       <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
     </tr>`;
