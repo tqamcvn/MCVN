@@ -102,17 +102,23 @@ body {
   border-radius: 10px; color: #fff;
   font-size: 11.5px; font-weight: 600; line-height: 1.35;
   box-shadow: 0 2px 10px rgba(218,37,29,0.35);
+  cursor: pointer; user-select: none; transition: filter 0.12s, box-shadow 0.12s;
 }
+.vn-banner:hover { filter: brightness(1.08); }
+.vn-banner.active { box-shadow: 0 0 0 2px #ffd21f, 0 2px 10px rgba(218,37,29,0.4); }
 .vn-flag { width: 28px; height: 18px; border-radius: 3px; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .vn-banner b { color: #ffd21f; font-size: 13px; }
 body.sb-collapsed .vn-banner { margin: 2px 8px 12px; padding: 8px 0; justify-content: center; gap: 0; }
 body.sb-collapsed .vn-banner span { display: none; }
-.vn-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
-  background: linear-gradient(135deg, #e12b20, #b71c14); color: #fff;
-  box-shadow: 0 1px 4px rgba(218,37,29,0.3);
+/* ---- Thanh khẩu hiệu Quốc khánh (đầu mỗi trang) ---- */
+.vn-topbar {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 7px 16px; flex-shrink: 0; text-align: center;
+  background: linear-gradient(90deg, #c0392b, #e12b20, #c0392b);
+  color: #fff; font-size: 12.5px; font-weight: 600; letter-spacing: 0.2px;
 }
+.vn-topbar b { color: #ffd21f; }
+.vn-flag-sm { width: 22px; height: 14px; border-radius: 2px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
 
 .nav-label {
   font-size: 10px;
@@ -468,7 +474,8 @@ body.sb-collapsed .user-chip { justify-content: center; margin: 0; }
 body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
 
 /* ---- Khu vực nhúng tool ---- */
-.tool-view { display: none; flex: 1; flex-direction: column; height: 100vh; background: var(--gray-50); }
+.tool-view { display: none; flex: 1; flex-direction: column; min-height: 0; background: var(--gray-50); }
+.tool-view.visible { min-height: calc(100vh - 34px); }
 .tool-view.visible { display: flex; }
 .tool-bar {
   display: flex; align-items: center; gap: 12px;
@@ -572,18 +579,13 @@ body.ops-view .qa-only { display: none !important; }
     </button>
   </div>
 
-  <div class="vn-banner" title="Chào mừng Quốc khánh 2/9">
+  <div class="vn-banner active" id="vn-home" title="Về Trang chủ · Chào mừng Quốc khánh 2/9" onclick="location.hash='home'">
     <svg class="vn-flag" viewBox="0 0 30 20" aria-label="Cờ đỏ sao vàng">
       <rect width="30" height="20" fill="#da251d"/>
       <polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/>
     </svg>
     <span>Chào mừng Quốc khánh <b>2/9</b></span>
   </div>
-
-  <a class="nav-item active" href="#" data-view="home" title="Home">
-    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span class="nav-text">Home</span>
-  </a>
   <a class="nav-item qa-only" href="#" data-tool="csat" data-src="" data-title="CSAT reports" title="CSAT reports">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span class="nav-text">CSAT reports</span>
@@ -670,6 +672,11 @@ body.ops-view .qa-only { display: none !important; }
 </aside>
 
 <main class="main">
+  <div class="vn-topbar">
+    <svg class="vn-flag-sm" viewBox="0 0 30 20"><rect width="30" height="20" fill="#da251d"/><polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/></svg>
+    <span>Chúc mừng <b>81 năm</b> Quốc khánh <b>2/9/1945 – 2/9/2026</b></span>
+    <svg class="vn-flag-sm" viewBox="0 0 30 20"><rect width="30" height="20" fill="#da251d"/><polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/></svg>
+  </div>
   <div class="hero">
     <div class="hero-top">
       <div class="hero-avatar" id="hero-av">··</div>
@@ -679,7 +686,6 @@ body.ops-view .qa-only { display: none !important; }
         <div class="hero-meta">
           <span class="hero-email" id="hero-email">—</span>
           <span class="hero-role-badge" id="hero-role">Team QA · MCVN</span>
-          <span class="vn-badge"><svg viewBox="0 0 30 20" style="width:16px;height:11px;border-radius:2px;vertical-align:-1px"><rect width="30" height="20" fill="#da251d"/><polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/></svg> Mừng Quốc khánh 2/9</span>
         </div>
       </div>
     </div>
@@ -1020,8 +1026,13 @@ function navByKey(key){
   }) || null;
 }
 function toggleGroup(head){ head.parentElement.classList.toggle('open'); }
-function activateNav(el){
+function clearActive(){
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  var b = document.getElementById('vn-home'); if (b) b.classList.remove('active');
+}
+function toggleGroup(head){ head.parentElement.classList.toggle('open'); }
+function activateNav(el){
+  clearActive();
   el.classList.add('active');
   var grp = el.closest ? el.closest('.nav-group') : null;   // mở nhóm cha nếu là tool con
   if (grp) grp.classList.add('open');
@@ -1029,13 +1040,18 @@ function activateNav(el){
   else if (el.dataset.view === 'settings') showSettings();
   else showHome();
 }
-// Điều hướng theo hash (vd #cqm). Không có hash -> Home.
+// Điều hướng theo hash (vd #cqm). Không có hash -> Home (banner cờ đỏ sao vàng).
 function routeFromHash(){
   var key = decodeURIComponent((location.hash || '').replace(/^#/, '')) || 'home';
   var el = navByKey(key);
   if (el && el.classList.contains('qa-only') && document.body.classList.contains('ops-view')) el = null; // vận hành: chặn mục QA-only
-  if (!el) el = navByKey('home');
-  if (el) activateNav(el);
+  if (key === 'home' || !el) {          // Home = banner cờ đỏ sao vàng
+    clearActive();
+    var b = document.getElementById('vn-home'); if (b) b.classList.add('active');
+    showHome();
+    return;
+  }
+  activateNav(el);
 }
 
 document.querySelectorAll('.nav-item').forEach(function(el){
@@ -1220,7 +1236,7 @@ function greetingText() {
 
 function refreshHeader() {
   document.getElementById('hero-greeting').textContent = greetingText();
-  document.getElementById('hero-name').textContent = CUR.name + ' ơi!';
+  document.getElementById('hero-name').textContent = CUR.name + ' ơi! 🇻🇳';
   document.getElementById('sidebar-name').textContent = CUR.name;
   fillAvatar(document.getElementById('hero-av'), CUR.name, CUR.email, CUR.picture);
   fillAvatar(document.getElementById('sidebar-av'), CUR.name, CUR.email, CUR.picture);
