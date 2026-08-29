@@ -639,11 +639,6 @@ body.ops-view .qa-only { display: none !important; }
     <span class="nav-text">Short Link</span>
   </a>
 
-  <a class="nav-item" href="#" data-view="settings" title="Cài đặt">
-    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    <span class="nav-text">Cài đặt</span>
-  </a>
-
   <div class="sidebar-footer">
     <button class="theme-toggle" id="theme-toggle" title="Đổi giao diện sáng / tối">
       <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -654,7 +649,7 @@ body.ops-view .qa-only { display: none !important; }
       <div class="user-avatar-sm" id="sidebar-av">··</div>
       <div class="user-info">
         <div class="user-name" id="sidebar-name">—</div>
-        <div class="user-role-txt" id="sidebar-role">MCVN</div>
+        <div class="user-role-txt" id="sidebar-role">Cài đặt</div>
       </div>
       <button class="logout-btn" id="logout-btn" title="Đăng xuất" aria-label="Đăng xuất">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -895,7 +890,7 @@ async function renderUser() {
 
   document.getElementById('hero-email').textContent = email;
   document.getElementById('hero-role').textContent = role;
-  document.getElementById('sidebar-role').textContent = role;
+  document.getElementById('sidebar-role').textContent = 'Cài đặt';
   CUR = { name: name, email: email, picture: picture };
   refreshHeader();
 
@@ -1030,6 +1025,11 @@ function activateNav(el){
 // Điều hướng theo hash (vd #cqm). Không có hash -> Home (banner cờ đỏ sao vàng).
 function routeFromHash(){
   var key = decodeURIComponent((location.hash || '').replace(/^#/, '')) || 'home';
+  if (key === 'settings') {
+    clearActive();
+    showSettings();
+    return;
+  }
   var el = navByKey(key);
   if (el && el.classList.contains('qa-only') && document.body.classList.contains('ops-view')) el = null; // vận hành: chặn mục QA-only
   if (key === 'home' || !el) {          // Home = banner cờ đỏ sao vàng
