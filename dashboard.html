@@ -110,15 +110,8 @@ body {
 .vn-banner b { color: #ffd21f; font-size: 13px; }
 body.sb-collapsed .vn-banner { margin: 2px 8px 12px; padding: 8px 0; justify-content: center; gap: 0; }
 body.sb-collapsed .vn-banner span { display: none; }
-/* ---- Thanh khẩu hiệu Quốc khánh (đầu mỗi trang) ---- */
-.vn-topbar {
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  padding: 7px 16px; flex-shrink: 0; text-align: center;
-  background: linear-gradient(90deg, #c0392b, #e12b20, #c0392b);
-  color: #fff; font-size: 12.5px; font-weight: 600; letter-spacing: 0.2px;
-}
-.vn-topbar b { color: #ffd21f; }
-.vn-flag-sm { width: 22px; height: 14px; border-radius: 2px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+/* lá cờ nhỏ trong tên hero */
+.hero-name .vn-inline-flag { border-radius: 2px; vertical-align: -2px; margin-left: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
 
 .nav-label {
   font-size: 10px;
@@ -474,8 +467,7 @@ body.sb-collapsed .user-chip { justify-content: center; margin: 0; }
 body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
 
 /* ---- Khu vực nhúng tool ---- */
-.tool-view { display: none; flex: 1; flex-direction: column; min-height: 0; background: var(--gray-50); }
-.tool-view.visible { min-height: calc(100vh - 34px); }
+.tool-view { display: none; flex: 1; flex-direction: column; height: 100vh; background: var(--gray-50); }
 .tool-view.visible { display: flex; }
 .tool-bar {
   display: flex; align-items: center; gap: 12px;
@@ -672,11 +664,6 @@ body.ops-view .qa-only { display: none !important; }
 </aside>
 
 <main class="main">
-  <div class="vn-topbar">
-    <svg class="vn-flag-sm" viewBox="0 0 30 20"><rect width="30" height="20" fill="#da251d"/><polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/></svg>
-    <span>Chúc mừng <b>81 năm</b> Quốc khánh <b>2/9/1945 – 2/9/2026</b></span>
-    <svg class="vn-flag-sm" viewBox="0 0 30 20"><rect width="30" height="20" fill="#da251d"/><polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/></svg>
-  </div>
   <div class="hero">
     <div class="hero-top">
       <div class="hero-avatar" id="hero-av">··</div>
@@ -1234,9 +1221,11 @@ function greetingText() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function escHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+var VN_FLAG_SVG = '<svg class="vn-inline-flag" viewBox="0 0 30 20" style="width:20px;height:13px"><rect width="30" height="20" fill="#da251d"/><polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/></svg>';
 function refreshHeader() {
   document.getElementById('hero-greeting').textContent = greetingText();
-  document.getElementById('hero-name').textContent = CUR.name + ' ơi! 🇻🇳';
+  document.getElementById('hero-name').innerHTML = escHtml(CUR.name) + ' ơi! ' + VN_FLAG_SVG;
   document.getElementById('sidebar-name').textContent = CUR.name;
   fillAvatar(document.getElementById('hero-av'), CUR.name, CUR.email, CUR.picture);
   fillAvatar(document.getElementById('sidebar-av'), CUR.name, CUR.email, CUR.picture);
