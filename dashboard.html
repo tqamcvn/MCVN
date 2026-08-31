@@ -553,6 +553,7 @@ body.ih-view .hide-ih { display: none !important; }
 .seg-option.active { background: var(--white); color: var(--accent-dark); box-shadow: var(--shadow-sm); }
 @media (max-width: 540px) { .pref-row { align-items: flex-start; flex-direction: column; } .seg-switch { width: 100%; } .seg-option { flex: 1; } }
 </style>
+<script src="/assets/tqa-i18n.js" defer></script>
 </head>
 <body>
 
@@ -1149,6 +1150,7 @@ document.getElementById('tool-reload').addEventListener('click', () => {
 /* ---- Ngôn ngữ VN / ENG (nhớ lựa chọn) ---- */
 function applyLanguage() {
   const lang = currentLang();
+  if (window.TQAI18N) window.TQAI18N.apply(lang);
   document.documentElement.lang = lang === 'en' ? 'en' : 'vi';
   document.title = lang === 'en' ? 'TQA MCVN — Dashboard' : 'TQA MCVN — Bảng điều khiển';
   document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.dataset.i18n); });
