@@ -15,8 +15,9 @@
     if(!s){ deny(); return; }
     var email=(s.user.email||"").toLowerCase();
     if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
+    var role=""; try{ var d=(await sb.from("app_users").select("role").eq("email",email).maybeSingle()).data; if(d) role=d.role||""; }catch(e){}
+    if((email.split("@")[1]||"")==="shopee.com" || role.trim().toUpperCase()==="IH"){ deny(); return; }
     if(QA_ONLY){
-      var role=""; try{ var d=(await sb.from("app_users").select("role").eq("email",email).maybeSingle()).data; if(d) role=d.role||""; }catch(e){}
       if(!(/qa/i.test(role)||role==="Trainer")){ deny(); return; }
     }
     document.documentElement.style.visibility="";
