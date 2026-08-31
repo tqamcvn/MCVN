@@ -493,21 +493,6 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
 }
 .tool-empty.visible { display: flex; }
 
-/* ---- Nút đổi giao diện sáng / tối ---- */
-.theme-toggle {
-  display: flex; align-items: center; gap: 9px;
-  width: 100%; padding: 8px; margin-bottom: 10px;
-  background: none; border: 1px solid var(--gray-200); border-radius: var(--radius);
-  color: var(--gray-700); font-size: 12px; font-weight: 500; cursor: pointer;
-  font-family: inherit; transition: background 0.1s, border-color 0.1s;
-}
-.theme-toggle:hover { background: var(--gray-50); border-color: var(--gray-300); }
-.theme-toggle svg { width: 16px; height: 16px; flex-shrink: 0; }
-.theme-toggle .ic-sun { display: none; }
-body.theme-dark .theme-toggle .ic-sun { display: block; }
-body.theme-dark .theme-toggle .ic-moon { display: none; }
-body.sb-collapsed .theme-toggle { justify-content: center; padding: 8px 0; }
-
 /* Mũi tên thu gọn xoay khi ở trạng thái thu ---- */
 .sb-toggle svg { transition: transform 0.16s ease; }
 body.sb-collapsed .sb-toggle svg { transform: rotate(180deg); }
@@ -555,6 +540,17 @@ body.ops-view .qa-only { display: none !important; }
 .stg-msg { margin-top: 12px; font-size: 12.5px; min-height: 16px; }
 .stg-msg.err { color: var(--danger); }
 .stg-msg.ok { color: var(--success); }
+.prefs-card { margin-bottom: 20px; }
+.pref-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--gray-200); }
+.pref-row:last-child { border-bottom: none; padding-bottom: 0; }
+.pref-row:first-of-type { padding-top: 4px; }
+.pref-copy { min-width: 0; }
+.pref-name { font-size: 13px; font-weight: 600; color: var(--gray-900); margin-bottom: 3px; }
+.pref-help { font-size: 11.5px; color: var(--gray-500); line-height: 1.4; }
+.seg-switch { flex-shrink: 0; display: inline-flex; padding: 3px; border: 1px solid var(--gray-300); background: var(--gray-50); border-radius: 10px; }
+.seg-option { min-width: 58px; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--gray-600); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.seg-option.active { background: var(--white); color: var(--accent-dark); box-shadow: var(--shadow-sm); }
+@media (max-width: 540px) { .pref-row { align-items: flex-start; flex-direction: column; } .seg-switch { width: 100%; } .seg-option { flex: 1; } }
 </style>
 </head>
 <body>
@@ -576,14 +572,14 @@ body.ops-view .qa-only { display: none !important; }
       <rect width="30" height="20" fill="#da251d"/>
       <polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/>
     </svg>
-    <span>Chào mừng Quốc khánh <b>2/9</b></span>
+    <span><span data-i18n="nationalDay">Chào mừng Quốc khánh</span> <b>2/9</b></span>
   </div>
   <a class="nav-item qa-only" href="#" data-tool="csat" data-src="" data-title="CSAT reports" title="CSAT reports">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <span class="nav-text">CSAT reports</span>
+    <span class="nav-text" data-i18n="csatReports">CSAT reports</span>
   </a>
 
-  <div class="nav-label">Tools</div>
+  <div class="nav-label" data-i18n="tools">Tools</div>
   <a class="nav-item" href="/cqm/" data-tool="cqm" data-src="/cqm/" data-title="CQM Monitor" title="CQM Monitor">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     <span class="nav-text">CQM Monitor</span>
@@ -595,7 +591,7 @@ body.ops-view .qa-only { display: none !important; }
   <div class="nav-group">
     <div class="nav-group-head" onclick="toggleGroup(this)">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-      <span class="nav-text">Team Call</span>
+      <span class="nav-text" data-i18n="teamCall">Team Call</span>
       <svg class="grp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div class="nav-group-body">
@@ -605,7 +601,7 @@ body.ops-view .qa-only { display: none !important; }
   <div class="nav-group">
     <div class="nav-group-head" onclick="toggleGroup(this)">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></svg>
-      <span class="nav-text">Team Chat</span>
+      <span class="nav-text" data-i18n="teamChat">Team Chat</span>
       <svg class="grp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div class="nav-group-body">
@@ -615,11 +611,11 @@ body.ops-view .qa-only { display: none !important; }
   <div class="nav-group">
     <div class="nav-group-head" onclick="toggleGroup(this)">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-      <span class="nav-text">Team Multi</span>
+      <span class="nav-text" data-i18n="teamMulti">Team Multi</span>
       <svg class="grp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div class="nav-group-body">
-      <a class="nav-item nav-sub" href="#" data-tool="teammulti" data-src="" data-title="Team Multi" title="Team Multi"><span class="nav-text">Đang phát triển</span></a>
+      <a class="nav-item nav-sub" href="#" data-tool="teammulti" data-src="" data-title="Team Multi" title="Team Multi"><span class="nav-text" data-i18n="inDevelopment">Đang phát triển</span></a>
     </div>
   </div>
   <a class="nav-item" href="/repeatagent/" data-tool="repeatagent" data-src="/repeatagent/" data-title="Repeated Agent" title="Repeated Agent">
@@ -628,7 +624,7 @@ body.ops-view .qa-only { display: none !important; }
   </a>
   <a class="nav-item qa-only" href="/form-an-danh/" data-tool="form" data-src="/form-an-danh/" data-title="Form ẩn danh" title="Form ẩn danh">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    <span class="nav-text">Form ẩn danh</span>
+    <span class="nav-text" data-i18n="anonymousForm">Form ẩn danh</span>
   </a>
   <a class="nav-item qa-only" href="#" data-tool="ztp" data-src="" data-title="ZTP Governance" title="ZTP Governance">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -640,16 +636,11 @@ body.ops-view .qa-only { display: none !important; }
   </a>
 
   <div class="sidebar-footer">
-    <button class="theme-toggle" id="theme-toggle" title="Đổi giao diện sáng / tối">
-      <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-      <span class="nav-text theme-label">Giao diện tối</span>
-    </button>
     <div class="user-chip" title="Mở cài đặt tài khoản" role="button" tabindex="0" aria-label="Mở cài đặt tài khoản">
       <div class="user-avatar-sm" id="sidebar-av">··</div>
       <div class="user-info">
         <div class="user-name" id="sidebar-name">—</div>
-        <div class="user-role-txt" id="sidebar-role">Cài đặt</div>
+        <div class="user-role-txt" id="sidebar-role" data-i18n="settings">Cài đặt</div>
       </div>
       <button class="logout-btn" id="logout-btn" title="Đăng xuất" aria-label="Đăng xuất">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -680,7 +671,7 @@ body.ops-view .qa-only { display: none !important; }
   </div>
 
   <div class="content">
-    <div class="section-label">CSAT Overview</div>
+    <div class="section-label" data-i18n="csatOverview">CSAT Overview</div>
     <div class="csat-card">
       <div class="csat-header">
         <div class="csat-title">
@@ -757,52 +748,77 @@ body.ops-view .qa-only { display: none !important; }
     <div class="tool-bar">
       <div class="tool-bar-title" id="tool-title">Tool</div>
       <div class="tool-bar-actions">
-        <button class="tool-btn" id="tool-reload" title="Tải lại">
+        <button class="tool-btn" id="tool-reload" title="Tải lại" data-i18n-title="reload">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          Tải lại
+          <span data-i18n="reload">Tải lại</span>
         </button>
-        <a class="tool-btn" id="tool-newtab" target="_blank" rel="noopener" title="Mở tab mới">
+        <a class="tool-btn" id="tool-newtab" target="_blank" rel="noopener" title="Mở tab mới" data-i18n-title="openNewTab">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Mở tab mới
+          <span data-i18n="openNewTab">Mở tab mới</span>
         </a>
       </div>
     </div>
     <iframe id="tool-frame" title="Tool" referrerpolicy="no-referrer"></iframe>
     <div class="tool-empty" id="tool-empty">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <div>Tính năng <strong id="tool-empty-name">này</strong> đang được phát triển.</div>
+      <div><span data-i18n="featurePrefix">Tính năng</span> <strong id="tool-empty-name">này</strong> <span data-i18n="featureSuffix">đang được phát triển.</span></div>
     </div>
   </section>
 
   <!-- Cài đặt tài khoản -->
   <section class="settings-view" id="settings-view">
-    <div class="section-label">Cài đặt tài khoản</div>
+    <div class="section-label" data-i18n="accountSettings">Cài đặt tài khoản</div>
+
+    <div class="stg-card prefs-card">
+      <div class="stg-title" data-i18n="interface">Giao diện</div>
+      <div class="stg-desc" data-i18n="interfaceDesc">Chọn ngôn ngữ và chế độ hiển thị phù hợp với bạn.</div>
+      <div class="pref-row">
+        <div class="pref-copy">
+          <div class="pref-name" data-i18n="language">Ngôn ngữ</div>
+          <div class="pref-help" data-i18n="languageDesc">Áp dụng cho dashboard và thanh menu.</div>
+        </div>
+        <div class="seg-switch" role="group" aria-label="Ngôn ngữ">
+          <button class="seg-option" id="lang-vn" type="button">VN</button>
+          <button class="seg-option" id="lang-en" type="button">ENG</button>
+        </div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-copy">
+          <div class="pref-name" data-i18n="appearance">Chế độ hiển thị</div>
+          <div class="pref-help" data-i18n="appearanceDesc">Đồng bộ giao diện sáng/tối với các tool.</div>
+        </div>
+        <div class="seg-switch" role="group" aria-label="Chế độ hiển thị">
+          <button class="seg-option" id="theme-light" type="button" data-i18n="light">Sáng</button>
+          <button class="seg-option" id="theme-dark" type="button" data-i18n="dark">Tối</button>
+        </div>
+      </div>
+    </div>
 
     <div class="stg-card" style="margin-bottom:20px">
-      <div class="stg-title">Hồ sơ</div>
-      <div class="stg-desc">Đổi ảnh đại diện và tên hiển thị của bạn.</div>
+      <div class="stg-title" data-i18n="profile">Hồ sơ</div>
+      <div class="stg-desc" data-i18n="profileDesc">Đổi ảnh đại diện và tên hiển thị của bạn.</div>
       <div class="profile-row">
         <div class="profile-avatar" id="profile-preview">··</div>
         <div>
-          <label class="profile-file-btn" for="profile-file">Đổi ảnh đại diện</label>
+          <label class="profile-file-btn" for="profile-file" data-i18n="changeAvatar">Đổi ảnh đại diện</label>
           <input id="profile-file" type="file" accept="image/*" style="display:none" />
-          <div class="stg-desc" style="margin:4px 0 0">Ảnh vuông là đẹp nhất.</div>
+          <div class="stg-desc" style="margin:4px 0 0" data-i18n="squareImage">Ảnh vuông là đẹp nhất.</div>
         </div>
       </div>
-      <label class="stg-label" for="profile-name">Tên hiển thị</label>
-      <input class="stg-input" id="profile-name" type="text" placeholder="Tên hiển thị" />
-      <button class="stg-btn" id="profile-save">Lưu hồ sơ</button>
+      <label class="stg-label" for="profile-name" data-i18n="displayName">Tên hiển thị</label>
+      <input class="stg-input" id="profile-name" type="text" placeholder="Tên hiển thị" data-i18n-placeholder="displayName" />
+      <button class="stg-btn" id="profile-save" data-i18n="saveProfile">Lưu hồ sơ</button>
       <div class="stg-msg" id="profile-msg"></div>
     </div>
 
     <div class="stg-card">
-      <div class="stg-title">Đổi mật khẩu</div>
-      <div class="stg-desc">Nhập mật khẩu mới nếu bạn muốn thay mật khẩu mặc định. Không đổi cũng không sao.</div>
-      <label class="stg-label" for="set-np">Mật khẩu mới</label>
-      <input class="stg-input" id="set-np" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự" />
-      <label class="stg-label" for="set-np2">Nhập lại mật khẩu</label>
-      <input class="stg-input" id="set-np2" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" />
-      <button class="stg-btn" id="set-savepw">Lưu mật khẩu</button>
+      <div class="stg-title" data-i18n="changePassword">Đổi mật khẩu</div>
+      <div class="stg-desc" data-i18n="passwordDesc">Nhập mật khẩu mới nếu bạn muốn thay mật khẩu mặc định. Không đổi cũng không sao.</div>
+      <label class="stg-label" for="set-np" data-i18n="newPassword">Mật khẩu mới</label>
+      <input class="stg-input" id="set-np" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự" data-i18n-placeholder="minSix" />
+      <label class="stg-label" for="set-np2" data-i18n="confirmPassword">Nhập lại mật khẩu</label>
+      <input class="stg-input" id="set-np2" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" data-i18n-placeholder="confirmPassword" />
+      <button class="stg-btn" id="set-savepw" data-i18n="savePassword">Lưu mật khẩu</button>
       <div class="stg-msg" id="set-msg"></div>
     </div>
 
@@ -816,6 +832,52 @@ body.ops-view .qa-only { display: none !important; }
 const SUPABASE_URL = 'https://ytbcydursrpjqnaalhxc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo';
 const ALLOWED_DOMAINS = ['shopeemobile-external.com', 'shopee.com'];
+
+const LANG_KEY = 'tqa_lang';
+const I18N = {
+  vi: {
+    nationalDay:'Chào mừng Quốc khánh', csatReports:'Báo cáo CSAT', tools:'Công cụ',
+    teamCall:'Team Call', teamChat:'Team Chat', teamMulti:'Team Multi', inDevelopment:'Đang phát triển',
+    anonymousForm:'Form ẩn danh', settings:'Cài đặt', accountSettings:'Cài đặt tài khoản',
+    interface:'Giao diện', interfaceDesc:'Chọn ngôn ngữ và chế độ hiển thị phù hợp với bạn.',
+    language:'Ngôn ngữ', languageDesc:'Áp dụng cho dashboard và thanh menu.',
+    appearance:'Chế độ hiển thị', appearanceDesc:'Đồng bộ giao diện sáng/tối với các tool.',
+    light:'Sáng', dark:'Tối', profile:'Hồ sơ', profileDesc:'Đổi ảnh đại diện và tên hiển thị của bạn.',
+    changeAvatar:'Đổi ảnh đại diện', squareImage:'Ảnh vuông là đẹp nhất.', displayName:'Tên hiển thị',
+    saveProfile:'Lưu hồ sơ', changePassword:'Đổi mật khẩu',
+    passwordDesc:'Nhập mật khẩu mới nếu bạn muốn thay mật khẩu mặc định. Không đổi cũng không sao.',
+    newPassword:'Mật khẩu mới', minSix:'Ít nhất 6 ký tự', confirmPassword:'Nhập lại mật khẩu',
+    savePassword:'Lưu mật khẩu', csatOverview:'Tổng quan CSAT', reload:'Tải lại', openNewTab:'Mở tab mới',
+    featurePrefix:'Tính năng', featureSuffix:'đang được phát triển.',
+    openSettings:'Mở cài đặt tài khoản', logout:'Đăng xuất', collapse:'Thu gọn thanh menu', expand:'Mở rộng thanh menu',
+    homeTitle:'Về Trang chủ · Chào mừng Quốc khánh 2/9', updated:'cập nhật', cached:'đệm',
+    passwordShort:'Mật khẩu cần ít nhất 6 ký tự.', passwordMismatch:'Hai ô mật khẩu chưa khớp.', saving:'Đang lưu...',
+    passwordSaved:'Đã đổi mật khẩu thành công!', enterName:'Nhập tên hiển thị.', profileSaved:'Đã lưu hồ sơ!',
+    chooseImage:'Vui lòng chọn file ảnh.', processingImage:'Đang xử lý ảnh...', avatarSaved:'Đã cập nhật ảnh đại diện!', error:'Lỗi'
+  },
+  en: {
+    nationalDay:'Vietnam National Day', csatReports:'CSAT Reports', tools:'Tools',
+    teamCall:'Team Call', teamChat:'Team Chat', teamMulti:'Team Multi', inDevelopment:'In development',
+    anonymousForm:'Anonymous Form', settings:'Settings', accountSettings:'Account Settings',
+    interface:'Appearance', interfaceDesc:'Choose your preferred language and display mode.',
+    language:'Language', languageDesc:'Applies to the dashboard and sidebar.',
+    appearance:'Display mode', appearanceDesc:'Sync light/dark mode with embedded tools.',
+    light:'Light', dark:'Dark', profile:'Profile', profileDesc:'Change your avatar and display name.',
+    changeAvatar:'Change avatar', squareImage:'Square images work best.', displayName:'Display name',
+    saveProfile:'Save profile', changePassword:'Change password',
+    passwordDesc:'Enter a new password if you want to replace the default one. This is optional.',
+    newPassword:'New password', minSix:'At least 6 characters', confirmPassword:'Confirm password',
+    savePassword:'Save password', csatOverview:'CSAT Overview', reload:'Reload', openNewTab:'Open in new tab',
+    featurePrefix:'The feature', featureSuffix:'is under development.',
+    openSettings:'Open account settings', logout:'Sign out', collapse:'Collapse sidebar', expand:'Expand sidebar',
+    homeTitle:'Home · Vietnam National Day 2/9', updated:'updated', cached:'cached',
+    passwordShort:'Password must contain at least 6 characters.', passwordMismatch:'The passwords do not match.', saving:'Saving...',
+    passwordSaved:'Password changed successfully!', enterName:'Enter a display name.', profileSaved:'Profile saved!',
+    chooseImage:'Please choose an image file.', processingImage:'Processing image...', avatarSaved:'Avatar updated!', error:'Error'
+  }
+};
+function currentLang(){ return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'vi'; }
+function t(key){ return (I18N[currentLang()] && I18N[currentLang()][key]) || I18N.vi[key] || key; }
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -890,7 +952,7 @@ async function renderUser() {
 
   document.getElementById('hero-email').textContent = email;
   document.getElementById('hero-role').textContent = role;
-  document.getElementById('sidebar-role').textContent = 'Cài đặt';
+  document.getElementById('sidebar-role').textContent = t('settings');
   CUR = { name: name, email: email, picture: picture };
   refreshHeader();
 
@@ -927,14 +989,35 @@ const quotes = [
   {vn:"Dân ta có một lòng nồng nàn yêu nước. Đó là một truyền thống quý báu của ta.",author:"Chủ tịch Hồ Chí Minh"},
   {vn:"Không có gì quý hơn độc lập, tự do.",author:"Chủ tịch Hồ Chí Minh"},
 ];
-
-const tagLabel = {mindset:'Mindset',kientr:'Kiên trì',kyluat:'Kỷ luật',teamwork:'Teamwork',caodao:'Ca dao / Tục ngữ'};
-
-function loadQuote() {
-  const q = quotes[Math.floor(Math.random() * quotes.length)];
-  document.getElementById('qt').textContent = '“' + q.vn + '”';
-  document.getElementById('qa').textContent = '— ' + q.author + ' —';
+const quotesEn = [
+  'Unity, unity, great unity. Success, success, great success.',
+  'Unity is an extremely precious tradition of our nation.',
+  'Unity is strength; unity is victory.',
+  'Unity is our invincible strength.',
+  'Good unity, good discipline.',
+  'The strength of the whole people is the greatest strength. No one can defeat it.',
+  'Nothing is difficult; only fear a wavering heart. With determination, mountains can be dug and seas filled.',
+  'For ten years’ benefit, plant trees; for a hundred years’ benefit, cultivate people.',
+  'Learning is a lifelong pursuit.',
+  'Emulation is patriotism; patriots must emulate.',
+  'We must do our utmost for what benefits the people and avoid what harms them.',
+  'Wherever youth is needed, youth is present; wherever it is difficult, youth is there.',
+  'Diligence, thrift, integrity, righteousness, and impartiality.',
+  'An ignorant nation is a weak nation.',
+  'Young people should not ask what the country has given them, but what they have done for the country.',
+  'Cadres are the root of all work.',
+  'Our people have a fervent patriotism. It is a precious tradition of ours.',
+  'Nothing is more precious than independence and freedom.'
+];
+let currentQuoteIndex = Math.floor(Math.random() * quotes.length);
+function renderQuote() {
+  const vi = currentLang() === 'vi';
+  const text = vi ? quotes[currentQuoteIndex].vn : quotesEn[currentQuoteIndex];
+  const author = vi ? 'Chủ tịch Hồ Chí Minh' : 'President Ho Chi Minh';
+  document.getElementById('qt').textContent = '“' + text + '”';
+  document.getElementById('qa').textContent = '— ' + author + ' —';
 }
+function loadQuote() { currentQuoteIndex = Math.floor(Math.random() * quotes.length); renderQuote(); }
 
 function sw(id, el) {
   document.getElementById('mom').style.display = 'none';
@@ -975,7 +1058,7 @@ function currentTheme() {
 }
 function withTheme(src) {
   // thêm theme + mốc thời gian để iframe luôn lấy bản tool mới nhất (tránh kẹt cache)
-  return src + (src.includes('?') ? '&' : '?') + 'theme=' + currentTheme() + '&_=' + Date.now();
+  return src + (src.includes('?') ? '&' : '?') + 'theme=' + currentTheme() + '&lang=' + currentLang() + '&_=' + Date.now();
 }
 
 function showTool(src, title) {
@@ -1060,11 +1143,40 @@ document.getElementById('tool-reload').addEventListener('click', () => {
   }
 });
 
+/* ---- Ngôn ngữ VN / ENG (nhớ lựa chọn) ---- */
+function applyLanguage() {
+  const lang = currentLang();
+  document.documentElement.lang = lang === 'en' ? 'en' : 'vi';
+  document.title = lang === 'en' ? 'TQA MCVN — Dashboard' : 'TQA MCVN — Bảng điều khiển';
+  document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){ el.placeholder = t(el.dataset.i18nPlaceholder); });
+  document.querySelectorAll('[data-i18n-title]').forEach(function(el){ el.title = t(el.dataset.i18nTitle); });
+  document.getElementById('lang-vn').classList.toggle('active', lang === 'vi');
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+  const userChipEl = document.querySelector('.user-chip');
+  userChipEl.title = t('openSettings'); userChipEl.setAttribute('aria-label', t('openSettings'));
+  const logoutEl = document.getElementById('logout-btn');
+  logoutEl.title = t('logout'); logoutEl.setAttribute('aria-label', t('logout'));
+  document.getElementById('vn-home').title = t('homeTitle');
+  const csatNav = document.querySelector('[data-tool="csat"]');
+  if (csatNav) { csatNav.dataset.title = t('csatReports'); csatNav.title = t('csatReports'); }
+  const formNav = document.querySelector('[data-tool="form"]');
+  if (formNav) { formNav.dataset.title = t('anonymousForm'); formNav.title = t('anonymousForm'); }
+  syncSbTitle();
+  if (CUR.name) refreshHeader();
+  renderQuote();
+  if (LAST_CSAT_SAVED_AT) csatStamp(LAST_CSAT_SAVED_AT, LAST_CSAT_FROM_CACHE);
+  try { if (toolFrame && toolFrame.contentWindow) toolFrame.contentWindow.postMessage({ type:'tqa-language', lang:lang }, '*'); } catch(e) {}
+}
+document.getElementById('lang-vn').addEventListener('click', function(){ localStorage.setItem(LANG_KEY, 'vi'); applyLanguage(); });
+document.getElementById('lang-en').addEventListener('click', function(){ localStorage.setItem(LANG_KEY, 'en'); applyLanguage(); });
+
 /* ---- Thu gọn / mở rộng sidebar (nhớ trạng thái) ---- */
 const SB_KEY = 'tqa_sb_collapsed';
 const sbToggle = document.getElementById('sb-toggle');
 function syncSbTitle() {
-  sbToggle.title = document.body.classList.contains('sb-collapsed') ? 'Mở rộng thanh menu' : 'Thu gọn thanh menu';
+  sbToggle.title = document.body.classList.contains('sb-collapsed') ? t('expand') : t('collapse');
+  sbToggle.setAttribute('aria-label', sbToggle.title);
 }
 if (localStorage.getItem(SB_KEY) === '1') document.body.classList.add('sb-collapsed');
 sbToggle.addEventListener('click', () => {
@@ -1080,8 +1192,8 @@ function applyTheme() {
   const dark = localStorage.getItem(THEME_KEY) === 'dark';
   document.documentElement.classList.toggle('theme-dark', dark);
   document.body.classList.toggle('theme-dark', dark);
-  const label = document.querySelector('.theme-label');
-  if (label) label.textContent = dark ? 'Giao diện sáng' : 'Giao diện tối';
+  document.getElementById('theme-light').classList.toggle('active', !dark);
+  document.getElementById('theme-dark').classList.toggle('active', dark);
   // Báo cho tool đang mở đổi theme theo (nếu có).
   try {
     if (toolFrame && toolFrame.src && toolFrame.src !== 'about:blank' && toolFrame.contentWindow) {
@@ -1089,11 +1201,8 @@ function applyTheme() {
     }
   } catch (e) { /* iframe khác origin hoặc chưa sẵn sàng */ }
 }
-document.getElementById('theme-toggle').addEventListener('click', () => {
-  const dark = !document.body.classList.contains('theme-dark');
-  localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
-  applyTheme();
-});
+document.getElementById('theme-light').addEventListener('click', function(){ localStorage.setItem(THEME_KEY, 'light'); applyTheme(); });
+document.getElementById('theme-dark').addEventListener('click', function(){ localStorage.setItem(THEME_KEY, 'dark'); applyTheme(); });
 applyTheme();
 
 document.getElementById('logout-btn').addEventListener('click', function (e) {
@@ -1116,12 +1225,12 @@ async function changePassword() {
   const p2 = document.getElementById('set-np2').value || '';
   const msg = document.getElementById('set-msg');
   msg.className = 'stg-msg';
-  if (p1.length < 6) { msg.textContent = 'Mật khẩu cần ít nhất 6 ký tự.'; msg.classList.add('err'); return; }
-  if (p1 !== p2) { msg.textContent = 'Hai ô mật khẩu chưa khớp.'; msg.classList.add('err'); return; }
-  msg.textContent = 'Đang lưu...';
+  if (p1.length < 6) { msg.textContent = t('passwordShort'); msg.classList.add('err'); return; }
+  if (p1 !== p2) { msg.textContent = t('passwordMismatch'); msg.classList.add('err'); return; }
+  msg.textContent = t('saving');
   const { error } = await sb.auth.updateUser({ password: p1, data: { password_set: true } });
-  if (error) { msg.textContent = 'Lỗi: ' + error.message; msg.classList.add('err'); return; }
-  msg.textContent = 'Đã đổi mật khẩu thành công!'; msg.classList.add('ok');
+  if (error) { msg.textContent = t('error') + ': ' + error.message; msg.classList.add('err'); return; }
+  msg.textContent = t('passwordSaved'); msg.classList.add('ok');
   document.getElementById('set-np').value = '';
   document.getElementById('set-np2').value = '';
 }
@@ -1176,11 +1285,13 @@ function renderCsat(raw) {
   document.getElementById('wow').innerHTML = wow;
   return true;
 }
+let LAST_CSAT_SAVED_AT = null, LAST_CSAT_FROM_CACHE = false;
 function csatStamp(savedAt, fromCache) {
   const el = document.getElementById('csat-stamp');
   if (!el || !savedAt) return;
-  const s = new Date(savedAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  el.textContent = '· cập nhật ' + s + (fromCache ? ' (đệm)' : '');
+  LAST_CSAT_SAVED_AT = savedAt; LAST_CSAT_FROM_CACHE = fromCache;
+  const s = new Date(savedAt).toLocaleString(currentLang() === 'en' ? 'en-GB' : 'vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  el.textContent = '· ' + t('updated') + ' ' + s + (fromCache ? ' (' + t('cached') + ')' : '');
 }
 
 async function loadCsat() {
@@ -1208,24 +1319,17 @@ var CUR = { name: '', email: '', picture: '' };
 function greetingText() {
   const h = new Date().getHours();
   let pool;
-  if (h >= 5 && h < 11) pool = [
-    'Sáng rồi nha, đã sẵn sàng "crush" mọi task chưa?',
-    'Chào buổi sáng! Một ngày năng suất đang chờ 💪',
-    'Sáng tươi rồi, nhâm nhi ly cà phê rồi chiến nào ☕'
+  if (currentLang() === 'en') {
+    if (h >= 5 && h < 11) pool = ['Good morning! Ready to crush today’s tasks?', 'A productive new day is waiting 💪', 'Coffee first, then let’s make it happen ☕'];
+    else if (h >= 11 && h < 14) pool = ['It’s lunchtime—recharge and keep going!', 'Take a short break and refuel 🍜'];
+    else if (h >= 14 && h < 18) pool = ['Keep the momentum going this afternoon!', 'Stay energized—you’ve got this 🔥'];
+    else pool = ['Wrap things up and get some well-earned rest 🌙', 'Good evening! Remember to take care of yourself ✨', 'It’s getting late—don’t stay up too long 💜'];
+  } else if (h >= 5 && h < 11) pool = [
+    'Sáng rồi nha, đã sẵn sàng "crush" mọi task chưa?', 'Chào buổi sáng! Một ngày năng suất đang chờ 💪', 'Sáng tươi rồi, nhâm nhi ly cà phê rồi chiến nào ☕'
   ];
-  else if (h >= 11 && h < 14) pool = [
-    'Trưa rồi, nạp năng lượng rồi chiến tiếp nha!',
-    'Giữa ngày rồi, nghỉ tay chút cho khỏe nhé 🍜'
-  ];
-  else if (h >= 14 && h < 18) pool = [
-    'Chiều rồi, giữ nhịp chiến nốt nào!',
-    'Buổi chiều nhiều năng lượng, cố lên nha 🔥'
-  ];
-  else pool = [
-    'Tối rồi, ráng nốt rồi nghỉ ngơi nha 🌙',
-    'Chào buổi tối! Nhớ chăm sóc bản thân nữa nhé ✨',
-    'Muộn rồi đó, đừng thức khuya quá nha 💜'
-  ];
+  else if (h >= 11 && h < 14) pool = ['Trưa rồi, nạp năng lượng rồi chiến tiếp nha!', 'Giữa ngày rồi, nghỉ tay chút cho khỏe nhé 🍜'];
+  else if (h >= 14 && h < 18) pool = ['Chiều rồi, giữ nhịp chiến nốt nào!', 'Buổi chiều nhiều năng lượng, cố lên nha 🔥'];
+  else pool = ['Tối rồi, ráng nốt rồi nghỉ ngơi nha 🌙', 'Chào buổi tối! Nhớ chăm sóc bản thân nữa nhé ✨', 'Muộn rồi đó, đừng thức khuya quá nha 💜'];
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -1233,7 +1337,7 @@ function escHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'
 var VN_FLAG_SVG = '<svg class="vn-inline-flag" viewBox="0 0 30 20" style="width:20px;height:13px"><rect width="30" height="20" fill="#da251d"/><polygon fill="#ffcd00" points="15,3 16.65,7.73 21.66,7.84 17.66,10.87 19.12,15.66 15,12.8 10.88,15.66 12.34,10.87 8.34,7.84 13.35,7.73"/></svg>';
 function refreshHeader() {
   document.getElementById('hero-greeting').textContent = greetingText();
-  document.getElementById('hero-name').innerHTML = escHtml(CUR.name) + ' ơi! ' + VN_FLAG_SVG;
+  document.getElementById('hero-name').innerHTML = escHtml(CUR.name) + (currentLang() === 'vi' ? ' ơi! ' : '! ') + VN_FLAG_SVG;
   document.getElementById('sidebar-name').textContent = CUR.name;
   fillAvatar(document.getElementById('hero-av'), CUR.name, CUR.email, CUR.picture);
   fillAvatar(document.getElementById('sidebar-av'), CUR.name, CUR.email, CUR.picture);
@@ -1269,12 +1373,12 @@ function resizeImage(file, size, cb) {
 async function saveProfileName() {
   const msg = document.getElementById('profile-msg'); msg.className = 'stg-msg';
   const nm = (document.getElementById('profile-name').value || '').trim();
-  if (!nm) { msg.textContent = 'Nhập tên hiển thị.'; msg.classList.add('err'); return; }
-  msg.textContent = 'Đang lưu...';
+  if (!nm) { msg.textContent = t('enterName'); msg.classList.add('err'); return; }
+  msg.textContent = t('saving');
   const { error } = await updateMeta({ display_name: nm });
-  if (error) { msg.textContent = 'Lỗi: ' + error.message; msg.classList.add('err'); return; }
+  if (error) { msg.textContent = t('error') + ': ' + error.message; msg.classList.add('err'); return; }
   CUR.name = nm; refreshHeader();
-  msg.textContent = 'Đã lưu hồ sơ!'; msg.classList.add('ok');
+  msg.textContent = t('profileSaved'); msg.classList.add('ok');
 }
 document.getElementById('profile-save').addEventListener('click', saveProfileName);
 
@@ -1282,16 +1386,17 @@ document.getElementById('profile-file').addEventListener('change', function () {
   const file = this.files && this.files[0];
   const msg = document.getElementById('profile-msg'); msg.className = 'stg-msg';
   if (!file) return;
-  if (!/^image\//.test(file.type)) { msg.textContent = 'Vui lòng chọn file ảnh.'; msg.classList.add('err'); return; }
-  msg.textContent = 'Đang xử lý ảnh...';
+  if (!/^image\//.test(file.type)) { msg.textContent = t('chooseImage'); msg.classList.add('err'); return; }
+  msg.textContent = t('processingImage');
   resizeImage(file, 160, async function (dataUrl) {
     const { error } = await updateMeta({ avatar: dataUrl });
-    if (error) { msg.textContent = 'Lỗi lưu ảnh: ' + error.message; msg.classList.add('err'); return; }
+    if (error) { msg.textContent = t('error') + ': ' + error.message; msg.classList.add('err'); return; }
     CUR.picture = dataUrl; refreshHeader();
-    msg.textContent = 'Đã cập nhật ảnh đại diện!'; msg.classList.add('ok');
+    msg.textContent = t('avatarSaved'); msg.classList.add('ok');
   });
 });
 
+applyLanguage();
 renderUser();
 loadQuote();
 loadCsat();
