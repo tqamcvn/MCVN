@@ -951,50 +951,31 @@ async function logout() {
 
 /* ---- Motivational quotes ---- */
 const quotes = [
-  {vn:"Đoàn kết, đoàn kết, đại đoàn kết. Thành công, thành công, đại thành công.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Đoàn kết là một truyền thống cực kỳ quý báu của dân tộc ta.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Đoàn kết là sức mạnh, đoàn kết là thắng lợi.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Đoàn kết là sức mạnh vô địch của chúng ta.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Đoàn kết tốt, kỷ luật tốt.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Lực lượng toàn dân là lực lượng vĩ đại hơn hết. Không ai chiến thắng được lực lượng đó.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Không có việc gì khó, chỉ sợ lòng không bền, đào núi và lấp biển, quyết chí ắt làm nên.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Vì lợi ích mười năm thì phải trồng cây, vì lợi ích trăm năm thì phải trồng người.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Học hỏi là một việc phải tiếp tục suốt đời.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Thi đua là yêu nước, yêu nước thì phải thi đua.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Việc gì có lợi cho dân, ta phải hết sức làm. Việc gì có hại cho dân, ta phải hết sức tránh.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Đâu cần thanh niên có, đâu khó có thanh niên.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Cần, kiệm, liêm, chính, chí công vô tư.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Một dân tộc dốt là một dân tộc yếu.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Nhiệm vụ của thanh niên không phải là hỏi nước nhà đã cho mình những gì, mà phải tự hỏi mình đã làm được gì cho nước nhà.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Cán bộ là cái gốc của mọi công việc.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Dân ta có một lòng nồng nàn yêu nước. Đó là một truyền thống quý báu của ta.",author:"Chủ tịch Hồ Chí Minh"},
-  {vn:"Không có gì quý hơn độc lập, tự do.",author:"Chủ tịch Hồ Chí Minh"},
-];
-const quotesEn = [
-  'Unity, unity, great unity. Success, success, great success.',
-  'Unity is an extremely precious tradition of our nation.',
-  'Unity is strength; unity is victory.',
-  'Unity is our invincible strength.',
-  'Good unity, good discipline.',
-  'The strength of the whole people is the greatest strength. No one can defeat it.',
-  'Nothing is difficult; only fear a wavering heart. With determination, mountains can be dug and seas filled.',
-  'For ten years’ benefit, plant trees; for a hundred years’ benefit, cultivate people.',
-  'Learning is a lifelong pursuit.',
-  'Emulation is patriotism; patriots must emulate.',
-  'We must do our utmost for what benefits the people and avoid what harms them.',
-  'Wherever youth is needed, youth is present; wherever it is difficult, youth is there.',
-  'Diligence, thrift, integrity, righteousness, and impartiality.',
-  'An ignorant nation is a weak nation.',
-  'Young people should not ask what the country has given them, but what they have done for the country.',
-  'Cadres are the root of all work.',
-  'Our people have a fervent patriotism. It is a precious tradition of ours.',
-  'Nothing is more precious than independence and freedom.'
+  {vi:'Một mình chúng ta làm được rất ít; cùng nhau, chúng ta có thể làm được rất nhiều.',en:'Alone we can do so little; together we can do so much.',authorVi:'Helen Keller',authorEn:'Helen Keller'},
+  {vi:'Đến với nhau là khởi đầu, ở bên nhau là tiến bộ, làm việc cùng nhau là thành công.',en:'Coming together is a beginning; keeping together is progress; working together is success.',authorVi:'Henry Ford',authorEn:'Henry Ford'},
+  {vi:'Tài năng giúp thắng trận, nhưng tinh thần đồng đội và trí tuệ giúp giành chức vô địch.',en:'Talent wins games, but teamwork and intelligence win championships.',authorVi:'Michael Jordan',authorEn:'Michael Jordan'},
+  {vi:'Những điều tuyệt vời trong công việc không do một người tạo nên, mà do cả một đội ngũ.',en:'Great things in business are never done by one person. They are done by a team of people.',authorVi:'Steve Jobs',authorEn:'Steve Jobs'},
+  {vi:'Không ai trong chúng ta thông minh bằng tất cả chúng ta cộng lại.',en:'None of us is as smart as all of us.',authorVi:'Ken Blanchard',authorEn:'Ken Blanchard'},
+  {vi:'Sức mạnh của đội nằm ở mỗi thành viên; sức mạnh của mỗi thành viên nằm ở cả đội.',en:'The strength of the team is each individual member. The strength of each member is the team.',authorVi:'Phil Jackson',authorEn:'Phil Jackson'},
+  {vi:'Đội ngũ không chỉ là những người làm việc cùng nhau, mà là những người tin tưởng nhau.',en:'A team is not a group of people who work together. A team is a group of people who trust each other.',authorVi:'Simon Sinek',authorEn:'Simon Sinek'},
+  {vi:'Làm việc nhóm biến ước mơ thành hiện thực.',en:'Teamwork makes the dream work.',authorVi:'John C. Maxwell',authorEn:'John C. Maxwell'},
+  {vi:'Dù năng lực hiện tại ra sao, chính nỗ lực sẽ đánh thức năng lực ấy và biến nó thành thành tựu.',en:'No matter what your ability is, effort is what ignites that ability and turns it into accomplishment.',authorVi:'Carol S. Dweck',authorEn:'Carol S. Dweck'},
+  {vi:'Không điều gì tự vận hành nếu bạn không bắt tay vào làm.',en:'Nothing will work unless you do.',authorVi:'Maya Angelou',authorEn:'Maya Angelou'},
+  {vi:'Cách để bắt đầu là ngừng nói và bắt tay vào hành động.',en:'The way to get started is to quit talking and begin doing.',authorVi:'Walt Disney',authorEn:'Walt Disney'},
+  {vi:'Năng lượng và sự bền bỉ có thể chinh phục mọi thứ.',en:'Energy and persistence conquer all things.',authorVi:'Benjamin Franklin',authorEn:'Benjamin Franklin'},
+  {vi:'Nơi sự tập trung hướng đến, năng lượng sẽ chảy về đó.',en:'Where focus goes, energy flows.',authorVi:'Tony Robbins',authorEn:'Tony Robbins'},
+  {vi:'Hãy hành động như thể việc bạn làm tạo ra khác biệt — vì đúng là như vậy.',en:'Act as if what you do makes a difference. It does.',authorVi:'William James',authorEn:'William James'},
+  {vi:'Tư duy tích cực giúp bạn làm mọi việc tốt hơn tư duy tiêu cực.',en:'Positive thinking will let you do everything better than negative thinking will.',authorVi:'Zig Ziglar',authorEn:'Zig Ziglar'},
+  {vi:'Thành công là tổng của những nỗ lực nhỏ được lặp lại mỗi ngày.',en:'Success is the sum of small efforts, repeated day in and day out.',authorVi:'Robert Collier',authorEn:'Robert Collier'},
+  {vi:'Điều khó nhất là quyết định hành động; phần còn lại chỉ là sự bền bỉ.',en:'The most difficult thing is the decision to act; the rest is merely tenacity.',authorVi:'Amelia Earhart',authorEn:'Amelia Earhart'},
+  {vi:'Ta là những gì mình lặp lại mỗi ngày. Vì thế, sự xuất sắc là một thói quen.',en:'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',authorVi:'Will Durant',authorEn:'Will Durant'}
 ];
 let currentQuoteIndex = Math.floor(Math.random() * quotes.length);
 function renderQuote() {
   const vi = currentLang() === 'vi';
-  const text = vi ? quotes[currentQuoteIndex].vn : quotesEn[currentQuoteIndex];
-  const author = vi ? 'Chủ tịch Hồ Chí Minh' : 'President Ho Chi Minh';
+  const quote = quotes[currentQuoteIndex];
+  const text = vi ? quote.vi : quote.en;
+  const author = vi ? quote.authorVi : quote.authorEn;
   document.getElementById('qt').textContent = '“' + text + '”';
   document.getElementById('qa').textContent = '— ' + author + ' —';
 }

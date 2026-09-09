@@ -63,7 +63,6 @@
     'Mở tab mới': 'Open in new tab',
     'Đang phát triển': 'In development',
     'Tính năng đang phát triển': 'This feature is under development',
-    'Chủ tịch Hồ Chí Minh': 'President Ho Chi Minh',
     'cập nhật': 'updated',
     'đệm': 'cached',
 
