@@ -1002,16 +1002,46 @@ function setUploadFile(file){
   }
   function renderActionTracker(){
     var order={warn:0,missed:1,tracking:2,met:3};
-    var evals=db.issues.filter(function(i){return i.commitMetric;}).map(function(i){return {i:i,r:evalCommit(i)};})
+    var records=db.issues.filter(function(i){return i.commitMetric;}).map(function(i){
+      return Object.assign({},i,{_commitSource:'Issue',_commitDetailId:i.id});
+    });
+    (db.csJourneys||[]).forEach(function(j){
+      (j.rounds||[]).forEach(function(r){
+        if(!r.commitMetric) return;
+        records.push(Object.assign({},r,{
+          id:r.id,agent:j.csEmail,recurring:r.recurring||0,
+          commitByWeek:r.commitByWeek||(r.next?weekOf(r.next):''),
+          commitSetWeek:r.commitSetWeek||r.week,
+          commitReviewer:r.commitReviewer||r.by||j.by||'',
+          commitBaseline:r.commitBaseline,
+          _commitSource:'Journey',_commitDetailId:j.id
+        }));
+      });
+    });
+    (db.coachingFollow||[]).forEach(function(f){
+      var add=function(x,label){
+        if(!x||!x.commitMetric) return;
+        var setWeek=weekOf(x.date||f.coached), base=x.commitBaseline;
+        if(base==null&&f.baseline) base=x.commitMetric==='csat'?f.baseline.csat:(x.commitMetric==='mistake'?f.baseline.mistake:((f.baseline.repeated||[]).length));
+        records.push(Object.assign({},x,{
+          id:label,agent:f.agent,recurring:x.recurring||0,
+          commitByWeek:x.commitByWeek||weekOf(x.next||f.next),commitSetWeek:x.commitSetWeek||setWeek,
+          commitReviewer:x.commitReviewer||x.qa||f.qa||'',commitBaseline:base,
+          _commitSource:'Coaching',_commitDetailId:f.id
+        }));
+      };
+      add(f,f.id); (f.reviews||[]).forEach(function(r,n){add(r,f.id+' · Recheck '+(n+1));});
+    });
+    var evals=records.map(function(i){return {i:i,r:evalCommit(i)};})
       .sort(function(a,b){return (order[a.r.status]-order[b.r.status]);});
     var warnN=evals.filter(function(e){return e.r.status==='warn';}).length;
     document.getElementById('viewTitle').textContent='Action Tracker · cam kết & tự kiểm';
     document.getElementById('viewDesc').textContent='Cam kết do QA đặt khi ghi nhận. Hệ tự chấm tại tuần hạn follow (kèm xu hướng tuần mới nhất) và cảnh báo khi tới hạn mà CS chưa cải thiện so với lúc bắt đầu.';
-    var heads=['Issue / CS','QA ghi nhận','Cam kết','Tuần hạn','Số tại tuần hạn','Mới nhất','Trạng thái'];
+    var heads=['Nguồn / CS','QA ghi nhận','Cam kết','Tuần hạn','Số tại tuần hạn','Mới nhất','Trạng thái'];
     var rows=evals.map(function(e){
       var i=e.i,r=e.r,a=agent(i.agent)||{};
       return [
-        '<button class="link" data-issue="'+esc(i.id)+'">'+esc(i.id)+'</button><small>'+esc(a.name||i.agent)+'</small>',
+        '<button class="link" data-commit-source="'+esc(i._commitSource||'Issue')+'" data-commit-id="'+esc(i._commitDetailId||i.id)+'">'+esc(i._commitSource||'Issue')+' · '+esc(i.id)+'</button><small>'+esc(a.name||i.agent)+'</small>',
         esc(i.commitReviewer||'—'),
         esc(ML[r.m]||r.m)+' '+(r.dir==='gte'?'≥':'≤')+' '+esc(r.target),
         esc(i.commitByWeek||'—'),
@@ -1021,9 +1051,13 @@ function setUploadFile(file){
       ];
     });
     var banner=warnN?'<div style="background:#fdecec;border:1px solid #f5b5b5;color:#a12020;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-weight:600">⚠ '+warnN+' cam kết cảnh báo — CS chưa cải thiện tới hạn follow.</div>':'';
-    var empty='<div class="empty"><b>Chưa có cam kết nào</b><p>Đặt cam kết trong form Ghi nhận (New Issue / Log Coaching): chọn Chỉ số + Mục tiêu + Ngày follow-up.</p></div>';
+    var empty='<div class="empty"><b>Chưa có cam kết nào</b><p>Cam kết được thu thập từ Ghi nhận, Coaching và Journey.</p></div>';
     document.getElementById('content').innerHTML=banner+(rows.length?table(heads,rows):empty);
-    document.getElementById('content').querySelectorAll('[data-issue]').forEach(function(b){ b.onclick=function(){ showIssue(b.dataset.issue); }; });
+    document.getElementById('content').querySelectorAll('[data-commit-source]').forEach(function(b){ b.onclick=function(){
+      if(b.dataset.commitSource==='Journey') showJourneyDetail(b.dataset.commitId);
+      else if(b.dataset.commitSource==='Coaching') showFollow(b.dataset.commitId);
+      else showIssue(b.dataset.commitId);
+    }; });
   }
 
   var _render=render;
@@ -1065,6 +1099,15 @@ function setUploadFile(file){
     var needed=needRecap(f);
     box.hidden=!needed; box.style.display=needed?'block':'none';
     box.querySelectorAll('input,textarea').forEach(function(el){el.disabled=!needed;el.required=needed;});
+    var commit=document.getElementById('commitBox');
+    if(commit){
+      var metric=commit.querySelector('[name="commitMetric"]'),target=commit.querySelector('[name="commitTarget"]');
+      if(metric) metric.required=needed;
+      if(target) target.required=needed;
+      var hint=commit.querySelector('[data-required-hint]');
+      if(!hint){hint=document.createElement('p');hint.dataset.requiredHint='1';hint.className='muted';hint.style.margin='6px 0 0';commit.appendChild(hint);}
+      hint.textContent=needed?'Bắt buộc với '+selectedActions(f).filter(function(a){return TRIGGER.indexOf(a)>=0;}).join(', ')+'.':'';
+    }
   }
 
   var _dynamic=dynamic;
@@ -1095,6 +1138,9 @@ function setUploadFile(file){
       if(!d.document||!String(d.document).trim()) throw Error('Cần điền Document cho action này.');
       if(!d.recap||!String(d.recap).trim()) throw Error('Cần điền Recap (tóm tắt) khi có 1:1 Coaching / Warning Letter / Catchup / Refreshing.');
       if(!d.nextSteps||!String(d.nextSteps).trim()) throw Error('Cần điền Next steps khi có 1:1 Coaching / Warning Letter / Catchup / Refreshing.');
+      if(!d.commitMetric) throw Error('Cần chọn Chỉ số cam kết cho action này.');
+      if(d.commitTarget===''||d.commitTarget==null||isNaN(+d.commitTarget)) throw Error('Cần nhập Mục tiêu (số) cho cam kết.');
+      if(!d.next) throw Error('Cần chọn Ngày follow-up cho cam kết.');
     }
     if(!need){delete d.recap;delete d.nextSteps;delete d.document;}
     return _apply(d); // recap & nextSteps đi vào log qua {...d}
@@ -1124,8 +1170,36 @@ function setUploadFile(file){
       +'<textarea id="'+pfx+'Next" rows="2" '+ta+'></textarea></label>'
       +'<label style="display:block;margin-top:10px">Document · tài liệu tham chiếu<br><input id="'+pfx+'Document" type="text" placeholder="Link hoặc tên tài liệu" '+ta+'></label>';
   }
+  function commitHTML(pfx){
+    var field='style="width:100%;margin-top:4px;min-height:34px;font-size:13px;padding:5px 8px;border:1px solid #cdd7e5;border-radius:4px;box-sizing:border-box"';
+    return '<div id="'+pfx+'CommitBox" style="display:none;border:1px dashed #b9d7c4;background:#f4faf6;border-radius:8px;padding:10px 12px;margin-top:12px">'
+      +'<b>🎯 Cam kết theo dõi (Action Tracker)</b>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">'
+      +'<label>Chỉ số cam kết<br><select id="'+pfx+'CommitMetric" '+field+'><option value="">— Chọn chỉ số —</option><option value="csat">CSAT (%)</option><option value="mistake">Số mistake / tuần</option><option value="recurring">Lỗi lặp (recurring)</option></select></label>'
+      +'<label>Mục tiêu (số)<br><input id="'+pfx+'CommitTarget" type="number" min="0" step="0.1" placeholder="VD: 90, 3 hoặc 0" '+field+'></label>'
+      +'</div><label style="display:block;margin-top:10px">Ngày follow-up<br><input id="'+pfx+'CommitDate" type="date" value="'+addDays(today(),7)+'" '+field+'></label>'
+      +'<small style="display:block;margin-top:6px;color:#60718a">Bắt buộc với Coaching 1-1 / Warning Letter / Catchup / Refreshing. Sau khi lưu sẽ hiển thị trong Action Tracker.</small></div>';
+  }
   function topDialog(){ var ds=document.querySelectorAll('dialog[open]'); return ds[ds.length-1]; }
   function val(id){ var e=document.getElementById(id); return e?String(e.value||'').trim():''; }
+  function metricAt(email,metric,week){
+    if(metric==='csat') return db.csat&&db.csat[email]?db.csat[email][week]:undefined;
+    if(metric==='mistake') return db.performanceWeekly&&db.performanceWeekly[email]&&db.performanceWeekly[email][week]?db.performanceWeekly[email][week].mistake:undefined;
+    return 0;
+  }
+  function toggleJourneyCommit(pfx,actType){
+    var box=document.getElementById(pfx+'CommitBox'),needed=TRIG.indexOf(actType)>=0; if(!box)return;
+    box.style.display=needed?'block':'none';
+    box.querySelectorAll('input,select').forEach(function(el){el.disabled=!needed;el.required=needed;});
+  }
+  function readCommit(pfx,email,week,actType){
+    if(TRIG.indexOf(actType)<0) return {};
+    var metric=val(pfx+'CommitMetric'),target=val(pfx+'CommitTarget'),next=val(pfx+'CommitDate');
+    if(!metric){toast('Cần chọn Chỉ số cam kết cho '+actType+'.');return null;}
+    if(target===''||isNaN(+target)){toast('Cần nhập Mục tiêu (số) cho '+actType+'.');return null;}
+    if(!next){toast('Cần chọn Ngày follow-up cho '+actType+'.');return null;}
+    return {commitMetric:metric,commitTarget:+target,next:next,commitByWeek:weekOf(next),commitSetWeek:week,commitReviewer:idn(),commitBaseline:metricAt(email,metric,week)};
+  }
 
   // ---- Tạo Journey ----
   var _show=showCreateJourney;
@@ -1134,7 +1208,9 @@ function setUploadFile(file){
     var dlg=topDialog(); if(!dlg||!dlg.querySelector('#jRootCause')) return; // chỉ xử lý dialog Tạo Journey
     lockBy(dlg,'jBy');
     var det=dlg.querySelector('#jActDetail');
-    if(det && !det.querySelector('#jRecap')) det.insertAdjacentHTML('beforeend', recapHTML('j'));
+    if(det && !det.querySelector('#jRecap')) det.insertAdjacentHTML('beforeend', recapHTML('j')+commitHTML('j'));
+    var type=dlg.querySelector('#jActType');
+    if(type){type.addEventListener('change',function(){toggleJourneyCommit('j',type.value);});toggleJourneyCommit('j',type.value);}
   };
   var _save=saveCreateJourney;
   saveCreateJourney=function(csEmail,dialog){
@@ -1145,11 +1221,12 @@ function setUploadFile(file){
       if(!val('jNext')){ toast('Cần điền Next steps cho '+actType+'.'); return; }
     }
     var recap=val('jRecap'), nextSteps=val('jNext'), documentValue=val('jDocument');
+    var commit=readCommit('j',csEmail,val('jActWeek'),actType); if(commit===null)return;
     var before=db.csJourneys.length;
     _save(csEmail,dialog);
     if(db.csJourneys.length>before){
       var jr=db.csJourneys[db.csJourneys.length-1];
-      if(jr&&jr.rounds&&jr.rounds.length){ var r=jr.rounds[jr.rounds.length-1]; r.recap=recap; r.nextSteps=nextSteps; r.document=documentValue; }
+      if(jr&&jr.rounds&&jr.rounds.length){ var r=jr.rounds[jr.rounds.length-1]; r.recap=recap; r.nextSteps=nextSteps; r.document=documentValue; Object.assign(r,commit); }
     }
   };
 
@@ -1160,7 +1237,9 @@ function setUploadFile(file){
     var dlg=topDialog(); if(!dlg||!dlg.querySelector('#rnActType')) return;
     lockBy(dlg,'rnBy');
     var note=dlg.querySelector('#rnNote');
-    if(note && !dlg.querySelector('#rnRecap')){ var lab=note.closest('label'); if(lab) lab.insertAdjacentHTML('afterend', recapHTML('rn')); }
+    if(note && !dlg.querySelector('#rnRecap')){ var lab=note.closest('label'); if(lab) lab.insertAdjacentHTML('afterend', recapHTML('rn')+commitHTML('rn')); }
+    var type=dlg.querySelector('#rnActType');
+    if(type){type.addEventListener('change',function(){toggleJourneyCommit('rn',type.value);});toggleJourneyCommit('rn',type.value);}
   };
   var _saveR=saveAddRound;
   saveAddRound=function(journeyId,dialog){
@@ -1170,11 +1249,12 @@ function setUploadFile(file){
       if(!val('rnRecap')){ toast('Cần điền Recap cho '+actType+'.'); return; }
       if(!val('rnNext')){ toast('Cần điền Next steps cho '+actType+'.'); return; }
     }
-    var recap=val('rnRecap'), nextSteps=val('rnNext'), documentValue=val('rnDocument');
     var j=db.csJourneys.find(function(x){return x.id===journeyId;});
+    var recap=val('rnRecap'), nextSteps=val('rnNext'), documentValue=val('rnDocument');
+    var commit=readCommit('rn',j&&j.csEmail,val('rnWeek'),actType); if(commit===null)return;
     var before=j?j.rounds.length:0;
     _saveR(journeyId,dialog);
-    if(j && j.rounds.length>before){ var r=j.rounds[j.rounds.length-1]; r.recap=recap; r.nextSteps=nextSteps; r.document=documentValue; }
+    if(j && j.rounds.length>before){ var r=j.rounds[j.rounds.length-1]; r.recap=recap; r.nextSteps=nextSteps; r.document=documentValue; Object.assign(r,commit); }
   };
 
   // ---- Hiện Recap/Next trong chi tiết Journey ----
@@ -1191,6 +1271,7 @@ function setUploadFile(file){
           if(r.recap) extra+='<p style="margin:4px 0 0;font-size:12px;color:#415777"><b>Recap:</b> '+esc(r.recap)+'</p>';
           if(r.nextSteps) extra+='<p style="margin:2px 0 0;font-size:12px;color:#415777"><b>Next steps:</b> '+esc(r.nextSteps)+'</p>';
           if(r.document) extra+='<p><b>Document:</b> '+esc(r.document)+'</p>';
+          if(r.commitMetric) extra+='<p style="margin:4px 0 0;font-size:12px;color:#2f6d3f"><b>🎯 Cam kết:</b> '+esc(r.commitMetric==='csat'?'CSAT %':(r.commitMetric==='mistake'?'Mistake/tuần':'Lỗi lặp'))+' '+(r.commitMetric==='csat'?'≥':'≤')+' '+esc(r.commitTarget)+(r.next?' · hạn '+esc(r.next):'')+'</p>';
           if(extra) el.insertAdjacentHTML('beforeend', extra);
         });
       }catch(e){}
@@ -1393,6 +1474,32 @@ function setUploadFile(file){
     if(label&&label.firstChild) label.firstChild.textContent='QA fill';
     if(label){var note=document.createElement('small');note.textContent=email+' · cố định theo email đăng nhập';note.style.display='block';note.style.marginTop='5px';note.style.color='#60718a';label.appendChild(note);}
     var emailField=document.createElement('input');emailField.type='hidden';emailField.name='qaEmail';emailField.value=email;form.appendChild(emailField);
+    var followId=form.elements.followId&&form.elements.followId.value;
+    var existing=(db.coachingFollow||[]).find(function(x){return x.id===followId;});
+    var source=existing&&existing.reviews&&existing.reviews.length?existing.reviews[existing.reviews.length-1]:existing;
+    var actions=form.querySelector('.actions');
+    if(actions&&!form.elements.commitMetric){
+      actions.insertAdjacentHTML('beforebegin','<div class="full" style="border:1px dashed #b9d7c4;background:#f4faf6;border-radius:8px;padding:10px 12px;margin-top:6px"><label style="font-weight:700;display:block;margin-bottom:6px">🎯 Cam kết theo dõi (Action Tracker)</label><div class="grid"><label>Chỉ số cam kết<select name="commitMetric" required><option value="">— Chọn chỉ số —</option><option value="csat">CSAT (%)</option><option value="mistake">Số mistake / tuần</option><option value="recurring">Lỗi lặp (recurring)</option></select></label><label>Mục tiêu (số)<input name="commitTarget" type="number" min="0" step="0.1" required placeholder="VD: 90, 3 hoặc 0"></label></div><small style="display:block;margin-top:6px;color:#60718a">Bắt buộc khi lưu Coaching hoặc Recheck. Ngày follow tiếp theo là hạn cam kết.</small></div>');
+      if(source&&source.commitMetric) form.elements.commitMetric.value=source.commitMetric;
+      if(source&&source.commitTarget!=null) form.elements.commitTarget.value=source.commitTarget;
+    }
+    var previousSubmit=form.onsubmit;
+    form.onsubmit=function(e){
+      var metric=form.elements.commitMetric&&form.elements.commitMetric.value,target=form.elements.commitTarget&&form.elements.commitTarget.value;
+      if(!metric||target===''||isNaN(+target)){e.preventDefault();var err=document.getElementById('followError');if(err)err.textContent='Cần chọn Chỉ số và nhập Mục tiêu (số) cho cam kết.';return false;}
+      var beforeF=(db.coachingFollow||[]).length,beforeR=existing&&existing.reviews?existing.reviews.length:0;
+      var result=previousSubmit.call(form,e),saved=null;
+      if(existing&&existing.reviews&&existing.reviews.length>beforeR) saved=existing.reviews[existing.reviews.length-1];
+      else if((db.coachingFollow||[]).length>beforeF) saved=db.coachingFollow[db.coachingFollow.length-1];
+      if(saved){
+        saved.commitMetric=metric;saved.commitTarget=+target;saved.commitByWeek=weekOf(saved.next||form.elements.next.value);
+        saved.commitSetWeek=weekOf(saved.date||saved.coached||form.elements.date.value);saved.commitReviewer=name;
+        var base=existing?existing.baseline:saved.baseline;
+        saved.commitBaseline=metric==='csat'?(base&&base.csat):(metric==='mistake'?(base&&base.mistake):((base&&base.repeated)||[]).length);
+        dirty=true;render();
+      }
+      return result;
+    };
     return result;
   };
 })();
