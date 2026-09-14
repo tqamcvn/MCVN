@@ -1332,7 +1332,7 @@ function greetingText() {
 
 function refreshHeader() {
   document.getElementById('hero-greeting').textContent = greetingText();
-  document.getElementById('hero-name').textContent = CUR.name + (/\[MCVN\]$/i.test(CUR.name.trim()) ? '' : ' [MCVN]');
+  document.getElementById('hero-name').textContent = CUR.name;
   document.getElementById('sidebar-name').textContent = CUR.name;
   fillAvatar(document.getElementById('hero-av'), CUR.name, CUR.email, CUR.picture);
   fillAvatar(document.getElementById('sidebar-av'), CUR.name, CUR.email, CUR.picture);
