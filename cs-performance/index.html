@@ -469,7 +469,7 @@ function commitWTD(email,channel='',end=today()){
   const m=calcRaw(raw);let good=0,total=0;for(const r of ratings){good+=Number(r[3])||0;total+=Number(r[4])||0;}
   return {...m,good,total,csat:total?good/total*100:null,start,end,at:end,channel,period:'WTD',lastData:[...raw.map(r=>r[2]),...ratings.map(r=>r[1])].sort().at(-1)||''};
 }
-function commitBaselineText(m){if(!m)return 'Chưa có baseline';return 'CSAT '+(m.csat==null?'—':m.csat.toFixed(1)+'%')+' · Mistake '+(m.tagged?m.mistake+'/'+m.tagged+' ('+m.rate.toFixed(1)+'%)':'—')+' · Issue lặp '+(m.tagged?m.repeated?.length??'—':'—');}
+function commitBaselineText(m){if(!m)return 'Chưa có baseline';return 'CSAT: '+(m.csat==null?'Chưa có dữ liệu':Number(m.csat).toFixed(1)+'%')+' · Mistake: '+(m.tagged&&m.mistake!=null?m.mistake+' case':'Chưa có dữ liệu');}
 function commitScopeFields(email){return '<div data-commit-scope data-email="'+esc(email)+'"><label>Channel cam kết<select name="commitChannel"><option value="">All channel</option>'+commitChannels(email).map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select></label><p class="muted" data-wtd-baseline></p>'+(!commitChannels(email).length?'<p class="muted">Nguồn dữ liệu chưa có channel; hiện chỉ tính được All channel.</p>':'')+'</div>';}
 function wireCommitScope(dialog,email,dateInput){const select=dialog.querySelector('[name="commitChannel"]');if(!select)return;const sync=()=>{const m=commitWTD(email,select.value,dateInput?.value||today());dialog.querySelector('[data-wtd-baseline]').textContent='Baseline WTD ('+m.start+' → '+m.end+') · '+(select.value||'All channel')+': '+commitBaselineText(m)+' · '+m.total+' rating'+(m.lastData?' · Dữ liệu đến '+m.lastData:' · Chưa có dữ liệu trong tuần');};select.addEventListener('change',sync);if(dateInput)dateInput.addEventListener('change',sync);sync();}
 
@@ -989,7 +989,7 @@ function renderActionTracker(){
       `<button class="link" data-tracker-cs="${index}">${esc(agent(r.agent)?.name||r.name||r.agent)}</button><small>${esc(r.source)}${r.by?' · '+esc(r.by):''}</small>`,
       `${badge(r.type,'')}<div style="font-size:11px;color:#9fb0c8;margin-top:3px">${esc(dateLabel(r))}</div>`,
       esc(r.commitChannel||'All channel'),
-      esc(commitBaselineText(baseline))+`<small>${esc(baseline.start)} → ${esc(baseline.end)}${r.baseline?.period==='WTD'?'':' · Tính lại từ dữ liệu WTD'}</small>`,
+      esc(commitBaselineText(baseline)).replace(' · Mistake:', '<br>Mistake:')+`<small>${esc(baseline.start)} → ${esc(baseline.end)}${r.baseline?.period==='WTD'?'':' · Tính lại từ dữ liệu WTD'}</small>`,
       esc(commitBaselineText(current))+`<small>${esc(current.start)} → ${esc(current.end)}</small>`,
       `<div style="font-size:12px;color:#415777">${commit}</div>${target}`,
       badge(e.cs.label,e.cs.cls),
