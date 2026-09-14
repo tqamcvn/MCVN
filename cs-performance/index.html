@@ -9,10 +9,10 @@ var QA_MAP={"ngocquy.tranthi.cs@shopeemobile-external.com":"03. Sup QA Tran Thi 
   var U="https://ytbcydursrpjqnaalhxc.supabase.co",
       K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
   var DOMS=["shopeemobile-external.com","shopee.com"];
-  var ALLOW=["senior tqa","tl tqa","sup tqa"]; /* Sen QA, TL QA, Sup QA */
+  var ALLOW=["senior tqa","tl tqa","sup tqa","acting tl tqa","tqa"]; /* Same roles as csp_is_editor */
   var SLUG="cs-performance";
   function domReady(){return new Promise(function(r){if(document.readyState!=="loading")r();else document.addEventListener("DOMContentLoaded",r);});}
-  function go(u){ location.replace(u||"/"); }
+  function go(u){ if(window.top!==window.self){ fail("Phiên đăng nhập chưa sẵn sàng. Vui lòng mở CS Performance ở tab mới hoặc đăng nhập lại từ trang chính."); var link=document.createElement("a");link.href="/cs-performance/";link.target="_blank";link.rel="noopener";link.textContent="Mở CS Performance ở tab mới";document.body.firstElementChild.appendChild(link);return; } location.replace(u||"/"); }
   function fail(msg){ document.documentElement.style.visibility=""; document.body.innerHTML='<div style="max-width:560px;margin:12vh auto;font-family:Arial,sans-serif;color:#172b45;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:28px 30px;box-shadow:0 8px 30px #0000000f"><h2 style="margin:0 0 10px;font-size:19px">Không thể mở trang</h2><p style="margin:0 0 6px;color:#334155;line-height:1.55">'+msg+'</p></div>'; }
   try{
     await domReady();
@@ -22,7 +22,7 @@ var QA_MAP={"ngocquy.tranthi.cs@shopeemobile-external.com":"03. Sup QA Tran Thi 
     var email=(s.user.email||"").toLowerCase();
     if(DOMS.indexOf((email.split("@")[1]||""))<0){ await sb.auth.signOut(); go("/"); return; }
     var role="",fullName=""; try{ var d=(await sb.from("app_users").select("role,full_name").eq("email",email).maybeSingle()).data; if(d){ role=(d.role||""); fullName=(d.full_name||""); } }catch(e){}
-    if(ALLOW.indexOf(role.trim().toLowerCase())<0){ go("/"); return; }
+    if(ALLOW.indexOf(role.trim().toLowerCase())<0){ fail("Tài khoản chưa có quyền truy cập CS Performance. Vui lòng liên hệ quản trị viên kiểm tra quyền TQA."); return; }
     window.__QA_USER={ email:email, role:role, label:(QA_MAP[email]||fullName||email) }; window.__CSP_SUPA=sb;
     var kr=await sb.from("page_keys").select("key").eq("slug",SLUG).maybeSingle();
     if(kr.error||!kr.data||!kr.data.key){ fail("Chưa nạp khoá giải mã cho trang này trong Supabase (bảng page_keys, slug '"+SLUG+"'). Chạy đoạn SQL cấp khoá rồi tải lại."); return; }
