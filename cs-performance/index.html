@@ -1264,12 +1264,11 @@ function showDailyCS(email){
   if(!$('detail').open)$('detail').showModal();$('detail').scrollTop=0;
 }
 let performanceDaily=false;
-function dailyDateControls(){const latest=dailyAvailableDates().at(-1);return `<div class="actions" style="margin-bottom:12px"><label>Ngày xem <input id="dailyDate" type="date" value="${dailyDate}"></label><button id="dailyToday">Hôm nay</button><button id="dailyLatest" ${latest?'':'disabled'}>Ngày dữ liệu mới nhất</button><button id="dailyBackup">Sao lưu JSON</button><span class="muted">Dữ liệu có đến ${esc(latest||'—')}</span></div>`;}
+function dailyDateControls(){const latest=dailyAvailableDates().at(-1);return `<div class="actions" style="margin-bottom:12px"><label>Ngày xem <input id="dailyDate" type="date" value="${dailyDate}"></label><button id="dailyToday">Hôm nay</button><button id="dailyLatest" ${latest?'':'disabled'}>Ngày dữ liệu mới nhất</button><span class="muted">Dữ liệu có đến ${esc(latest||'—')}</span></div>`;}
 function wireDailyDateControls(){
   $('dailyDate').onchange=e=>{if(e.target.value){dailyDate=e.target.value;render();}};
   $('dailyToday').onclick=()=>{dailyDate=localISO(new Date());render();};
   $('dailyLatest').onclick=()=>{dailyDate=dailyAvailableDates().at(-1)||dailyDate;render();};
-  $('dailyBackup').onclick=()=>download('CS-Tracker-'+dailyDate+'.json',JSON.stringify(db,null,2),'application/json');
 }
 function embedDailyPerformance(){
   const switcher=`<div class="actions" style="margin-bottom:12px"><button id="periodView" class="${performanceDaily?'':'primary'}">Theo kỳ đang chọn</button><button id="dayView" class="${performanceDaily?'primary':''}">Theo ngày</button></div>`;
