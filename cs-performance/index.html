@@ -480,6 +480,7 @@ function readJourneyCommit(dialog,actionType,csEmail,baseDate){
 
 // ---- Create Journey Dialog ----
 function showCreateJourney(csEmail){
+  const qaSession=currentQASession();if(!qaSession){openQAIdentity(()=>showCreateJourney(csEmail));return;}
   let a=agent(csEmail);
   if(!a){toast('Không tìm thấy CS.');return;}
   // Check existing open journey
@@ -520,7 +521,7 @@ function showCreateJourney(csEmail){
       </div>
       ${journeyCommitFields(baselineNoteHtml(csEmail))}
       <label style="font-size:13px">Người fill<br>
-        <input id="jBy" type="text" placeholder="QA / TL / MNG..." style="width:100%;margin-top:4px;font-size:13px;padding:5px 8px;border:1px solid #cdd7e5;border-radius:4px;box-sizing:border-box" value="${esc(a.qa||'')}">
+        <input id="jBy" type="text" readonly aria-readonly="true" placeholder="QA / TL / MNG..." style="width:100%;margin-top:4px;font-size:13px;padding:5px 8px;border:1px solid #cdd7e5;border-radius:4px;box-sizing:border-box" value="${esc(qaSession.name)}">
       </label>
     </div>
     <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
@@ -540,7 +541,7 @@ function saveCreateJourney(csEmail, dialog){
   let rootCause=document.getElementById('jRootCause').value.trim();
   let rcSource=document.getElementById('jRCSource').value;
   let actType=document.getElementById('jActType').value;
-  let by=document.getElementById('jBy').value.trim();
+  let qaSession=currentQASession();if(!qaSession){toast('Vui lòng đăng nhập QA trước khi lưu.');return;}let by=qaSession.name;
   if(!rootCause){toast('Vui lòng nhập root cause.');return;}
   let commit;try{commit=readJourneyCommit(dialog,actType,csEmail,today());}catch(err){toast(err.message);return;}
   let a=agent(csEmail);
@@ -570,6 +571,7 @@ function saveCreateJourney(csEmail, dialog){
 
 // ---- Add Round to existing Journey ----
 function showAddRound(journeyId){
+  const qaSession=currentQASession();if(!qaSession){openQAIdentity(()=>showAddRound(journeyId));return;}
   let j=db.csJourneys.find(x=>x.id===journeyId);
   if(!j) return;
   let allWeeks=[...new Set((db.rawV3||[]).map(r=>r[3]).filter(Boolean))].sort().reverse();
@@ -595,7 +597,7 @@ function showAddRound(journeyId){
       </label>
       ${journeyCommitFields(baselineNoteHtml(j.csEmail))}
       <label style="font-size:13px">Người fill<br>
-        <input id="rnBy" type="text" placeholder="QA / TL / MNG..." value="${esc(j.by||'')}" style="width:100%;margin-top:4px;font-size:13px;padding:5px 8px;border:1px solid #cdd7e5;border-radius:4px;box-sizing:border-box">
+        <input id="rnBy" type="text" readonly aria-readonly="true" placeholder="QA / TL / MNG..." value="${esc(qaSession.name)}" style="width:100%;margin-top:4px;font-size:13px;padding:5px 8px;border:1px solid #cdd7e5;border-radius:4px;box-sizing:border-box">
       </label>
     </div>
     <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
@@ -614,7 +616,7 @@ function saveAddRound(journeyId, dialog){
   let actType=document.getElementById('rnActType').value;
   let week=document.getElementById('rnWeek').value;
   let detail=document.getElementById('rnNote').value.trim();
-  let by=document.getElementById('rnBy').value.trim();
+  let qaSession=currentQASession();if(!qaSession){toast('Vui lòng đăng nhập QA trước khi lưu.');return;}let by=qaSession.name;
   let commit;try{commit=readJourneyCommit(dialog,actType,j.csEmail,today());}catch(err){toast(err.message);return;}
   j.rounds.push({id:'R'+Date.now().toString(36),week,actionType:actType,detail,by,...commit,loggedAt:new Date().toISOString()});
   logHistory('Thêm action · '+actType,j.csEmail,j.csName,(detail||'')+(commit.commitment?' · Cam kết: '+commit.commitment:''));
@@ -626,6 +628,7 @@ function saveAddRound(journeyId, dialog){
 
 // ---- Sửa Action (round) hiện có ----
 function showEditRound(journeyId, roundId){
+  const qaSession=currentQASession();if(!qaSession){openQAIdentity(()=>showEditRound(journeyId, roundId));return;}
   let j=db.csJourneys.find(x=>x.id===journeyId); if(!j) return;
   let r=j.rounds.find(x=>x.id===roundId); if(!r) return;
   let allWeeks=[...new Set((db.rawV3||[]).map(x=>x[3]).filter(Boolean))].sort().reverse();
@@ -652,7 +655,7 @@ function showEditRound(journeyId, roundId){
       </label>
       ${journeyCommitFields(baselineNoteHtml(j.csEmail))}
       <label style="font-size:13px">Người fill<br>
-        <input id="edBy" type="text" value="${esc(r.by||'')}" style="width:100%;margin-top:4px;font-size:13px;padding:5px 8px;border:1px solid #cdd7e5;border-radius:4px;box-sizing:border-box">
+        <input id="edBy" type="text" readonly aria-readonly="true" value="${esc(qaSession.name)}" style="width:100%;margin-top:4px;font-size:13px;padding:5px 8px;border:1px solid #cdd7e5;border-radius:4px;box-sizing:border-box">
       </label>
     </div>
     <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
@@ -673,7 +676,7 @@ function saveEditRound(journeyId, roundId, dialog){
   let actType=document.getElementById('edActType').value;
   let week=document.getElementById('edWeek').value;
   let detail=document.getElementById('edNote').value.trim();
-  let by=document.getElementById('edBy').value.trim();
+  let qaSession=currentQASession();if(!qaSession){toast('Vui lòng đăng nhập QA trước khi lưu.');return;}let by=qaSession.name;
   let commit; try{commit=readJourneyCommit(dialog,actType,j.csEmail,r.loggedAt?localISO(new Date(r.loggedAt)):today());}catch(err){toast(err.message);return;}
   r.actionType=actType; r.week=week; r.detail=detail; r.by=by;
   r.commitment=commit.commitment||''; r.commitMetric=commit.commitMetric||''; r.commitTarget=commit.commitTarget??null; r.followMode=commit.followMode||r.followMode||'';
