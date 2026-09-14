@@ -254,6 +254,30 @@ body.sb-collapsed .nav-group-head { justify-content: center; padding-left: 0; pa
 .hero-meta { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .hero-email { font-size: 12px; color: var(--gray-500); }
 
+/* Welcome profile: centered composition shared by light and dark themes. */
+.hero { padding: 48px 28px 30px; gap: 26px; }
+.hero-top { width: 100%; gap: 28px; }
+.hero-art { display: grid; grid-template-columns: 1fr 1fr 1.25fr 1fr 1fr; align-items: center; gap: clamp(14px, 4vw, 54px); width: min(100%, 820px); }
+.hero-decoration { display: block; width: 100%; max-height: 105px; }
+.hero-portrait { position: relative; justify-self: center; }
+.hero-avatar { width: clamp(82px, 12vw, 128px); height: clamp(82px, 12vw, 128px); border: 0; border-radius: 35% 42% 34% 43%; font-size: 36px; }
+.hero-edit { position: absolute; right: -6px; bottom: -9px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--white); color: var(--gray-900); border: 3px solid var(--gray-300); cursor: pointer; }
+.hero-edit svg { width: 21px; height: 21px; }
+.hero-edit:hover { border-color: var(--accent); }
+.hero-edit:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.hero-info { width: 100%; gap: 12px; }
+.hero-name { font-size: clamp(25px, 3.5vw, 46px); font-weight: 500; line-height: 1.25; letter-spacing: -1px; margin: 0; overflow-wrap: anywhere; }
+.hero-email { font-size: clamp(13px, 1.8vw, 23px); color: var(--gray-700); overflow-wrap: anywhere; }
+.hero-meta { max-width: 100%; }
+.hero-greeting, .hero-meta .hero-role-badge { display: none; }
+@media (max-width: 600px) {
+  .hero { padding: 30px 16px 24px; }
+  .hero-art { gap: 9px; }
+  .hero-top { gap: 24px; }
+  .hero-edit { width: 32px; height: 32px; }
+  .hero-name { letter-spacing: -.5px; }
+}
+
 /* Hồ sơ trong Cài đặt */
 .profile-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; color: var(--accent-dark); border: 2px solid var(--accent-border); overflow: hidden; flex-shrink: 0; }
@@ -636,7 +660,13 @@ body.ih-view .hide-ih { display: none !important; }
 <main class="main">
   <div class="hero">
     <div class="hero-top">
-      <div class="hero-avatar" id="hero-av">··</div>
+      <div class="hero-art">
+        <svg class="hero-decoration" viewBox="0 0 120 100" aria-hidden="true"><defs><linearGradient id="welcome-blue" x2="0" y2="1"><stop stop-color="#6098ff"/><stop offset="1" stop-color="#b1baff"/></linearGradient></defs><path fill="url(#welcome-blue)" fill-rule="evenodd" d="M40 14h40a36 36 0 0 1 0 72H40a36 36 0 0 1 0-72Zm0 12a24 24 0 1 0 0 48 24 24 0 0 0 0-48Z"/></svg>
+        <svg class="hero-decoration" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="welcome-green" x2="0" y2="1"><stop stop-color="#81d989"/><stop offset="1" stop-color="#65c9ef"/></linearGradient></defs><path fill="url(#welcome-green)" fill-rule="evenodd" d="M50 10a27 27 0 0 0-23 41l19 34q4 9 8 0l19-34A27 27 0 0 0 50 10Zm0 16a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z"/></svg>
+        <div class="hero-portrait"><div class="hero-avatar" id="hero-av">··</div><button type="button" class="hero-edit" aria-label="Đổi ảnh đại diện" title="Đổi ảnh đại diện" onclick="document.getElementById('profile-file').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z M13 6l5 5"/></svg></button></div>
+        <svg class="hero-decoration" viewBox="0 0 110 100" aria-hidden="true"><defs><linearGradient id="welcome-purple" x2="0" y2="1"><stop stop-color="#af72ff"/><stop offset="1" stop-color="#e3c5ff"/></linearGradient></defs><rect x="57" y="8" width="29" height="55" rx="14.5" fill="#af72ff" transform="rotate(43 71 35)"/><path d="M36 61c18-2 22 23 3 28-11 3-19 0-23-5 17-1 8-19 20-23Z" fill="url(#welcome-purple)"/></svg>
+        <svg class="hero-decoration" viewBox="0 0 120 100" aria-hidden="true"><defs><linearGradient id="welcome-red" x2="0" y2="1"><stop stop-color="#fa6865"/><stop offset="1" stop-color="#f782ac"/></linearGradient></defs><path d="M20 12 56 49q4 5 8 0l36-37q16 9 16 30v22q0 28-28 28H32Q4 92 4 64V42q0-21 16-30Z" fill="url(#welcome-red)"/></svg>
+      </div>
       <div class="hero-info">
         <div class="hero-greeting" id="hero-greeting"></div>
         <div class="hero-name" id="hero-name">—</div>
@@ -1302,7 +1332,7 @@ function greetingText() {
 
 function refreshHeader() {
   document.getElementById('hero-greeting').textContent = greetingText();
-  document.getElementById('hero-name').textContent = CUR.name + (currentLang() === 'vi' ? ' ơi!' : '!');
+  document.getElementById('hero-name').textContent = CUR.name + (/\[MCVN\]$/i.test(CUR.name.trim()) ? '' : ' [MCVN]');
   document.getElementById('sidebar-name').textContent = CUR.name;
   fillAvatar(document.getElementById('hero-av'), CUR.name, CUR.email, CUR.picture);
   fillAvatar(document.getElementById('sidebar-av'), CUR.name, CUR.email, CUR.picture);
