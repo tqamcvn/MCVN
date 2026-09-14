@@ -322,6 +322,23 @@ $('loadBtn').textContent='Upload data';$('loadBtn').title='Upload file CSV Raw_f
 $('helpBtn').title='Hướng dẫn nhanh';
 function paintThemeButton(){let dark=document.documentElement.classList.contains('dark');$('themeBtn').textContent=dark?'☀':'☾';$('themeBtn').title=dark?'Bật sáng':'Bật tối';$('themeBtn').setAttribute('aria-label',dark?'Bật sáng':'Bật tối');}
 $('themeBtn').onclick=()=>{document.documentElement.classList.toggle('dark');paintThemeButton()};paintThemeButton();
+/* TQA-THEME-SYNC: đồng bộ sáng/tối theo Dashboard khi được nhúng trong iframe */
+(function(){
+  function applyTheme(t){
+    var dark = (t === 'dark');
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    try{ paintThemeButton(); }catch(e){}
+  }
+  try{
+    var q = new URLSearchParams(location.search).get('theme');
+    if(q === 'dark' || q === 'light') applyTheme(q);
+  }catch(e){}
+  window.addEventListener('message', function(ev){
+    var d = ev && ev.data;
+    if(d && d.type === 'tqa-theme' && (d.theme === 'dark' || d.theme === 'light')) applyTheme(d.theme);
+  });
+})();
 // Coaching gate, month comparisons, group drilldowns, and post-coaching follow-up.
 const preGateCalc=calcRaw;
 calcRaw=function(rows){let m=preGateCalc(rows);return{...m,p0:m.tagged>=5&&m.rate!==null&&m.rate>=20&&m.repeated.length>0}};
