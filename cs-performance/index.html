@@ -1022,7 +1022,7 @@ function renderActionTracker(){
     const commit=r.commitment?esc(r.commitment.length>70?r.commitment.slice(0,70)+'…':r.commitment):'—';
     const target=r.commitMetric&&r.commitTarget!=null?`<div style="margin-top:3px">${badge((metricLabels[r.commitMetric]||r.commitMetric+' ')+r.commitTarget,'')}</div>`:'';
     return [
-      `<button class="link" data-tracker-cs="${index}">${esc(agent(r.agent)?.name||r.name||r.agent)}</button><small>${esc(r.source)}${r.by?' · '+esc(r.by):''}</small>`,
+      `<button class="link" data-tracker-cs="${index}">${esc(agent(r.agent)?.name||r.name||r.agent)}</button>`,
       `${badge(r.type,'')}<div style="font-size:11px;color:#9fb0c8;margin-top:3px">${esc(dateLabel(r))}</div>`,
       esc(r.commitChannel||'All channel'),
       esc(commitBaselineText(baseline)).replace(' · Mistake:', '<br>Mistake:')+`<small>${esc(baseline.start)} → ${esc(baseline.end)}${r.baseline?.period==='WTD'?'':' · Tính lại từ dữ liệu WTD'}</small>`,
