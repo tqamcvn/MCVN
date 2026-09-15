@@ -1120,7 +1120,15 @@ function renderMngRequests(){
   $('content').querySelectorAll('[data-mng-off]').forEach(b=>b.onchange=()=>{
     const e=withState[+b.dataset.mngOff];
     logHistory('CS OFF',e.r.email,agent(e.r.email)?.name||e.r.name,(b.checked?'Đánh dấu CS OFF':'Bỏ dấu CS OFF')+' · '+today(),{date:today(),off:b.checked});
-    dirty=true;render();toast(b.checked?'Đã đánh dấu CS OFF hôm nay.':'Đã bỏ dấu CS OFF hôm nay.');
+    const expanded=Array.from($('content').querySelectorAll('details'),d=>d.open);
+    const scroll={x:window.scrollX,y:window.scrollY};
+    const checked=b.checked;
+    dirty=true;render();
+    $('content').querySelectorAll('details').forEach((d,i)=>{d.open=expanded[i]||false;});
+    const checkbox=$('content').querySelector('[data-mng-off="'+b.dataset.mngOff+'"]');
+    if(checkbox)checkbox.focus({preventScroll:true});
+    window.scrollTo(scroll.x,scroll.y);
+    toast(checked?'Đã đánh dấu CS OFF hôm nay.':'Đã bỏ dấu CS OFF hôm nay.');
   });
   $('content').querySelectorAll('[data-mng-cs]').forEach(b=>b.onclick=()=>showAgent(withState[+b.dataset.mngCs].r.email));
   $('content').querySelectorAll('[data-mng-create]').forEach(b=>b.onclick=()=>showCreateJourney(withState[+b.dataset.mngCreate].r.email));
