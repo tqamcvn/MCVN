@@ -865,17 +865,17 @@ function renderJourneyByQA(){
     let allRounds=journeys.reduce((n,j)=>n+j.rounds.length,0);
     let effs=journeys.flatMap(j=>j.rounds.map(r=>jEffectiveness(j.csEmail,r.week))).filter(Boolean);
     let nImp=effs.filter(e=>e.verdict==='improved').length;
-    html+=`<div style="margin:0 0 16px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:12px 14px">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+    html+=`<details class="qa-journey-group" style="margin:0 0 16px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:12px 14px">
+      <summary style="cursor:pointer;font-size:15px;line-height:1.8">
         <b style="font-size:15px">${esc(qa)}</b>
-        <span class="muted">${journeys.length} journey · ${allRounds} action · ${nImp} cải thiện</span>
-      </div>
+        <span class="muted" style="margin-left:12px">${journeys.length} journey · ${allRounds} action · ${nImp} cải thiện</span>
+      </summary>
       ${journeys.map(j=>`<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-top:1px solid #edf0f6">
         <button class="link" data-journey="${j.id}" style="font-size:13px">${esc(j.csName)}</button>
         <span style="font-size:12px;color:#5a6a84;flex:1">${esc(j.rootCause.length>50?j.rootCause.slice(0,50)+'…':j.rootCause)}</span>
         <span class="muted" style="font-size:12px">${j.rounds.length} action</span>
       </div>`).join('')}
-    </div>`;
+    </details>`;
   }
   return html;
 }
