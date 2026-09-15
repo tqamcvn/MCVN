@@ -6,8 +6,10 @@ on:
         description: Only check, do not write
         type: boolean
         default: true
+  repository_dispatch:
+    types: [recap]
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '17 * * * *'
 permissions:
   contents: read
 concurrency:
@@ -15,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   sync:
-    if: github.event_name == 'workflow_dispatch' || vars.RECAP_BOT_ENABLED == 'true'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || vars.RECAP_BOT_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
