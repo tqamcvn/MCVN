@@ -965,9 +965,35 @@ function commitStatus(action,date){
   return passed?{label:'✅ Đạt ('+cur+')',cls:'green',state:'pass'}:{label:'❌ Chưa đạt ('+cur+')',cls:'red',state:'fail'};
 }
 // Bước tiếp theo cần làm — bám theo flow follow CS.
-function nextStep(action,date){
+// An activity on a CS counts for that CS across all tracker actions.
+function qaActivityDay(value){
+  if(!value)return '';
+  if(!String(value).includes('T'))return /^\d{4}-\d{2}-\d{2}$/.test(value)?value:'';
+  const d=new Date(value);if(!Number.isFinite(d.getTime()))return '';
+  return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+}
+function qaActivityIndex(date){
+  const result=new Map();
+  // collectActivityHistory excludes demo data and resolves daily reviews to CS.
+  for(const event of collectActivityHistory()){
+    if(!event.email||qaActivityDay(event.at)!==date||/^Xóa /i.test(event.type||''))continue;
+    const data=event.data.snapshot||event.data;
+    const status=String(data.statusAfter||data.status||data.outcome||'').trim().toLowerCase();
+    let label='Monitoring';
+    if(['done','closed','đã hoàn tất'].includes(status))label='Đã hoàn tất';
+    else if(status==='improved')label='Improved';
+    else if(status==='re-coaching')label='Re-coaching';
+    else if(status==='escalated')label='Escalated';
+    else if(status==='reopened')label='Monitoring';
+    // History is newest first. Keep the most recent recorded activity for each CS.
+    if(!result.has(event.email))result.set(event.email,{label,at:event.at,by:event.by,type:event.type});
+  }
+  return result;
+}
+
+function nextStep(action,date,activity){
   const st=dailyActionState(action,date), cs=commitStatus(action,date);
-  const followedToday=st.last&&st.last.date===date;
+  const followedToday=!!activity||(st.last&&st.last.date===date);
   if(st.status==='Đã hoàn tất') return {t:'Đã hoàn tất — duy trì follow bình thường',cls:'green'};
   if(cs.state==='pass') return {t:'Đạt cam kết → cân nhắc đóng action, duy trì follow',cls:'green'};
   if(st.status==='Quá hạn') return {t:'⏰ Quá hạn → Follow daily / CO-CU ngay',cls:'red'};
@@ -979,7 +1005,8 @@ function nextStep(action,date){
 function renderActionTracker(){
   const all=dailyActions(dailyDate,dailyScopedAgents());
   const metricLabels={csat:'CSAT ≥ ',mistake:'Mistake ≤ ',repeat:'Issue lặp ≤ '};
-  const enriched=all.map(r=>{const st=dailyActionState(r,dailyDate),cs=commitStatus(r,dailyDate),ns=nextStep(r,dailyDate);return {r,st,cs,ns,followedToday:st.last&&st.last.date===dailyDate};});
+  const activityByCS=qaActivityIndex(dailyDate);
+  const enriched=all.map(r=>{const activity=activityByCS.get(r.agent),st=dailyActionState(r,dailyDate),cs=commitStatus(r,dailyDate),ns=nextStep(r,dailyDate,activity);return {r,st,cs,ns,activity,followedToday:!!activity,qaStatus:st.status==='Đã hoàn tất'?'Đã hoàn tất':activity?.label||'Chưa có hoạt động'};});
   const nPass=enriched.filter(e=>e.cs.state==='pass').length,nFail=enriched.filter(e=>e.cs.state==='fail').length,nOver=enriched.filter(e=>e.st.status==='Quá hạn').length,nDueToday=enriched.filter(e=>e.st.status==='Đến hạn hôm nay').length,nNoFollow=enriched.filter(e=>e.st.status!=='Đã hoàn tất'&&!e.followedToday).length;
   let list=enriched;
   if(dailyMode==='due') list=list.filter(e=>['Quá hạn','Đến hạn hôm nay'].includes(e.st.status));
@@ -1002,7 +1029,7 @@ function renderActionTracker(){
       esc(commitBaselineText(current))+`<small>${esc(current.start)} → ${esc(current.end)}</small>`,
       `<div style="font-size:12px;color:#415777">${commit}</div>${target}`,
       badge(e.cs.label,e.cs.cls),
-      (e.followedToday?badge('✅ Đã follow','green'):(e.st.status==='Đã hoàn tất'?badge('—',''):badge('⚠️ Chưa','red')))+(e.st.last?`<div style="font-size:11px;color:#9fb0c8;margin-top:3px">Lần cuối: ${esc(e.st.last.date)}</div>`:''),
+      badge(e.qaStatus,e.followedToday||e.st.status==='Đã hoàn tất'?'green':'red')+(e.activity?`<small>${esc(activityTime(e.activity.at))}<br>${esc(e.activity.by)} · ${esc(e.activity.type)}</small>`:''),
       `<div style="font-size:12px">${esc(e.st.due||'—')}</div><div style="margin-top:3px">${badge(e.st.status,e.st.status==='Quá hạn'?'red':e.st.status==='Đã hoàn tất'?'green':'')}</div>`,
       `<span style="font-size:12px;color:${e.ns.cls==='red'?'#a42e21':e.ns.cls==='green'?'#19613d':'#5a6a84'};font-weight:${e.ns.cls==='muted'?'400':'600'}">${esc(e.ns.t)}</span>`,
       `<button type="button" data-tracker-follow="${index}" class="primary" style="font-size:11px;padding:3px 9px">Follow daily</button> <button type="button" data-tracker-detail="${index}" style="font-size:11px;padding:3px 9px">Chi tiết</button>`
@@ -1017,7 +1044,7 @@ function renderActionTracker(){
   $('content').querySelectorAll('[data-tracker-cs]').forEach(b=>b.onclick=()=>showDailyCS(list[+b.dataset.trackerCs].r.agent));
   $('content').querySelectorAll('[data-tracker-follow]').forEach(b=>b.onclick=()=>openDailyAction(list[+b.dataset.trackerFollow].r.key));
   wireDailyDateControls();$('dailyMode').value=dailyMode;$('dailyMode').onchange=e=>{dailyMode=e.target.value;render();};
-  performanceExport={headers:['CS','Email CS','Action','Nguồn','Channel','Baseline WTD','WTD hiện tại','Cam kết','Mục tiêu','Đạt target','QA follow hôm nay','Hạn','Trạng thái','Bước tiếp theo','ID action'],rows:list.map(e=>[agent(e.r.agent)?.name||e.r.name||e.r.agent,e.r.agent,e.r.type,e.r.source,e.r.commitChannel||'All channel',commitBaselineText(e.r.baseline?.period==='WTD'?e.r.baseline:commitWTD(e.r.agent,e.r.commitChannel||'',String(e.r.date||dailyDate).slice(0,10))),commitBaselineText(commitWTD(e.r.agent,e.r.commitChannel||'',today())),e.r.commitment||'',e.r.commitMetric&&e.r.commitTarget!=null?(metricLabels[e.r.commitMetric]||e.r.commitMetric+' ')+e.r.commitTarget:'',e.cs.label,e.followedToday?'Đã follow':(e.st.status==='Đã hoàn tất'?'-':'Chưa'),e.st.due||'',e.st.status,e.ns.t,e.r.key])};
+  performanceExport={headers:['CS','Email CS','Action','Nguồn','Channel','Baseline WTD','WTD hiện tại','Cam kết','Mục tiêu','Đạt target','QA follow hôm nay','Hạn','Trạng thái','Bước tiếp theo','ID action'],rows:list.map(e=>[agent(e.r.agent)?.name||e.r.name||e.r.agent,e.r.agent,e.r.type,e.r.source,e.r.commitChannel||'All channel',commitBaselineText(e.r.baseline?.period==='WTD'?e.r.baseline:commitWTD(e.r.agent,e.r.commitChannel||'',String(e.r.date||dailyDate).slice(0,10))),commitBaselineText(commitWTD(e.r.agent,e.r.commitChannel||'',today())),e.r.commitment||'',e.r.commitMetric&&e.r.commitTarget!=null?(metricLabels[e.r.commitMetric]||e.r.commitMetric+' ')+e.r.commitTarget:'',e.cs.label,e.qaStatus,e.st.due||'',e.st.status,e.ns.t,e.r.key])};
 }
 
 // ---- Hook into render pipeline ----
