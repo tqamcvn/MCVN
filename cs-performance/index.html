@@ -978,7 +978,7 @@ function qaActivityIndex(date){
   const result=new Map();
   // collectActivityHistory excludes demo data and resolves daily reviews to CS.
   for(const event of collectActivityHistory()){
-    if(!event.email||qaActivityDay(event.at)!==date||/^Xóa /i.test(event.type||''))continue;
+    if(!event.email||event.type==='CS OFF'||qaActivityDay(event.at)!==date||/^Xóa /i.test(event.type||''))continue;
     const data=event.data.snapshot||event.data;
     const status=String(data.statusAfter||data.status||data.outcome||'').trim().toLowerCase();
     let label='Monitoring';
@@ -1078,19 +1078,24 @@ function parseMngPaste(text,type,by){
   }
   return [...map.values()];
 }
+function mngOffToday(email){
+  const latest=(db.history||[]).filter(h=>h.type==='CS OFF'&&h.csEmail===email&&h.snapshot?.date===today()).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
+  return latest?.snapshot?.off===true;
+}
 function renderMngRequests(){
   const badge=(t,c)=>`<span class="badge ${c==='green'?'green':c==='red'?'red':c==='blue'?'blue':''}" style="font-size:11px">${esc(t)}</span>`;
   const reqs=(db.mngRequests||[]).filter(r=>r&&r.email);
   const scoped=reqs.filter(r=>{const a=agent(r.email);return ['group','queue','batch','seniority','qa'].every(k=>!$('f_'+k)?.value||a?.[k]===$('f_'+k).value);});
   const touched=qaActivityIndex(today());
-  const withState=scoped.map(r=>{const j=(db.csJourneys||[]).find(x=>x.csEmail===r.email);return {r,j,hasJourney:!!j,nRounds:j?(j.rounds||[]).length:0,touchedToday:touched.has(r.email)};});
+  const withState=scoped.map(r=>{const j=(db.csJourneys||[]).find(x=>x.csEmail===r.email);return {r,j,off:mngOffToday(r.email),hasJourney:!!j,nRounds:j?(j.rounds||[]).length:0,touchedToday:touched.has(r.email)};});
   withState.sort((a,b)=>(a.hasJourney-b.hasJourney)||(a.touchedToday-b.touchedToday)||String(a.r.email).localeCompare(String(b.r.email)));
   const nTotal=withState.length,nNoJourney=withState.filter(e=>!e.hasJourney).length,nTouched=withState.filter(e=>e.touchedToday).length;
   $('viewTitle').textContent='MNG Request · '+nTotal+' CS';
   $('viewDesc').textContent='Danh sách CS do MNG yêu cầu coaching/catchup (cập nhật từ nguồn MNG). QA tạo Journey nếu chưa có, hoặc thêm action / cập nhật Journey nếu đã có.';
   const chip=(n,l,c)=>`<div class="stat" style="flex:1;min-width:120px;min-height:auto;padding:9px 13px;border-top-color:${c}"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8b9dbf">${l}</span><strong style="font-size:22px;display:block;margin:3px 0 0;color:${c}">${n}</strong></div>`;
-  const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px">${chip(nTotal,'CS được request','#5b8de6')}${chip(nNoJourney,'Chưa có Journey','#e0483d')}${chip(nTouched,'Đã xử lý hôm nay','#16a34a')}</div>`;
+  const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px">${chip(nTotal,'CS được request','#5b8de6')}${chip(nNoJourney,'Chưa có Journey','#e0483d')}${chip(nTouched,'Đã xử lý hôm nay','#16a34a')}${chip(withState.filter(e=>e.off).length,'CS OFF hôm nay','#b7791f')}</div>`;
   const csBtn=(e,i)=>`<button class="link" data-mng-cs="${i}">${esc(agent(e.r.email)?.name||e.r.name||e.r.email)}</button><small>${esc(e.r.email)}</small>`;
+  const offCell=(e,i)=>`<label class="check" style="white-space:nowrap"><input type="checkbox" data-mng-off="${i}" ${e.off?'checked':''} aria-label="CS OFF hôm nay: ${esc(e.r.email)}"> OFF</label>${e.off?'<small>CS OFF hôm nay · chưa thể action</small>':''}`;
   const jCell=e=>e.hasJourney?badge('✅ Có ('+e.nRounds+' action)','green'):badge('⚠️ Chưa có','red');
   const actCell=(e,i)=>e.hasJourney?`<button type="button" data-mng-add="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Thêm action</button> <button type="button" data-mng-view="${i}" style="font-size:11px;padding:3px 9px">Xem/Cập nhật</button>`:`<button type="button" data-mng-create="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Tạo Journey</button>`;
   const tCell=e=>e.touchedToday?badge('✅ Đã xử lý','green'):badge('Chưa','');
@@ -1100,23 +1105,28 @@ function renderMngRequests(){
   if(!withState.length){body='<div class="empty"><b>Chưa có request nào</b><p class="muted">Dán danh sách buổi sáng ở khung trên để bắt đầu.</p></div>';}
   else if(sub==='qa'){
     const byQA=new Map();withState.forEach((e,i)=>{const qa=agent(e.r.email)?.qa||'Chưa phân công QA';if(!byQA.has(qa))byQA.set(qa,[]);byQA.get(qa).push({e,i});});
-    body=[...byQA.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([qa,arr])=>{const noJ=arr.filter(x=>!x.e.hasJourney).length;return `<details class="notice" style="margin:0 0 10px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:10px 14px"><summary style="cursor:pointer;font-weight:700;font-size:15px">${esc(qa)} <span class="muted" style="font-weight:400;font-size:13px">· ${arr.length} CS · ${noJ} chưa có Journey</span></summary><div style="padding:10px 0 0">${table(['CS','Channel','Loại','Journey','QA hôm nay','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),tCell(e),actCell(e,i)]))}</div></details>`;}).join('');
+    body=[...byQA.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([qa,arr])=>{const noJ=arr.filter(x=>!x.e.hasJourney).length;return `<details class="notice" style="margin:0 0 10px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:10px 14px"><summary style="cursor:pointer;font-weight:700;font-size:15px">${esc(qa)} <span class="muted" style="font-weight:400;font-size:13px">· ${arr.length} CS · ${noJ} chưa có Journey</span></summary><div style="padding:10px 0 0">${table(['CS','Channel','Loại','Journey','QA hôm nay','CS OFF hôm nay','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),tCell(e),offCell(e,i),actCell(e,i)]))}</div></details>`;}).join('');
   } else if(sub==='week'){
     const byWeek=new Map();withState.forEach((e,i)=>{const w=e.r.date?weekOf(e.r.date):(e.r.week||'Không rõ');if(!byWeek.has(w))byWeek.set(w,[]);byWeek.get(w).push({e,i});});
-    body=[...byWeek.entries()].sort((a,b)=>String(b[0]).localeCompare(String(a[0]))).map(([w,arr])=>`<div style="margin:0 0 14px"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="font-size:15px">${esc(w)}</b><span class="muted">${arr.length} CS · ${arr.filter(x=>!x.e.hasJourney).length} chưa có Journey</span></div>${table(['CS','Channel','Loại','Journey','QA hôm nay','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),tCell(e),actCell(e,i)]))}</div>`).join('');
+    body=[...byWeek.entries()].sort((a,b)=>String(b[0]).localeCompare(String(a[0]))).map(([w,arr])=>`<div style="margin:0 0 14px"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="font-size:15px">${esc(w)}</b><span class="muted">${arr.length} CS · ${arr.filter(x=>!x.e.hasJourney).length} chưa có Journey</span></div>${table(['CS','Channel','Loại','Journey','QA hôm nay','CS OFF hôm nay','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),tCell(e),offCell(e,i),actCell(e,i)]))}</div>`).join('');
   } else {
-    const heads=['CS','Loại request','Channel','Ngày','Ghi chú của MNG','Người request','Journey','QA hôm nay','Hành động'];
-    body=table(heads,withState.map((e,i)=>[csBtn(e,i),badge(e.r.type||'Coaching','blue'),esc(e.r.channel||'—'),esc(e.r.date||e.r.week||'—'),`<div style="font-size:12px;color:#415777;max-width:300px;white-space:pre-wrap">${esc(e.r.note||'—')}</div>`,esc(e.r.by||'MNG'),jCell(e),tCell(e),actCell(e,i)]));
+    const heads=['CS','Loại request','Channel','Ngày','Ghi chú của MNG','Người request','Journey','QA hôm nay','CS OFF hôm nay','Hành động'];
+    body=table(heads,withState.map((e,i)=>[csBtn(e,i),badge(e.r.type||'Coaching','blue'),esc(e.r.channel||'—'),esc(e.r.date||e.r.week||'—'),`<div style="font-size:12px;color:#415777;max-width:300px;white-space:pre-wrap">${esc(e.r.note||'—')}</div>`,esc(e.r.by||'MNG'),jCell(e),tCell(e),offCell(e,i),actCell(e,i)]));
   }
   const paste=!canMngPaste()?'':`<details class="notice" style="margin:0 0 14px"><summary style="cursor:pointer;font-weight:700">➕ Dán danh sách MNG (mỗi sáng)</summary><div style="padding:10px 2px 2px"><p class="muted" style="margin:0 0 8px">Dán trực tiếp từ sheet, mỗi dòng: <b>date · Channel · Agent name · Agent email</b> (phân tách Tab). Có header cũng được — dòng không có email sẽ bỏ qua. Nạp sẽ <b>thay toàn bộ</b> danh sách request hiện tại.</p><div class="actions" style="margin-bottom:8px"><label>Loại request <select id="mngType"><option>Coaching</option><option>Catchup</option><option>Monitoring</option></select></label></div><textarea id="mngPaste" rows="6" style="width:100%;font-size:12px;font-family:monospace;padding:8px;border:1px solid #cdd7e5;border-radius:6px;box-sizing:border-box" placeholder="14/9/2026	Internet Call	03. CA.B Nguyen Kien Cuong	cuong.nguyenkien1.cs@shopeemobile-external.com"></textarea><div class="actions" style="margin-top:8px"><button class="primary" id="mngLoad">Nạp danh sách</button><button id="mngClear" style="color:#c26456">Xoá danh sách</button></div></div></details>`;
   $('content').innerHTML=paste+summary+toggle+body;
   if($('mngLoad'))$('mngLoad').onclick=()=>{const txt=$('mngPaste').value;const type=$('mngType').value;const by=currentQASession?.()?.name||'MNG';const parsed=parseMngPaste(txt,type,by);if(!parsed.length){toast('Không đọc được dòng nào có email hợp lệ.');return;}db.mngRequests=parsed;if(typeof logHistory==='function')logHistory('Nạp MNG request ('+parsed.length+' CS)','','',type+' · '+parsed.length+' CS');dirty=true;render();toast('Đã nạp '+parsed.length+' request.');};
   if($('mngClear'))$('mngClear').onclick=()=>{if(confirm('Xoá toàn bộ danh sách MNG request?')){db.mngRequests=[];dirty=true;render();toast('Đã xoá danh sách MNG request.');}};
+  $('content').querySelectorAll('[data-mng-off]').forEach(b=>b.onchange=()=>{
+    const e=withState[+b.dataset.mngOff];
+    logHistory('CS OFF',e.r.email,agent(e.r.email)?.name||e.r.name,(b.checked?'Đánh dấu CS OFF':'Bỏ dấu CS OFF')+' · '+today(),{date:today(),off:b.checked});
+    dirty=true;render();toast(b.checked?'Đã đánh dấu CS OFF hôm nay.':'Đã bỏ dấu CS OFF hôm nay.');
+  });
   $('content').querySelectorAll('[data-mng-cs]').forEach(b=>b.onclick=()=>showAgent(withState[+b.dataset.mngCs].r.email));
   $('content').querySelectorAll('[data-mng-create]').forEach(b=>b.onclick=()=>showCreateJourney(withState[+b.dataset.mngCreate].r.email));
   $('content').querySelectorAll('[data-mng-view]').forEach(b=>b.onclick=()=>showJourneyDetail(withState[+b.dataset.mngView].j.id));
   $('content').querySelectorAll('[data-mng-add]').forEach(b=>b.onclick=()=>showAddRound(withState[+b.dataset.mngAdd].j.id));
-  performanceExport={headers:['CS','Email','Loại','Ngày','Ghi chú','Người request','Có Journey','Số action','QA hôm nay'],rows:withState.map(e=>[agent(e.r.email)?.name||e.r.name||e.r.email,e.r.email,e.r.type||'',e.r.date||e.r.week||'',e.r.note||'',e.r.by||'',e.hasJourney?'Có':'Chưa',e.nRounds,e.touchedToday?'Đã xử lý':'Chưa'])};
+  performanceExport={headers:['CS','Email','Loại','Ngày','Ghi chú','Người request','Có Journey','Số action','QA hôm nay','CS OFF hôm nay'],rows:withState.map(e=>[agent(e.r.email)?.name||e.r.name||e.r.email,e.r.email,e.r.type||'',e.r.date||e.r.week||'',e.r.note||'',e.r.by||'',e.hasJourney?'Có':'Chưa',e.nRounds,e.touchedToday?'Đã xử lý':'Chưa',e.off?'OFF':''])};
 }
 // ---- Hook into render pipeline ----
 const _jPrevRender=render;
