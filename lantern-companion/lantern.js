@@ -18,7 +18,7 @@
     :host{position:fixed;bottom:16px;right:16px;z-index:9999;font:14px/1.5 system-ui,sans-serif;color:#473524}
     *{box-sizing:border-box}button,input{font:inherit}button{cursor:pointer;border:1px solid #e7d5b6;background:#fffaf0;color:#473524;border-radius:12px;padding:7px 11px}button:hover{background-color:#ffedc6}button:focus-visible,input:focus-visible{outline:3px solid #b76d18;outline-offset:3px}
     .bubble{width:min(310px,calc(100vw - 32px));background:#fffdf6;border:1px solid #eddab8;border-radius:20px;padding:17px;box-shadow:0 8px 32px #49300920;margin-bottom:-14px}header{display:flex;align-items:center;justify-content:space-between}strong{font-size:16px}p{margin:10px 0}.actions{display:flex;gap:7px;flex-wrap:wrap}.primary{background:#ffe1a0}small{display:block;color:#806e59;margin-top:9px}details{margin-top:13px;border-top:1px solid #eddfc8;padding-top:10px}summary{cursor:pointer}label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:9px 0}input[type=number]{width:66px;padding:4px;border:1px solid #dcc7a4;border-radius:7px}input[type=time]{max-width:112px} .pet{display:block;width:140px;height:140px;margin-left:auto;border:0;background-color:transparent;background-size:300% 300%;background-position:50% 50%;padding:0;filter:drop-shadow(0 6px 7px #8e5a1820);animation:breathe 4s ease-in-out infinite}.pet:hover{background-color:transparent}.pet.sleep{animation:none}[hidden]{display:none!important}@keyframes breathe{50%{transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){.pet{animation:none}}
-  </style><section class="bubble" hidden><header><strong>Đèn nhỏ ở đây 🏮</strong><button data-action="close" aria-label="Thu gọn">×</button></header><p role="status" aria-live="polite"></p></section><button class="pet" aria-label="Mở bạn đồng hành đèn lồng" aria-expanded="false"></button>`;
+  </style><section class="bubble" hidden><header><strong>Đèn nhỏ ở đây 🏮</strong></header><p role="status" aria-live="polite"></p></section><button class="pet" aria-label="Mở bạn đồng hành đèn lồng" aria-expanded="false"></button>`;
   const pet=root.querySelector('.pet'), bubble=root.querySelector('.bubble'), message=root.querySelector('p');
   // Keep the pet's anchor stable when its message opens or grows.
   const moveStyle=document.createElement('style');
@@ -105,7 +105,7 @@
   readSchedule();saveSchedule();
   function sprite(index,react=false){pet.style.backgroundImage='url("'+(react?reaction:direction)+'")';pet.style.backgroundPosition=(index%3*50)+'% '+(Math.floor(index/3)*50)+'%';}
   function expression(index,seconds=8){expressionUntil=Date.now()+seconds*1000;sprite(index,true);pet.classList.toggle('sleep',index===6);}
-  function show(text,seconds=18){bubble.hidden=false;pet.setAttribute('aria-expanded','true');message.textContent=text;hideAt=Date.now()+seconds*1000;placeBubble();}
+  function show(text){bubble.hidden=false;pet.setAttribute('aria-expanded','true');message.textContent=text;hideAt=Date.now()+30000;placeBubble();}
   function close(){bubble.hidden=true;hideAt=0;pet.setAttribute('aria-expanded','false');}
   function home(){let i=Math.floor(Math.random()*(encouragements.length-1));if(i>=lastEncouragement)i++;i%=encouragements.length;lastEncouragement=i;expression([0,1,2,5][i%4]);show(encouragements[i]);}
   function celebrate(text='Bạn làm được rồi! Một việc đã xong — mình vui cùng bạn! ✨'){expression(4,12);show(text);}
@@ -118,9 +118,8 @@
     if(now<schedule.nextAt)return;
     const [text,face]=reminders[schedule.index];
     schedule={nextAt:now+INTERVAL,index:(schedule.index+1)%reminders.length};saveSchedule();
-    expression(face,25);show(text,25);
+    expression(face,30);show(text);
   }
-  root.querySelector('[data-action=close]').onclick=()=>{close();pet.focus();};
   pet.onclick=home;
   root.addEventListener('keydown',e=>{if(e.key==='Escape'){close();pet.focus();}});
   document.addEventListener('pointermove',e=>{if(e.pointerType==='touch'||Date.now()<expressionUntil||drag)return;const r=pet.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;const col=dx< -45?0:dx>45?2:1,row=dy< -45?0:dy>45?2:1;sprite(row*3+col);},{passive:true});
