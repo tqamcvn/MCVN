@@ -18,4 +18,4 @@ window.dispatchEvent(new CustomEvent('lantern:complete', {
 }));
 ```
 
-Widget độc lập, dùng hai sprite gốc, không cần React/npm. Nhìn theo chuột, biểu cảm, nhắc nước 45 phút, mắt 20 phút, nghỉ 60 phút; lịch sáng/chiều theo giờ máy, lưu tùy chọn trên trình duyệt. Các con số là mặc định giao diện có thể chỉnh. Hẹn giờ chạy khi trang mở; trang ẩn sẽ không hiện nhắc cho đến khi quay lại. Không có thông báo khi trình duyệt đóng. Mỗi tab có bộ hẹn giờ riêng. Không tự suy đoán việc hoàn thành: cần nối sự kiện thành công của dashboard. Hai khoảng giờ phải nằm trong cùng ngày.
+Widget độc lập, dùng hai sprite gốc, không cần React/npm. Bấm vào đèn để nhận lời động viên ngẫu nhiên. Lịch cố định 15 phút, luân phiên uống nước, nhắm mắt, nghỉ ngơi, đứng dậy vươn vai; không có cài đặt cho người dùng. Lịch được lưu trên trình duyệt để giữ khi chuyển trang. Chỉ nhắc khi trang đang hiển thị; quay lại sau thời gian dài chỉ nhắc một lần, không dồn thông báo. Lời nhắn tự thu gọn. Không có thông báo khi đóng trình duyệt. Sự kiện hoàn thành từ ứng dụng vẫn hiển thị lời chúc mừng.
