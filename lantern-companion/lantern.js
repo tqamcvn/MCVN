@@ -80,7 +80,7 @@
   window.addEventListener('resize',()=>{if(position)moveTo(position.x,position.y);else placeBubble();});
   new ResizeObserver(placeBubble).observe(bubble);
   new MutationObserver(placeBubble).observe(bubble,{attributes:true,attributeFilter:['hidden']});
-  const mascots={lantern:'Đèn nhỏ',raccoon:'Gấu mèo',fox:'Cáo nhỏ',sloth:'Bạn lười',bunny:'Thỏ nhỏ'};
+  const mascots={lantern:'Đèn nhỏ',raccoon:'Gấu mèo',fox:'Cáo nhỏ',sloth:'Bạn lười',bunny:'Thỏ nhỏ',sheep:'Cừu nhỏ',wizard:'Phù thủy'};
   const mascotKey='tqa-companion-mascot';
   let selectedMascot='lantern',direction='',reaction='';
   function selectMascot(id,persist=true){
