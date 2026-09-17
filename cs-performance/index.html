@@ -620,8 +620,8 @@ function saveCreateJourney(csEmail, dialog){
 }
 
 // ---- Add Round to existing Journey ----
-function showAddRound(journeyId){
-  const qaSession=currentQASession();if(!qaSession){openQAIdentity(()=>showAddRound(journeyId));return;}
+function showAddRound(journeyId,preselect){
+  const qaSession=currentQASession();if(!qaSession){openQAIdentity(()=>showAddRound(journeyId,preselect));return;}
   let j=db.csJourneys.find(x=>x.id===journeyId);
   if(!j) return;
   let allWeeks=[...new Set((db.rawV3||[]).map(r=>r[3]).filter(Boolean))].sort().reverse();
@@ -634,7 +634,7 @@ function showAddRound(journeyId){
     <div style="margin-top:12px;display:grid;gap:10px">
       <label style="font-size:13px">Loại action<br>
         <select id="rnActType" style="width:100%;margin-top:4px;min-height:30px;font-size:13px">
-          ${actTypeOptions(j.csEmail,'')}
+          ${actTypeOptions(j.csEmail,preselect||'')}
         </select>
       </label>
       <label style="font-size:13px">Tuần action (W0)<br>
@@ -654,6 +654,7 @@ function showAddRound(journeyId){
     </div>`;
   document.body.appendChild(d);
   wireJourneyCommit(d,'#rnActType');
+  if(preselect){const s=d.querySelector('#rnActType');if(s){s.value=preselect;s.dispatchEvent(new Event('change'));}}
   d.showModal();
   d.addEventListener('close',()=>d.remove());
 }
@@ -988,6 +989,17 @@ function commitStatus(action,date){
   const cur=action.commitMetric==='csat'?value.toFixed(1)+'%':value;
   return passed?{label:'✅ Đạt ('+cur+')',cls:'green',state:'pass'}:{label:'❌ Chưa đạt ('+cur+')',cls:'red',state:'fail'};
 }
+// WTD hiện tại (đến hôm nay) đã đạt target chưa — dùng cho CS còn Pending/chưa tới hạn để quyết offer action hay Monitor case.
+function commitMeetsNow(action,date){
+  if(!action||!action.commitMetric||action.commitTarget==null) return null;
+  const m=commitWTD(action.agent,action.commitChannel||'',date||today());
+  const value=action.commitMetric==='csat'?m.csat:action.commitMetric==='mistake'?m.mistake:(m.repeated?m.repeated.length:null);
+  const enough=action.commitMetric==='csat'?(m.total>=5):(m.tagged>=5);
+  if(value==null||!enough) return null;
+  const passed=action.commitMetric==='csat'?value>=action.commitTarget:value<=action.commitTarget;
+  const cur=action.commitMetric==='csat'?value.toFixed(1)+'%':String(value);
+  return {passed,cur,value};
+}
 // Bước tiếp theo cần làm — bám theo flow follow CS.
 // An activity on a CS counts for that CS across all tracker actions.
 function qaActivityDay(value){
@@ -1023,7 +1035,12 @@ function nextStep(action,date,activity){
   if(st.status==='Quá hạn') return {t:'⏰ Quá hạn → Follow daily / CO-CU ngay',cls:'red'};
   if(st.status==='Đến hạn hôm nay') return followedToday?{t:'Đã follow hôm nay → chờ kết quả',cls:'muted'}:{t:'📌 Đến hạn hôm nay → Follow daily ngay',cls:'red'};
   if(cs.state==='fail') return {t:'Chưa đạt cam kết → check rootcause + CO/CU lại · cân nhắc MNG jump',cls:'red'};
-  if(cs.state==='pending') return followedToday?{t:'Đã follow — chờ tới hạn chấm cam kết',cls:'muted'}:{t:'Theo dõi tới hạn '+(cs.due||'—'),cls:'muted'};
+  if(cs.state==='pending'||cs.state==='nodata'){
+    const now=commitMeetsNow(action,date);
+    if(now&&now.passed) return {t:'WTD hiện tại đã đạt ('+now.cur+') → Monitor case, chờ chốt cam kết',cls:'green'};
+    if(now&&!now.passed) return {t:'WTD hiện tại chưa đạt ('+now.cur+') → QA action (coaching / CO-CU) ngay',cls:'red'};
+    return followedToday?{t:'Đã follow — WTD chưa đủ data, chờ tới hạn '+(cs.due||'—'),cls:'muted'}:{t:'WTD chưa đủ data → theo dõi tới hạn '+(cs.due||'—'),cls:'muted'};
+  }
   return followedToday?{t:'Đã follow hôm nay',cls:'muted'}:{t:'Tiếp tục follow, cho CS thời gian cải thiện',cls:'muted'};
 }
 function renderActionTracker(){
@@ -1134,7 +1151,7 @@ function renderMngRequests(){
   const reasonCell=(e,i)=>{const cur=e.reason||'';const isOther=!!cur&&!MNG_REASONS.includes(cur);return `<select data-mng-reason="${i}" style="font-size:12px;max-width:160px" aria-label="Lý do chưa action: ${esc(e.r.email)}"><option value="">—</option>${MNG_REASONS.map(x=>`<option${x===cur?' selected':''}>${esc(x)}</option>`).join('')}<option value="__other"${isOther?' selected':''}>Khác…</option></select><input data-mng-reason-text="${i}" placeholder="Nhập lý do khác" value="${esc(isOther?cur:'')}" style="font-size:12px;margin-top:4px;width:160px;${isOther?'':'display:none'}">`;};
   const jCell=e=>e.hasJourney?badge('✅ Có ('+e.nRounds+' action)','green'):badge('⚠️ Chưa có','red');
   const commitByCS=new Map();try{collectTrackerActions().forEach(function(a){if(a.commitMetric&&a.commitTarget!=null){const p=commitByCS.get(a.agent);if(!p||String(a.date||'').localeCompare(String(p.date||''))>0)commitByCS.set(a.agent,a);}});}catch(e){}
-  const targetCell=e=>{const a=commitByCS.get(e.r.email);if(!a)return badge(e.hasJourney?'Chưa đặt':'—','');const st=commitStatus(a,today());return badge(st.label,st.cls==='green'?'green':st.cls==='red'?'red':'');};
+  const targetCell=e=>{const a=commitByCS.get(e.r.email);if(!a)return badge(e.hasJourney?'Chưa đặt':'—','');const st=commitStatus(a,today());if(st.state==='pending'||st.state==='nodata'){const now=commitMeetsNow(a,today());if(now)return badge((now.passed?'WTD đạt ':'WTD chưa ')+'('+now.cur+')',now.passed?'green':'red');}return badge(st.label,st.cls==='green'?'green':st.cls==='red'?'red':'');};
   const actCell=(e,i)=>e.hasJourney?`<button type="button" data-mng-add="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Thêm action</button> <button type="button" data-mng-view="${i}" style="font-size:11px;padding:3px 9px">Xem/Cập nhật</button>`:`<button type="button" data-mng-create="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Tạo Journey</button>`;
   const tCell=e=>e.touchedToday?badge('✅ Đã xử lý','green'):badge('Chưa','');
   const sub=window._mngSub||'cs';
@@ -1187,7 +1204,7 @@ function renderMngRequests(){
   $('content').querySelectorAll('[data-mng-cs]').forEach(b=>b.onclick=()=>showAgent(withState[+b.dataset.mngCs].r.email));
   $('content').querySelectorAll('[data-mng-create]').forEach(b=>b.onclick=()=>showCreateJourney(withState[+b.dataset.mngCreate].r.email));
   $('content').querySelectorAll('[data-mng-view]').forEach(b=>b.onclick=()=>showJourneyDetail(withState[+b.dataset.mngView].j.id));
-  $('content').querySelectorAll('[data-mng-add]').forEach(b=>b.onclick=()=>showAddRound(withState[+b.dataset.mngAdd].j.id));
+  $('content').querySelectorAll('[data-mng-add]').forEach(b=>b.onclick=()=>{const e=withState[+b.dataset.mngAdd];const now=commitMeetsNow(commitByCS.get(e.r.email),today());showAddRound(e.j.id, now&&now.passed?'Monitor case':'');});
   performanceExport={headers:['CS','Email','Loại','Ngày','Ghi chú','Người request','Có Journey','Số action','Đạt target?','QA hôm nay','CS OFF hôm nay','Lý do chưa action'],rows:withState.map(e=>{const a=commitByCS.get(e.r.email);const tg=a?commitStatus(a,today()).label:(e.hasJourney?'Chưa đặt':'');return [agent(e.r.email)?.name||e.r.name||e.r.email,e.r.email,e.r.type||'',e.r.date||e.r.week||'',e.r.note||'',e.r.by||'',e.hasJourney?'Có':'Chưa',e.nRounds,tg,e.touchedToday?'Đã xử lý':'Chưa',e.off?'OFF':'',e.reason||''];})};
 }
 // ---- Hook into render pipeline ----
