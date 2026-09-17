@@ -9,7 +9,7 @@ var QA_MAP={"ngocquy.tranthi.cs@shopeemobile-external.com":"03. Sup QA Tran Thi 
   var U="https://ytbcydursrpjqnaalhxc.supabase.co",
       K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
   var DOMS=["shopeemobile-external.com","shopee.com"];
-  var ALLOW=["senior tqa","tl tqa","sup tqa","acting tl tqa","tqa"]; /* Same roles as csp_is_editor */
+  var ALLOW=["senior tqa","tl tqa","sup tqa","acting tl tqa","tqa","ih"]; /* Same roles as csp_is_editor + IH */
   var SLUG="cs-performance";
   function domReady(){return new Promise(function(r){if(document.readyState!=="loading")r();else document.addEventListener("DOMContentLoaded",r);});}
   function go(u){ if(window.top!==window.self){ fail("Phiên đăng nhập chưa sẵn sàng. Vui lòng mở CS Performance ở tab mới hoặc đăng nhập lại từ trang chính."); var link=document.createElement("a");link.href="/cs-performance/";link.target="_blank";link.rel="noopener";link.textContent="Mở CS Performance ở tab mới";document.body.firstElementChild.appendChild(link);return; } location.replace(u||"/"); }
@@ -22,6 +22,7 @@ var QA_MAP={"ngocquy.tranthi.cs@shopeemobile-external.com":"03. Sup QA Tran Thi 
     var email=(s.user.email||"").toLowerCase();
     if(DOMS.indexOf((email.split("@")[1]||""))<0){ await sb.auth.signOut(); go("/"); return; }
     var role="",fullName=""; try{ var d=(await sb.from("app_users").select("role,full_name").eq("email",email).maybeSingle()).data; if(d){ role=(d.role||""); fullName=(d.full_name||""); } }catch(e){}
+    if(!role.trim() && (email.split("@")[1]||"")==="shopee.com") role="IH"; /* @shopee.com không có app_users row -> mặc định IH (giống Dashboard) */
     if(ALLOW.indexOf(role.trim().toLowerCase())<0){ fail("Tài khoản chưa có quyền truy cập CS Performance. Vui lòng liên hệ quản trị viên kiểm tra quyền TQA."); return; }
     window.__QA_USER={ email:email, role:role, label:(QA_MAP[email]||fullName||email) }; window.__CSP_SUPA=sb;
     var kr=await sb.from("page_keys").select("key").eq("slug",SLUG).maybeSingle();
@@ -324,6 +325,23 @@ $('loadBtn').textContent='Upload data';$('loadBtn').title='Upload file CSV Raw_f
 $('helpBtn').title='Hướng dẫn nhanh';
 function paintThemeButton(){let dark=document.documentElement.classList.contains('dark');$('themeBtn').textContent=dark?'☀':'☾';$('themeBtn').title=dark?'Bật sáng':'Bật tối';$('themeBtn').setAttribute('aria-label',dark?'Bật sáng':'Bật tối');}
 $('themeBtn').onclick=()=>{document.documentElement.classList.toggle('dark');paintThemeButton()};paintThemeButton();
+/* TQA-THEME-SYNC: đồng bộ sáng/tối theo Dashboard khi được nhúng trong iframe */
+(function(){
+  function applyTheme(t){
+    var dark = (t === 'dark');
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    try{ paintThemeButton(); }catch(e){}
+  }
+  try{
+    var q = new URLSearchParams(location.search).get('theme');
+    if(q === 'dark' || q === 'light') applyTheme(q);
+  }catch(e){}
+  window.addEventListener('message', function(ev){
+    var d = ev && ev.data;
+    if(d && d.type === 'tqa-theme' && (d.theme === 'dark' || d.theme === 'light')) applyTheme(d.theme);
+  });
+})();
 // Coaching gate, month comparisons, group drilldowns, and post-coaching follow-up.
 const preGateCalc=calcRaw;
 calcRaw=function(rows){let m=preGateCalc(rows);return{...m,p0:m.tagged>=5&&m.rate!==null&&m.rate>=20&&m.repeated.length>0}};
