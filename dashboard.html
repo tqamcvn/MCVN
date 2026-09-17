@@ -6,7 +6,15 @@
 <title>TQA MCVN — Home</title>
 
 <!-- Ẩn toàn bộ nội dung cho tới khi xác thực xong (chống lộ dữ liệu). -->
-<style id="gate">body { visibility: hidden; }</style>
+<style id="gate">body { visibility: hidden; }.mascot-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-top:16px}
+.mascot-option{position:relative;cursor:pointer;min-width:0}
+.mascot-option input{position:absolute;opacity:0;width:1px;height:1px}
+.mascot-tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border:2px solid var(--gray-200);border-radius:14px;color:var(--gray-900);font-size:13px;font-weight:600}
+.mascot-preview{display:block;width:84px;height:84px;background-size:300% 300%;background-position:50% 50%;background-repeat:no-repeat}
+.mascot-option:hover .mascot-tile{border-color:var(--accent)}
+.mascot-option input:checked + .mascot-tile{border-color:var(--accent);background-color:var(--accent-light);color:var(--accent-text)}
+.mascot-option input:focus-visible + .mascot-tile{outline:3px solid var(--accent);outline-offset:3px}
+</style>
 
 <!-- Supabase JS (kiểm tra session + lấy role) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -780,6 +788,18 @@ body.ops-view:not(.ih-view) .qa-ih { display: none !important; }
       </div>
     </div>
 
+    <div class="stg-card prefs-card" id="companion-settings">
+      <div class="stg-title" id="companion-title" data-i18n="companion">Bạn đồng hành</div>
+      <div class="stg-desc" data-i18n="companionDesc">Chọn người bạn nhỏ bên cạnh bạn. Đổi ngay khi chọn và tự lưu trên trình duyệt này.</div>
+      <div class="mascot-options" role="radiogroup" aria-labelledby="companion-title">
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="lantern" data-mascot-choice checked><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/lantern-directions.webp')"></span><span data-i18n="mascot_lantern">Đèn nhỏ</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="raccoon" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/raccoon-directions.webp')"></span><span data-i18n="mascot_raccoon">Gấu mèo</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="fox" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/fox-directions.webp')"></span><span data-i18n="mascot_fox">Cáo nhỏ</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="sloth" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/sloth-directions.webp')"></span><span data-i18n="mascot_sloth">Bạn lười</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="bunny" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/bunny-directions.webp')"></span><span data-i18n="mascot_bunny">Thỏ nhỏ</span></span></label>
+      </div>
+    </div>
+
     <div class="stg-card" style="margin-bottom:20px">
       <div class="stg-title" data-i18n="profile">Hồ sơ</div>
       <div class="stg-desc" data-i18n="profileDesc">Đổi ảnh đại diện và tên hiển thị của bạn.</div>
@@ -822,6 +842,8 @@ const ALLOWED_DOMAINS = ['shopeemobile-external.com', 'shopee.com'];
 const LANG_KEY = 'tqa_lang';
 const I18N = {
   vi: {
+    companion:'Bạn đồng hành', companionDesc:'Chọn người bạn nhỏ bên cạnh bạn. Đổi ngay khi chọn và tự lưu trên trình duyệt này.',
+    mascot_lantern:'Đèn nhỏ', mascot_raccoon:'Gấu mèo', mascot_fox:'Cáo nhỏ', mascot_sloth:'Bạn lười', mascot_bunny:'Thỏ nhỏ',
     home:'Trang chủ', csatReports:'Báo cáo CSAT', tools:'Công cụ',
     teamCall:'Team Call', teamChat:'Team Chat', teamMulti:'Team Multi', inDevelopment:'Đang phát triển',
     anonymousForm:'Form ẩn danh', settings:'Cài đặt', accountSettings:'Cài đặt tài khoản',
@@ -842,6 +864,8 @@ const I18N = {
     chooseImage:'Vui lòng chọn file ảnh.', processingImage:'Đang xử lý ảnh...', avatarSaved:'Đã cập nhật ảnh đại diện!', error:'Lỗi'
   },
   en: {
+    companion:'Companion', companionDesc:'Choose your little companion. Changes apply instantly and are saved in this browser.',
+    mascot_lantern:'Lantern', mascot_raccoon:'Raccoon', mascot_fox:'Fox', mascot_sloth:'Sloth', mascot_bunny:'Bunny',
     home:'Home', csatReports:'CSAT Reports', tools:'Tools',
     teamCall:'Team Call', teamChat:'Team Chat', teamMulti:'Team Multi', inDevelopment:'In development',
     anonymousForm:'Anonymous Form', settings:'Settings', accountSettings:'Account Settings',
@@ -1370,6 +1394,6 @@ loadQuote();
 loadCsat();
 </script>
 
-<script src="/lantern-companion/lantern.js?v=20260917-6" defer></script>
+<script src="/lantern-companion/lantern.js?v=20260917-7" defer></script>
 </body>
 </html>

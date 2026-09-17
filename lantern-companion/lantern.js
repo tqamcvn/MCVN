@@ -80,7 +80,22 @@
   window.addEventListener('resize',()=>{if(position)moveTo(position.x,position.y);else placeBubble();});
   new ResizeObserver(placeBubble).observe(bubble);
   new MutationObserver(placeBubble).observe(bubble,{attributes:true,attributeFilter:['hidden']});
-  const direction=new URL('mascots/lantern-directions.webp',base).href, reaction=new URL('mascots/lantern-reactions.webp',base).href;
+  const mascots={lantern:'Đèn nhỏ',raccoon:'Gấu mèo',fox:'Cáo nhỏ',sloth:'Bạn lười',bunny:'Thỏ nhỏ'};
+  const mascotKey='tqa-companion-mascot';
+  let selectedMascot='lantern',direction='',reaction='';
+  function selectMascot(id,persist=true){
+    if(!Object.hasOwn(mascots,id))return false;
+    selectedMascot=id;
+    direction=new URL('mascots/'+id+'-directions.webp',base).href;
+    reaction=new URL('mascots/'+id+'-reactions.webp',base).href;
+    root.querySelector('strong').textContent=mascots[id]+' ở đây';
+    pet.title=mascots[id]+' · Kéo để di chuyển · Bấm để nhận lời động viên';
+    pet.setAttribute('aria-label',mascots[id]+': bấm để nhận lời động viên, kéo hoặc dùng phím mũi tên để di chuyển');
+    expressionUntil=0;pet.classList.remove('sleep');sprite(4);
+    if(persist){try{localStorage.setItem(mascotKey,id);}catch{}}
+    document.querySelectorAll('[data-mascot-choice]').forEach(input=>{input.checked=input.value===id;});
+    return true;
+  }
   const INTERVAL=15*60*1000;
   const reminders=[
     ['Uống vài ngụm nước nhé. Chăm sóc bản thân một chút rồi mình cùng tiếp tục! 💧',1],
@@ -89,7 +104,7 @@
     ['Đứng dậy vươn vai, thả lỏng cổ và vai, đi lại vài bước cho thoải mái nhé! ☀️',2]
   ];
   const encouragements=[
-    'Mình ở đây cùng bạn. Cứ làm từng chút một nhé. 🏮',
+    'Mình ở đây cùng bạn. Cứ làm từng chút một nhé. 💛',
     'Một bước nhỏ cũng là đang tiến lên rồi. Bạn cứ theo nhịp của mình nhé.',
     'Không cần hoàn hảo ngay đâu. Làm xong từng phần nhỏ là tốt rồi. 🌱',
     'Nếu hôm nay hơi khó, mình cùng chậm lại một chút nhé.',
@@ -130,6 +145,11 @@
   setInterval(tick,1000);
   document.addEventListener('visibilitychange',tick);
   window.addEventListener('lantern:complete',e=>celebrate(typeof e.detail?.message==='string'?e.detail.message:undefined));
-  window.LanternCompanion={celebrate,show:home,dismiss:close};
-  sprite(4);
+  window.LanternCompanion={celebrate,show:home,dismiss:close,selectMascot,getMascot:()=>selectedMascot};
+  let savedMascot='lantern';try{savedMascot=localStorage.getItem(mascotKey)||'lantern';}catch{}
+  if(!selectMascot(savedMascot,false))selectMascot('lantern',false);
+  document.querySelectorAll('[data-mascot-choice]').forEach(input=>{
+    input.addEventListener('change',()=>{if(input.checked)selectMascot(input.value);});
+  });
+  window.addEventListener('storage',e=>{if(e.key===mascotKey)selectMascot(Object.hasOwn(mascots,e.newValue)?e.newValue:'lantern',false);});
 })();
