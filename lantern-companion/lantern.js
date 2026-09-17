@@ -5,6 +5,7 @@
   try {
     if(window.parent!==window && window.parent.LanternCompanion){
       window.LanternCompanion=window.parent.LanternCompanion;
+      document.addEventListener('pointerdown',()=>window.LanternCompanion.dismiss(),true);
       window.addEventListener('lantern:complete',e=>window.LanternCompanion.celebrate(typeof e.detail?.message==='string'?e.detail.message:undefined));
       return;
     }
@@ -121,11 +122,14 @@
     expression(face,30);show(text);
   }
   pet.onclick=home;
+  document.addEventListener('pointerdown',e=>{
+    if(!bubble.hidden && !e.composedPath().includes(host))close();
+  },true);
   root.addEventListener('keydown',e=>{if(e.key==='Escape'){close();pet.focus();}});
   document.addEventListener('pointermove',e=>{if(e.pointerType==='touch'||Date.now()<expressionUntil||drag)return;const r=pet.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;const col=dx< -45?0:dx>45?2:1,row=dy< -45?0:dy>45?2:1;sprite(row*3+col);},{passive:true});
   setInterval(tick,1000);
   document.addEventListener('visibilitychange',tick);
   window.addEventListener('lantern:complete',e=>celebrate(typeof e.detail?.message==='string'?e.detail.message:undefined));
-  window.LanternCompanion={celebrate,show:home};
+  window.LanternCompanion={celebrate,show:home,dismiss:close};
   sprite(4);
 })();
