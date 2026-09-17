@@ -1597,6 +1597,7 @@ function setStatus(id, msg, isError = false) {
 }
 
 function showSuccess() {
+  window.LanternCompanion?.celebrate('Bạn đã gửi báo cáo rồi. Cảm ơn bạn đã chia sẻ! ✨');
   document.getElementById('main-card').style.display = 'none';
   document.getElementById('fail-card').style.display = 'none';
   document.getElementById('success-card').style.display = 'block';
@@ -1917,4 +1918,5 @@ window.addEventListener('resize', () => {
 // (engine chat Be Lua da duoc go bo - luong gio la: ke tu nhien -> phan tich -> xem lai -> gui)
 
 </script>
+<script src="/lantern-companion/lantern.js?v=20260917-1" defer></script>
 </body>
