@@ -439,6 +439,10 @@ function historyLine(h){const when=h.at?new Date(h.at).toLocaleString('vi-VN',{d
 
 const RC_SOURCES=['Mistake pattern trong tracker','Coaching session trực tiếp','Cả hai'];
 const ACT_TYPES=['Coaching 1-1','Warning Letter','Catchup','Gửi KB / Tài liệu','Test lại kiến thức','Monitor case','Escalate lên SUP','Follow-up tuần sau'];
+// "Monitor case" là bước follow-up: chỉ hiện cho CS vừa được action trong 2 ngày gần nhất.
+function actionedWithin2Days(csEmail){const j=(db.csJourneys||[]).find(x=>x.csEmail===csEmail);if(!j)return false;const cutoff=Date.now()-2*864e5;return (j.rounds||[]).some(r=>{const t=Date.parse(r.loggedAt||r.updatedAt||'');return Number.isFinite(t)&&t>=cutoff;});}
+// Dựng option loại action; ẩn "Monitor case" nếu CS chưa được action trong 2 ngày (trừ khi round đang chọn sẵn nó).
+function actTypeOptions(csEmail,selected){const allow=actionedWithin2Days(csEmail);return ACT_TYPES.filter(t=>t!=='Monitor case'||allow||t===selected).map(t=>`<option value="${t}"${t===selected?' selected':''}>${t}</option>`).join('');}
 
 // ---- Helpers ----
 function jWeekNext(w){return weekOf(addDays(weekMonday(w),7))}
@@ -511,7 +515,7 @@ function journeyCommitFields(baselineHtml){return `<section data-journey-commit 
 function wireJourneyCommit(dialog,selector){
   const type=dialog.querySelector(selector),section=dialog.querySelector('[data-journey-commit]'),commitment=section.querySelector('[name="journeyCommitment"]'),metric=section.querySelector('[name="journeyMetric"]'),target=section.querySelector('[name="journeyTarget"]'),mode=section.querySelector('[name="journeyMode"]'),preview=section.querySelector('[data-next-preview]');
   wireCommitScope(dialog,section.querySelector('[data-commit-scope]').dataset.email);
-  const sync=()=>{const enabled=needsJourneyCommit(type.value);section.hidden=!enabled;['journeyNextSteps','journeyDocument'].forEach(function(n){const el=dialog.querySelector('[name="'+n+'"]');if(el&&el.closest('label'))el.closest('label').hidden=!enabled;});commitment.required=false;target.disabled=!metric.value;target.required=enabled&&!!metric.value;target.step=metric.value==='csat'?'any':'1';if(metric.value==='csat')target.max='100';else target.removeAttribute('max');if(!metric.value)target.value='';const date=section.querySelector('[name="journeyNext"]'),custom=mode.value==='custom';date.closest('label').hidden=!custom;date.disabled=!enabled||!custom;date.required=enabled&&custom;date.min=section.dataset.baseDate||today();date.onchange=sync;if(preview)preview.textContent=custom?(date.value||'Chọn ngày follow'):nextFromMode(section.dataset.baseDate||today(),mode.value);};
+  const sync=()=>{const enabled=needsJourneyCommit(type.value);section.hidden=!enabled;const noNote=String(type.value||'').trim().toLowerCase()==='monitor case';const rEl=dialog.querySelector('#jActNote, #rnNote, #edNote');if(rEl&&rEl.closest('label'))rEl.closest('label').hidden=noNote;['journeyNextSteps','journeyDocument'].forEach(function(n){const el=dialog.querySelector('[name="'+n+'"]');if(el&&el.closest('label'))el.closest('label').hidden=!enabled;});commitment.required=false;target.disabled=!metric.value;target.required=enabled&&!!metric.value;target.step=metric.value==='csat'?'any':'1';if(metric.value==='csat')target.max='100';else target.removeAttribute('max');if(!metric.value)target.value='';const date=section.querySelector('[name="journeyNext"]'),custom=mode.value==='custom';date.closest('label').hidden=!custom;date.disabled=!enabled||!custom;date.required=enabled&&custom;date.min=section.dataset.baseDate||today();date.onchange=sync;if(preview)preview.textContent=custom?(date.value||'Chọn ngày follow'):nextFromMode(section.dataset.baseDate||today(),mode.value);};
   type.addEventListener('change',sync);metric.addEventListener('change',sync);mode.addEventListener('change',sync);sync();
 }
 function readJourneyCommit(dialog,actionType,csEmail,baseDate){
@@ -554,7 +558,7 @@ function showCreateJourney(csEmail){
       <label style="font-size:13px">Action đầu tiên (tùy chọn)<br>
         <select id="jActType" style="width:100%;margin-top:4px;min-height:30px;font-size:13px">
           <option value="">Chưa có action ngay</option>
-          ${ACT_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+          ${actTypeOptions(csEmail,'')}
         </select>
       </label>
       <div id="jActDetail" style="display:none">
@@ -630,7 +634,7 @@ function showAddRound(journeyId){
     <div style="margin-top:12px;display:grid;gap:10px">
       <label style="font-size:13px">Loại action<br>
         <select id="rnActType" style="width:100%;margin-top:4px;min-height:30px;font-size:13px">
-          ${ACT_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+          ${actTypeOptions(j.csEmail,'')}
         </select>
       </label>
       <label style="font-size:13px">Tuần action (W0)<br>
@@ -686,7 +690,7 @@ function showEditRound(journeyId, roundId){
     <div style="margin-top:12px;display:grid;gap:10px">
       <label style="font-size:13px">Loại action<br>
         <select id="edActType" style="width:100%;margin-top:4px;min-height:30px;font-size:13px">
-          ${ACT_TYPES.map(t=>`<option value="${t}"${t===r.actionType?' selected':''}>${t}</option>`).join('')}
+          ${actTypeOptions(j.csEmail,r.actionType)}
         </select>
       </label>
       <label style="font-size:13px">Tuần action (W0)<br>
@@ -996,7 +1000,7 @@ function qaActivityIndex(date){
   const result=new Map();
   // collectActivityHistory excludes demo data and resolves daily reviews to CS.
   for(const event of collectActivityHistory()){
-    if(!event.email||event.type==='CS OFF'||qaActivityDay(event.at)!==date||/^Xóa /i.test(event.type||''))continue;
+    if(!event.email||event.type==='CS OFF'||event.type==='Lý do chưa action'||qaActivityDay(event.at)!==date||/^Xóa /i.test(event.type||''))continue;
     const data=event.data.snapshot||event.data;
     const status=String(data.statusAfter||data.status||data.outcome||'').trim().toLowerCase();
     let label='Monitoring';
@@ -1037,7 +1041,7 @@ function renderActionTracker(){
   const heads=['CS','Action','Channel','Baseline WTD lúc cam kết','WTD hiện tại','Cam kết → mục tiêu','Đạt target?','QA follow hôm nay?','Hạn / Trạng thái','👉 Bước tiếp theo',''];
   const dateLabel=r=>r.date?(String(r.date).includes('T')?new Date(r.date).toLocaleDateString('vi-VN'):r.date):r.week||'—';
   const badge=(txt,cls)=>`<span class="badge ${cls==='green'?'green':cls==='red'?'red':''}" style="font-size:11px">${esc(txt)}</span>`;
-  const rows=list.map((e,index)=>{
+  const rowOf=(e,index)=>{
     const r=e.r;const baseline=r.baseline?.period==='WTD'?r.baseline:commitWTD(r.agent,r.commitChannel||'',r.date?(String(r.date).includes('T')?localISO(new Date(r.date)):r.date):dailyDate),current=commitWTD(r.agent,r.commitChannel||'',today());
     const commit=r.commitment?esc(r.commitment.length>70?r.commitment.slice(0,70)+'…':r.commitment):'—';
     const target=r.commitMetric&&r.commitTarget!=null?`<div style="margin-top:3px">${badge((metricLabels[r.commitMetric]||r.commitMetric+' ')+r.commitTarget,'')}</div>`:'';
@@ -1054,12 +1058,19 @@ function renderActionTracker(){
       `<span style="font-size:12px;color:${e.ns.cls==='red'?'#a42e21':e.ns.cls==='green'?'#19613d':'#5a6a84'};font-weight:${e.ns.cls==='muted'?'400':'600'}">${esc(e.ns.t)}</span>`,
       `<button type="button" data-tracker-follow="${index}" class="primary" style="font-size:11px;padding:3px 9px">Follow daily</button> <button type="button" data-tracker-detail="${index}" style="font-size:11px;padding:3px 9px">Chi tiết</button>`
     ];
-  });
+  };
   $('viewTitle').textContent=(view==='dailyView'?'Daily view · ':'Action Tracker · ')+list.length+'/'+all.length+' action';
   $('viewDesc').textContent='Xem tại ngày đang chọn: cam kết đã đạt target chưa · QA đã follow hôm nay chưa · bước tiếp theo cần làm. Bấm tên CS để xem 7 ngày & lịch sử.';
   const chip=(n,label,color)=>`<div class="stat" style="flex:1;min-width:120px;min-height:auto;padding:9px 13px;border-top-color:${color}"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8b9dbf">${label}</span><strong style="font-size:22px;display:block;margin:3px 0 0;color:${color}">${n}</strong></div>`;
   const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px">${chip(nPass,'Đạt target','#43c397')}${chip(nFail,'Chưa đạt','#e46773')}${chip(nOver,'Quá hạn','#e0803a')}${chip(nDueToday,'Đến hạn hôm nay','#5b8de6')}${chip(nNoFollow,'Chưa follow hôm nay','#ad8ce9')}</div>`;
-  $('content').innerHTML=dailyDateControls()+summary+`<label>Hiển thị <select id="dailyMode"><option value="all">Tất cả action</option><option value="due">Đến hạn / Quá hạn</option><option value="nofollow">Chưa follow hôm nay</option><option value="fail">Chưa đạt cam kết</option></select></label>`+table(heads,rows);
+  const atSub=window._atSub||'cs';
+  const atToggle=`<div style="display:flex;gap:6px;margin:10px 0 14px;border-bottom:1px solid #e5eaf2;padding-bottom:10px">${[['cs','Theo CS'],['qa','Theo QA']].map(([v,t])=>`<button onclick="window._atSub='${v}';render()" style="padding:5px 14px;font-size:13px;border-radius:5px;border:1px solid ${atSub===v?'#5b8de6':'#d0daea'};background:${atSub===v?'#5b8de6':'#fff'};color:${atSub===v?'#fff':'#415777'};cursor:pointer">${t}</button>`).join('')}</div>`;
+  let atBody;
+  if(atSub==='qa'){
+    const byQA=new Map();list.forEach((e,i)=>{const qa=agent(e.r.agent)?.qa||'Chưa phân công QA';if(!byQA.has(qa))byQA.set(qa,[]);byQA.get(qa).push(i);});
+    atBody=[...byQA.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([qa,idxs])=>`<details open class="notice" style="margin:0 0 10px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:10px 14px"><summary style="cursor:pointer;font-weight:700;font-size:15px">${esc(qa)} <span class="muted" style="font-weight:400;font-size:13px">· ${idxs.length} action</span></summary><div style="padding:10px 0 0">${table(heads,idxs.map(i=>rowOf(list[i],i)))}</div></details>`).join('');
+  } else { atBody=table(heads,list.map(rowOf)); }
+  $('content').innerHTML=dailyDateControls()+summary+`<label>Hiển thị <select id="dailyMode"><option value="all">Tất cả action</option><option value="due">Đến hạn / Quá hạn</option><option value="nofollow">Chưa follow hôm nay</option><option value="fail">Chưa đạt cam kết</option></select></label>`+atToggle+atBody;
   $('content').querySelectorAll('[data-tracker-detail]').forEach(button=>button.onclick=()=>{const r=list[Number(button.dataset.trackerDetail)].r;if(r.source==='Journey')showJourneyDetail(r.sourceId);else if(r.source==='Issue')showIssue(r.sourceId);else showFollow(r.sourceId);});
   $('content').querySelectorAll('[data-tracker-cs]').forEach(b=>b.onclick=()=>showDailyCS(list[+b.dataset.trackerCs].r.agent));
   $('content').querySelectorAll('[data-tracker-follow]').forEach(b=>b.onclick=()=>openDailyAction(list[+b.dataset.trackerFollow].r.key));
@@ -1100,12 +1111,18 @@ function mngOffToday(email){
   const latest=(db.history||[]).filter(h=>h.type==='CS OFF'&&h.csEmail===email&&h.snapshot?.date===today()).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
   return latest?.snapshot?.off===true;
 }
+// Lý do CS chưa được action trong ngày (ngoài OFF): ca NS chưa phản hồi, QA nghỉ/AL, chờ SUP...
+const MNG_REASONS=['CS ca NS chưa phản hồi','CS chưa phản hồi QA','QA nghỉ / AL','Chờ SUP / Escalate'];
+function mngReasonToday(email){
+  const latest=(db.history||[]).filter(h=>h.type==='Lý do chưa action'&&h.csEmail===email&&h.snapshot?.date===today()).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
+  return latest?.snapshot?.reason||'';
+}
 function renderMngRequests(){
   const badge=(t,c)=>`<span class="badge ${c==='green'?'green':c==='red'?'red':c==='blue'?'blue':''}" style="font-size:11px">${esc(t)}</span>`;
   const reqs=(db.mngRequests||[]).filter(r=>r&&r.email);
   const scoped=reqs.filter(r=>{const a=agent(r.email);return ['group','queue','batch','seniority','qa'].every(k=>!$('f_'+k)?.value||a?.[k]===$('f_'+k).value);});
   const touched=qaActivityIndex(today());
-  const withState=scoped.map(r=>{const j=(db.csJourneys||[]).find(x=>x.csEmail===r.email);return {r,j,off:mngOffToday(r.email),hasJourney:!!j,nRounds:j?(j.rounds||[]).length:0,touchedToday:touched.has(r.email)};});
+  const withState=scoped.map(r=>{const j=(db.csJourneys||[]).find(x=>x.csEmail===r.email);return {r,j,off:mngOffToday(r.email),reason:mngReasonToday(r.email),hasJourney:!!j,nRounds:j?(j.rounds||[]).length:0,touchedToday:touched.has(r.email)};});
   withState.sort((a,b)=>(a.hasJourney-b.hasJourney)||(a.touchedToday-b.touchedToday)||String(a.r.email).localeCompare(String(b.r.email)));
   const nTotal=withState.length,nNoJourney=withState.filter(e=>!e.hasJourney).length,nTouched=withState.filter(e=>e.touchedToday).length;
   $('viewTitle').textContent='MNG Request · '+nTotal+' CS';
@@ -1114,6 +1131,7 @@ function renderMngRequests(){
   const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px">${chip(nTotal,'CS được request','#5b8de6')}${chip(nNoJourney,'Chưa có Journey','#e0483d')}${chip(nTouched,'Đã xử lý hôm nay','#16a34a')}${chip(withState.filter(e=>e.off).length,'CS OFF hôm nay','#b7791f')}</div>`;
   const csBtn=(e,i)=>`<button class="link" data-mng-cs="${i}">${esc(agent(e.r.email)?.name||e.r.name||e.r.email)}</button><small>${esc(e.r.email)}</small>`;
   const offCell=(e,i)=>`<label class="check" style="white-space:nowrap"><input type="checkbox" data-mng-off="${i}" ${e.off?'checked':''} aria-label="CS OFF hôm nay: ${esc(e.r.email)}"> OFF</label>${e.off?'<small>CS OFF hôm nay · chưa thể action</small>':''}`;
+  const reasonCell=(e,i)=>{const cur=e.reason||'';const isOther=!!cur&&!MNG_REASONS.includes(cur);return `<select data-mng-reason="${i}" style="font-size:12px;max-width:160px" aria-label="Lý do chưa action: ${esc(e.r.email)}"><option value="">—</option>${MNG_REASONS.map(x=>`<option${x===cur?' selected':''}>${esc(x)}</option>`).join('')}<option value="__other"${isOther?' selected':''}>Khác…</option></select><input data-mng-reason-text="${i}" placeholder="Nhập lý do khác" value="${esc(isOther?cur:'')}" style="font-size:12px;margin-top:4px;width:160px;${isOther?'':'display:none'}">`;};
   const jCell=e=>e.hasJourney?badge('✅ Có ('+e.nRounds+' action)','green'):badge('⚠️ Chưa có','red');
   const actCell=(e,i)=>e.hasJourney?`<button type="button" data-mng-add="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Thêm action</button> <button type="button" data-mng-view="${i}" style="font-size:11px;padding:3px 9px">Xem/Cập nhật</button>`:`<button type="button" data-mng-create="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Tạo Journey</button>`;
   const tCell=e=>e.touchedToday?badge('✅ Đã xử lý','green'):badge('Chưa','');
@@ -1123,13 +1141,13 @@ function renderMngRequests(){
   if(!withState.length){body='<div class="empty"><b>Chưa có request nào</b><p class="muted">Dán danh sách buổi sáng ở khung trên để bắt đầu.</p></div>';}
   else if(sub==='qa'){
     const byQA=new Map();withState.forEach((e,i)=>{const qa=agent(e.r.email)?.qa||'Chưa phân công QA';if(!byQA.has(qa))byQA.set(qa,[]);byQA.get(qa).push({e,i});});
-    body=[...byQA.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([qa,arr])=>{const noJ=arr.filter(x=>!x.e.hasJourney).length;return `<details class="notice" style="margin:0 0 10px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:10px 14px"><summary style="cursor:pointer;font-weight:700;font-size:15px">${esc(qa)} <span class="muted" style="font-weight:400;font-size:13px">· ${arr.length} CS · ${noJ} chưa có Journey</span></summary><div style="padding:10px 0 0">${table(['CS','Channel','Loại','Journey','QA hôm nay','CS OFF hôm nay','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),tCell(e),offCell(e,i),actCell(e,i)]))}</div></details>`;}).join('');
+    body=[...byQA.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([qa,arr])=>{const noJ=arr.filter(x=>!x.e.hasJourney).length;return `<details class="notice" style="margin:0 0 10px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:10px 14px"><summary style="cursor:pointer;font-weight:700;font-size:15px">${esc(qa)} <span class="muted" style="font-weight:400;font-size:13px">· ${arr.length} CS · ${noJ} chưa có Journey</span></summary><div style="padding:10px 0 0">${table(['CS','Channel','Loại','Journey','QA hôm nay','CS OFF hôm nay','Lý do chưa action','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),tCell(e),offCell(e,i),reasonCell(e,i),actCell(e,i)]))}</div></details>`;}).join('');
   } else if(sub==='week'){
     const byWeek=new Map();withState.forEach((e,i)=>{const w=e.r.date?weekOf(e.r.date):(e.r.week||'Không rõ');if(!byWeek.has(w))byWeek.set(w,[]);byWeek.get(w).push({e,i});});
-    body=[...byWeek.entries()].sort((a,b)=>String(b[0]).localeCompare(String(a[0]))).map(([w,arr])=>`<div style="margin:0 0 14px"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="font-size:15px">${esc(w)}</b><span class="muted">${arr.length} CS · ${arr.filter(x=>!x.e.hasJourney).length} chưa có Journey</span></div>${table(['CS','Channel','Loại','Journey','QA hôm nay','CS OFF hôm nay','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),tCell(e),offCell(e,i),actCell(e,i)]))}</div>`).join('');
+    body=[...byWeek.entries()].sort((a,b)=>String(b[0]).localeCompare(String(a[0]))).map(([w,arr])=>`<div style="margin:0 0 14px"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="font-size:15px">${esc(w)}</b><span class="muted">${arr.length} CS · ${arr.filter(x=>!x.e.hasJourney).length} chưa có Journey</span></div>${table(['CS','Channel','Loại','Journey','QA hôm nay','CS OFF hôm nay','Lý do chưa action','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),tCell(e),offCell(e,i),reasonCell(e,i),actCell(e,i)]))}</div>`).join('');
   } else {
-    const heads=['CS','Loại request','Channel','Ngày','Ghi chú của MNG','Người request','Journey','QA hôm nay','CS OFF hôm nay','Hành động'];
-    body=table(heads,withState.map((e,i)=>[csBtn(e,i),badge(e.r.type||'Coaching','blue'),esc(e.r.channel||'—'),esc(e.r.date||e.r.week||'—'),`<div style="font-size:12px;color:#415777;max-width:300px;white-space:pre-wrap">${esc(e.r.note||'—')}</div>`,esc(e.r.by||'MNG'),jCell(e),tCell(e),offCell(e,i),actCell(e,i)]));
+    const heads=['CS','Loại request','Channel','Ngày','Ghi chú của MNG','Người request','Journey','QA hôm nay','CS OFF hôm nay','Lý do chưa action','Hành động'];
+    body=table(heads,withState.map((e,i)=>[csBtn(e,i),badge(e.r.type||'Coaching','blue'),esc(e.r.channel||'—'),esc(e.r.date||e.r.week||'—'),`<div style="font-size:12px;color:#415777;max-width:300px;white-space:pre-wrap">${esc(e.r.note||'—')}</div>`,esc(e.r.by||'MNG'),jCell(e),tCell(e),offCell(e,i),reasonCell(e,i),actCell(e,i)]));
   }
   const paste=!canMngPaste()?'':`<details class="notice" style="margin:0 0 14px"><summary style="cursor:pointer;font-weight:700">➕ Dán danh sách MNG (mỗi sáng)</summary><div style="padding:10px 2px 2px"><p class="muted" style="margin:0 0 8px">Dán trực tiếp từ sheet, mỗi dòng: <b>date · Channel · Agent name · Agent email</b> (phân tách Tab). Có header cũng được — dòng không có email sẽ bỏ qua. Nạp sẽ <b>thay toàn bộ</b> danh sách request hiện tại.</p><div class="actions" style="margin-bottom:8px"><label>Loại request <select id="mngType"><option>Coaching</option><option>Catchup</option><option>Monitoring</option></select></label></div><textarea id="mngPaste" rows="6" style="width:100%;font-size:12px;font-family:monospace;padding:8px;border:1px solid #cdd7e5;border-radius:6px;box-sizing:border-box" placeholder="14/9/2026	Internet Call	03. CA.B Nguyen Kien Cuong	cuong.nguyenkien1.cs@shopeemobile-external.com"></textarea><div class="actions" style="margin-top:8px"><button class="primary" id="mngLoad">Nạp danh sách</button><button id="mngClear" style="color:#c26456">Xoá danh sách</button></div></div></details>`;
   $('content').innerHTML=paste+summary+toggle+body;
@@ -1148,11 +1166,27 @@ function renderMngRequests(){
     window.scrollTo(scroll.x,scroll.y);
     toast(checked?'Đã đánh dấu CS OFF hôm nay.':'Đã bỏ dấu CS OFF hôm nay.');
   });
+  const saveMngReason=(i,reason)=>{
+    const e=withState[i];
+    logHistory('Lý do chưa action',e.r.email,agent(e.r.email)?.name||e.r.name,(reason?('Lý do: '+reason):'Bỏ lý do')+' · '+today(),{date:today(),reason});
+    const expanded=Array.from($('content').querySelectorAll('details'),d=>d.open);
+    const scroll={x:window.scrollX,y:window.scrollY};
+    dirty=true;render();
+    $('content').querySelectorAll('details').forEach((d,k)=>{d.open=expanded[k]||false;});
+    window.scrollTo(scroll.x,scroll.y);
+    toast(reason?'Đã ghi lý do chưa action.':'Đã bỏ lý do.');
+  };
+  $('content').querySelectorAll('[data-mng-reason]').forEach(sel=>sel.onchange=()=>{
+    const i=+sel.dataset.mngReason,txt=$('content').querySelector('[data-mng-reason-text="'+i+'"]');
+    if(sel.value==='__other'){if(txt){txt.style.display='';txt.focus();}return;}
+    saveMngReason(i,sel.value);
+  });
+  $('content').querySelectorAll('[data-mng-reason-text]').forEach(inp=>inp.onchange=()=>saveMngReason(+inp.dataset.mngReasonText,inp.value.trim()));
   $('content').querySelectorAll('[data-mng-cs]').forEach(b=>b.onclick=()=>showAgent(withState[+b.dataset.mngCs].r.email));
   $('content').querySelectorAll('[data-mng-create]').forEach(b=>b.onclick=()=>showCreateJourney(withState[+b.dataset.mngCreate].r.email));
   $('content').querySelectorAll('[data-mng-view]').forEach(b=>b.onclick=()=>showJourneyDetail(withState[+b.dataset.mngView].j.id));
   $('content').querySelectorAll('[data-mng-add]').forEach(b=>b.onclick=()=>showAddRound(withState[+b.dataset.mngAdd].j.id));
-  performanceExport={headers:['CS','Email','Loại','Ngày','Ghi chú','Người request','Có Journey','Số action','QA hôm nay','CS OFF hôm nay'],rows:withState.map(e=>[agent(e.r.email)?.name||e.r.name||e.r.email,e.r.email,e.r.type||'',e.r.date||e.r.week||'',e.r.note||'',e.r.by||'',e.hasJourney?'Có':'Chưa',e.nRounds,e.touchedToday?'Đã xử lý':'Chưa',e.off?'OFF':''])};
+  performanceExport={headers:['CS','Email','Loại','Ngày','Ghi chú','Người request','Có Journey','Số action','QA hôm nay','CS OFF hôm nay','Lý do chưa action'],rows:withState.map(e=>[agent(e.r.email)?.name||e.r.name||e.r.email,e.r.email,e.r.type||'',e.r.date||e.r.week||'',e.r.note||'',e.r.by||'',e.hasJourney?'Có':'Chưa',e.nRounds,e.touchedToday?'Đã xử lý':'Chưa',e.off?'OFF':'',e.reason||''])};
 }
 // ---- Hook into render pipeline ----
 const _jPrevRender=render;
