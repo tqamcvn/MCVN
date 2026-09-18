@@ -807,9 +807,10 @@ function showJourneyDetail(journeyId){
       <button onclick="showEditRootCause('${j.id}')">✏️ Sửa Issue / Root cause</button>
       <button onclick="{const jj=db.csJourneys.find(x=>x.id==='${j.id}');if(jj&&confirm('Xóa journey này?')){logHistory('Xóa Journey',jj.csEmail,jj.csName,'Root cause: '+jj.rootCause,jj);db.csJourneys=db.csJourneys.filter(x=>x.id!=='${j.id}');dirty=true;$('detail').close();render()}}" style="color:#c26456">Xóa Journey</button>
     </div>
-    <div class="detailbox">
-      <b>Root Cause:</b> ${esc(j.rootCause)}\n<b>By:</b> ${esc(j.by||'—')} · ${j.createdAt?new Date(j.createdAt).toLocaleDateString('vi-VN'):''}
-      ${m?`\n\nCSAT hiện tại: ${m.csat!==null?m.csat.toFixed(1)+'%':'—'} · Mistake%: ${m.rate!==null?m.rate.toFixed(1)+'%':'—'}`:''} 
+    <div class="detailbox journey-summary" style="white-space:normal;display:grid;gap:8px;padding:16px">
+      <div><b>Root Cause:</b> <span style="white-space:pre-wrap">${esc(j.rootCause)}</span></div>
+      <div><b>By:</b> ${esc(j.by||'—')} · ${j.createdAt?new Date(j.createdAt).toLocaleDateString('vi-VN'):''}</div>
+      ${m?`<div style="display:flex;flex-wrap:wrap;gap:8px 24px;padding-top:8px;border-top:1px solid var(--line)"><span><b>CSAT hiện tại:</b> ${m.csat!==null?m.csat.toFixed(1)+'%':'—'}</span><span><b>Mistake%:</b> ${m.rate!==null?m.rate.toFixed(1)+'%':'—'}</span></div>`:''}
     </div>
     <h3 style="margin:16px 0 8px">Lịch sử action (${j.rounds.length})</h3>
     <div style="display:grid;gap:8px">${roundsHtml}</div>
