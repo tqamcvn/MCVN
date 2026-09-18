@@ -438,7 +438,7 @@ function historyLine(h){const when=h.at?new Date(h.at).toLocaleString('vi-VN',{d
   return `<details class="journey-action"><summary class="journey-action-summary"><span class="badge blue" style="font-size:11px">${esc(h.type)}</span><span style="font-size:12px;color:#657487">${esc(when)}</span><span style="font-size:12px;color:#8b9dbf">${esc(h.by)}</span><span class="journey-action-hint"><span class="when-closed">Xem</span><span class="when-open">Thu gọn</span></span></summary><div class="journey-action-body"><p style="margin:0;font-size:13px;color:#415777">${esc(h.detail||'—')}</p><p style="margin:4px 0 0;font-size:11px;color:#9fb0c8">${esc(h.byEmail||'')}${h.csName?' · CS: '+esc(h.csName):''}</p></div></details>`;}
 
 const RC_SOURCES=['Mistake pattern trong tracker','Coaching session trực tiếp','Cả hai'];
-const ACT_TYPES=['Coaching 1-1','Warning Letter','Catchup','Gửi KB / Tài liệu','Test lại kiến thức','Monitor case','Escalate lên SUP','Follow-up tuần sau'];
+const ACT_TYPES=['Coaching 1-1','Warning Letter','Catchup','Gửi KB / Tài liệu','Test lại kiến thức','Monitor case','Escalate lên SUP','Work với BO/TL','Follow-up tuần sau'];
 // "Monitor case" là bước follow-up: chỉ hiện cho CS vừa được action trong 2 ngày gần nhất.
 function actionedWithin2Days(csEmail){const j=(db.csJourneys||[]).find(x=>x.csEmail===csEmail);if(!j)return false;const cutoff=Date.now()-2*864e5;return (j.rounds||[]).some(r=>{const t=Date.parse(r.loggedAt||r.updatedAt||'');return Number.isFinite(t)&&t>=cutoff;});}
 // Dựng option loại action; ẩn "Monitor case" nếu CS chưa được action trong 2 ngày (trừ khi round đang chọn sẵn nó).

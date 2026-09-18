@@ -15,7 +15,7 @@ TZ = timezone(timedelta(hours=7))
 HEADERS = ['Year', 'Week', 'Session Type', 'Project', 'Topic', 'Date', 'Timeline', 'Detail', 'PIC incharge', 'Status', 'Recap', 'Agent list (tên IH system)', 'Document', '#Participant', 'Next steps', 'Final Result']
 
 # Action không phải buổi coaching/refreshing -> KHÔNG ghi vào tab này (bỏ qua im lặng, không báo lỗi).
-NON_RECAP = [r'monitor', r'g[ửu]i\s*kb|tài liệu|tai lieu|\bkb\b', r'escalate', r'follow[\s-]?up']
+NON_RECAP = [r'monitor', r'g[ửu]i\s*kb|tài liệu|tai lieu|\bkb\b', r'escalate', r'follow[\s-]?up', r'^work với bo/tl$']
 
 class SkipRecord(Exception):
     """Record cố ý không đưa vào tab Recap (vd Monitor case, Gửi KB, Escalate, Follow-up)."""
