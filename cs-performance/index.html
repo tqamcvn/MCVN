@@ -150,7 +150,7 @@ const perfCounts=(a,w=perfWeek())=>db.performanceWeekly?.[a.email]?.[w]||{tagged
 const verdict=(a,w=perfWeek())=>score(a,w)===null?'missing':perfTarget(a)===null?'untargeted':score(a,w)<perfTarget(a)?'below':'pass';
 const pct=v=>v===null?'Chưa có':v.toFixed(1)+'%';
 function scoreBadge(a,w=perfWeek()){let s=verdict(a,w),v=score(a,w);return `<span class="score ${s}" title="${esc(w)} · Target ${perfTarget(a)??'chưa đặt'}%">${pct(v)}</span>`;}
-function performanceControls(){let weeks=[...new Set([...Object.values(db.csat||{}).flatMap(Object.keys),...Object.values(db.performanceWeekly||{}).flatMap(Object.keys)])].sort().reverse().slice(0,4);$('performanceControls').innerHTML=`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px"><label style="display:flex;align-items:center;gap:6px;font-weight:600">Tuần<select id="perfWeek" style="min-width:110px">${options(weeks)}</select></label><label style="display:flex;align-items:center;gap:6px;font-weight:600">Kết quả<select id="perfResult" style="min-width:130px"><option value="">Tất cả</option><option value="below">Chưa đạt</option><option value="pass">Đạt</option><option value="missing">Chưa có CSAT</option><option value="untargeted">Chưa đặt target</option></select></label><label class="check" style="font-weight:400;gap:5px"><input type="checkbox" id="demoToggle" checked><span>Hiện minh họa</span></label></div>`;$('perfWeek').value=weeks.includes('2026-W36')?'2026-W36':weeks[0];$('performanceControls').onchange=()=>{page=1;render()}}
+function performanceControls(){let weeks=[...new Set([...Object.values(db.csat||{}).flatMap(Object.keys),...Object.values(db.performanceWeekly||{}).flatMap(Object.keys)])].sort().reverse().slice(0,4);$('performanceControls').innerHTML=`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px"><label style="display:flex;align-items:center;gap:6px;font-weight:600">Tuần<select id="perfWeek" style="min-width:110px">${options(weeks)}</select></label><label style="display:flex;align-items:center;gap:6px;font-weight:600">Kết quả<select id="perfResult" style="min-width:130px"><option value="">Tất cả</option><option value="below">Chưa đạt</option><option value="pass">Đạt</option><option value="missing">Chưa có CSAT</option><option value="untargeted">Chưa đặt target</option></select></label><label class="check" style="font-weight:400;gap:5px"><input type="checkbox" id="demoToggle" checked><span>Hiện minh họa</span></label></div>`;$('perfWeek').value=weeks[0];$('performanceControls').onchange=()=>{page=1;render()}}
 // Preserve existing issue filters; classify CSAT using the selected week's actual value.
 scope=function(){let aa=db.agents.filter(a=>['group','queue','batch','seniority','qa'].every(k=>!$('f_'+k).value||a[k]===$('f_'+k).value));let result=$('perfResult')?.value;if(result)aa=aa.filter(a=>verdict(a)===result);let ids=new Set(aa.map(a=>a.email)),q=norm($('search').value.trim());let ii=visibleIssues().filter(i=>ids.has(i.agent));if(q){ii=ii.filter(i=>norm([agent(i.agent)?.name,i.agent,i.id,i.detail].join(' ')).includes(q));let matches=new Set(ii.map(i=>i.agent));aa=aa.filter(a=>norm(a.name+' '+a.email).includes(q)||matches.has(a.email))}let topic=$('f_topic').value,st=$('f_status').value,r=$('f_repeat').value;if(topic)ii=ii.filter(i=>visibleLogs().some(l=>l.issue===i.id&&l.topic===topic));ii=ii.filter(i=>(!st||i.status===st)&&(r===''||(r==='2'?i.recurring>=2:i.recurring===+r)));let issueIds=new Set(ii.map(i=>i.id));let ll=visibleLogs().filter(l=>aa.some(a=>a.email===l.agent)&&(!topic||l.topic===topic)&&(!l.issue||issueIds.has(l.issue)));if(st||r!=='')ll=ll.filter(l=>l.issue&&issueIds.has(l.issue));if(topic||st||r!==''){let matched=new Set([...ii.map(i=>i.agent),...ll.map(l=>l.agent)]);aa=aa.filter(a=>matched.has(a.email))}return{aa,ii,ll}};
 let performanceExport=null;
@@ -234,7 +234,7 @@ performanceControls=function(){
 `;
 
   // Init week picker
-  $('perfWeek').value=weeks.includes('2026-W36')?'2026-W36':weeks[0]||'';
+  $('perfWeek').value=weeks[0]||'';
   if(!rangeMode) rangeMode='week';
 
   // Active button style + picker visibility
@@ -257,7 +257,7 @@ performanceControls=function(){
     $('rm_'+k).onclick=()=>{
       applyMode(k);
       // reset the other pickers
-      if(k!=='week') $('perfWeek').value=weeks.includes('2026-W36')?'2026-W36':weeks[0]||'';
+      if(k!=='week') $('perfWeek').value=weeks[0]||'';
       if(k!=='month') $('monthFilter').value='';
       if(k!=='time')  $('timeFilter').value='';
       page=1;render();
@@ -1532,6 +1532,32 @@ const beforeDailyRender=render;
 render=function(){beforeDailyRender();if(view==='performance')embedDailyPerformance();};
 render();
 
+// Account-specific filter preferences on this browser; time always opens at latest week.
+const savedFilterIds=['f_group','f_queue','f_batch','f_seniority','f_qa','f_topic','f_status','f_repeat','perfResult'];
+let weekChosenThisVisit=false;
+function filterPreferenceKey(){
+  const email=String(window.__QA_USER?.email||'').trim().toLowerCase();
+  return email?'csp:filters:v1:'+email:null;
+}
+function saveFilterPreferences(){
+  const key=filterPreferenceKey();if(!key)return;
+  try{localStorage.setItem(key,JSON.stringify(Object.fromEntries(savedFilterIds.map(id=>[id,$(id)?.value||'']))));}catch(e){}
+}
+function restoreFilterPreferences(){
+  const key=filterPreferenceKey();if(!key)return;
+  try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(!saved)return;
+    for(const id of savedFilterIds){const el=$(id);if(el&&typeof saved[id]==='string'&&Array.from(el.options).some(o=>o.value===saved[id]))el.value=saved[id];}
+  }catch(e){}
+}
+document.addEventListener('change',event=>{
+  if(event.target.id==='perfWeek')weekChosenThisVisit=true;
+  if(savedFilterIds.includes(event.target.id))saveFilterPreferences();
+});
+document.addEventListener('click',event=>{
+  if(event.target.closest('#reset'))saveFilterPreferences();
+});
+restoreFilterPreferences();
+
 // Refresh period options after the live feed replaces the embedded data.
 function refreshLivePeriodOptions(){
   const weeks=[...new Set([...(db.rawV3||[]).map(r=>r[3]),...(db.ratingsV4||[]).map(r=>r[2])].filter(w=>/^\d{4}-W\d{2}$/.test(w)))].sort().reverse().slice(0,4);
@@ -1540,7 +1566,7 @@ function refreshLivePeriodOptions(){
   if(weekSelect){
     const selected=weekSelect.value;
     weekSelect.innerHTML=weeks.map(w=>`<option value="${w}">${w.slice(5)} · ${w.slice(0,4)}</option>`).join('');
-    weekSelect.value=weeks.includes(selected)?selected:(weeks[0]||'');
+    weekSelect.value=weekChosenThisVisit&&weeks.includes(selected)?selected:(weeks[0]||'');
     defaultTimeWeek=weekSelect.value;
   }
   if(monthSelect){
@@ -1549,7 +1575,7 @@ function refreshLivePeriodOptions(){
     monthSelect.value=months.includes(selected)?selected:'';
   }
 }
-;(function(){try{fetch("data.json?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(d){if(!d)return;var n=0;if(Array.isArray(d.agents)&&d.agents.length){db.agents=d.agents;n++;}if(Array.isArray(d.rawV3)){db.rawV3=d.rawV3;n++;}if(Array.isArray(d.ratingsV4)){db.ratingsV4=d.ratingsV4;n++;}if(Array.isArray(d.mngRequests)){db.mngRequests=d.mngRequests;n++;}if(d.sourceUpdatedAt)db.sourceUpdatedAt=d.sourceUpdatedAt;if(d.rawSourceName)db.rawSourceName=d.rawSourceName;if(d.ratingsUpdatedAt)db.ratingsUpdatedAt=d.ratingsUpdatedAt;if(d.ratingsSourceName)db.ratingsSourceName=d.ratingsSourceName;try{periodCache.clear();}catch(e){}try{ratingCache.clear();}catch(e){}if(n){refreshLivePeriodOptions();if(typeof render==="function")render();}console.log("[CSP] live data.json loaded",{agents:(db.agents||[]).length,rawV3:(db.rawV3||[]).length,ratingsV4:(db.ratingsV4||[]).length});}).catch(function(){});}catch(e){}})();
+;(function(){try{fetch("data.json?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(d){if(!d)return;var n=0;if(Array.isArray(d.agents)&&d.agents.length){db.agents=d.agents;n++;}if(Array.isArray(d.rawV3)){db.rawV3=d.rawV3;n++;}if(Array.isArray(d.ratingsV4)){db.ratingsV4=d.ratingsV4;n++;}if(Array.isArray(d.mngRequests)){db.mngRequests=d.mngRequests;n++;}if(d.sourceUpdatedAt)db.sourceUpdatedAt=d.sourceUpdatedAt;if(d.rawSourceName)db.rawSourceName=d.rawSourceName;if(d.ratingsUpdatedAt)db.ratingsUpdatedAt=d.ratingsUpdatedAt;if(d.ratingsSourceName)db.ratingsSourceName=d.ratingsSourceName;try{periodCache.clear();}catch(e){}try{ratingCache.clear();}catch(e){}if(n){refreshLivePeriodOptions();initFilters();restoreFilterPreferences();if(typeof render==="function")render();}console.log("[CSP] live data.json loaded",{agents:(db.agents||[]).length,rawV3:(db.rawV3||[]).length,ratingsV4:(db.ratingsV4||[]).length});}).catch(function(){});}catch(e){}})();
 
 ;
 /* ===== Auth integration: QA identity lấy từ Supabase (window.__QA_USER) =====
