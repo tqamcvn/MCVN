@@ -60,10 +60,11 @@
     if(!drag.moved&&Math.hypot(dx,dy)<6)return;
     drag.moved=true;pet.classList.add('dragging');
     moveTo(drag.left+dx,drag.top+dy);
+    expression(7,4); // Dizzy while being carried; recover shortly after release.
   });
   function finishDrag(e){
     if(!drag||drag.id!==e.pointerId)return;
-    suppressClick=drag.moved;if(drag.moved)savePosition();drag=null;
+    suppressClick=drag.moved;if(drag.moved){savePosition();expression(7,4);}drag=null;
     pet.classList.remove('dragging');
     if(pet.hasPointerCapture(e.pointerId))pet.releasePointerCapture(e.pointerId);
   }
