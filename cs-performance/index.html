@@ -1601,7 +1601,7 @@ function mngRepeatedMetrics(row){
   const baseline=actions.find(a=>(a.commitChannel||'')===channel&&a.baseline?.csat!=null)?.baseline;
   const ratings=(db.ratingsV4||[]).filter(r=>r[0]===row.email&&r[1]>=weekMonday(weekOf(today()))&&r[1]<=today()&&(!channel||r[5]===channel));
   const total=ratings.reduce((n,r)=>n+(Number(r[4])||0),0),good=ratings.reduce((n,r)=>n+(Number(r[3])||0),0),value=total?100*good/total:null;
-  const target=latest?Number(latest.commitTarget):perfTarget(agent(row.email));
+  const target=latest?Number(latest.commitTarget):(agent(row.email)?perfTarget(agent(row.email)):null);
   const state=value==null||total<5?'nodata':target==null?'notarget':value>=target?'pass':'fail';
   return {actions,channel,baseline,value,total,target,state,targetSource:latest?'Cam kết CSAT':'Target CS',lastData:ratings.map(r=>r[1]).sort().at(-1)||''};
 }
@@ -1616,21 +1616,24 @@ function mngRepeatedSection(all){
 let mngReviewFilter='all';
 function renderMngReview(){
   if(!canViewMngReview()){ $('content').innerHTML='<div class="empty">Chỉ MNG được xem báo cáo này.</div>';performanceExport=null;return; }
-  const all=mngReviewRows(),pass=all.filter(r=>r.outcome.state==='pass').length,fail=all.filter(r=>r.outcome.state==='fail').length;
-  const filters=[['all','Tất cả',()=>true],['twice','Không cải thiện sau 2 lần',r=>r.noImproveTwice],['none','Chưa coaching/catchup',r=>r.required>0&&r.done===0],['short','Chưa đủ lần',r=>r.missing>0],['pass','Đạt',r=>r.outcome.state==='pass'],['fail','Chưa đạt',r=>r.outcome.state==='fail'],['waiting','Chờ dữ liệu / cam kết',r=>['pending','nodata','none'].includes(r.outcome.state)]];
-  const rows=all.filter((filters.find(f=>f[0]===mngReviewFilter)||filters[0])[2]).sort((a,b)=>Number(b.noImproveTwice)-Number(a.noImproveTwice)||b.missing-a.missing||a.name.localeCompare(b.name));
-  $('viewTitle').textContent='MNG · Hiệu quả coaching/catchup';
-  $('viewDesc').textContent='Theo kỳ đang chọn · mỗi CS/ngày request cần 1 action phù hợp. Catchup chỉ tính Catchup; Coaching tính Coaching hoặc Catchup. OFF được loại khỏi số lần cần làm.';
-  $('stats').innerHTML=[['CS được request',all.length],['Đạt cam kết',pass],['Chưa đạt cam kết',fail],['Tỷ lệ đạt trên CS đủ dữ liệu',pass+fail?(100*pass/(pass+fail)).toFixed(1)+'%':'—']].map(([label,n])=>`<div class="stat"><span>${label}</span><strong>${n}</strong></div>`).join('');
-  const qaGroups=new Map();for(const r of all){if(!qaGroups.has(r.qa))qaGroups.set(r.qa,[]);qaGroups.get(r.qa).push(r);}
-  const qaHtml=[...qaGroups].map(([qa,rs])=>`<tr><td>${esc(qa)}</td><td>${rs.length}</td><td>${rs.filter(r=>r.missing>0).length}</td><td>${rs.filter(r=>r.noImproveTwice).length}</td><td>${rs.filter(r=>r.outcome.state==='pass').length}</td><td>${rs.filter(r=>r.outcome.state==='fail').length}</td></tr>`).join('');
-  const explanation='<p class="muted">“Không cải thiện sau 2 lần”: hai request gần nhất trong kỳ đều chưa đạt và chỉ số không tốt hơn baseline. Mỗi lần chỉ dùng dữ liệu đến trước request tiếp theo; thiếu baseline/data không bị kết luận là không cải thiện. Ngày hôm nay chưa kết thúc có thể còn chờ QA xử lý. Lịch sử trước khi lưu chi tiết đợt request có thể chưa đầy đủ.</p>';
-  const detail=r=>`<details><summary>${r.done}/${r.required} lần đáp ứng · thiếu ${r.missing}${r.off?' · OFF '+r.off:''}</summary>${r.details.map(d=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>${esc(d.request.date)} · ${esc(d.request.type||'Coaching')}</b><br>${d.off?'OFF · không tính thiếu':d.matches.length?'Đã ghi nhận '+d.matches.length+' action phù hợp':'Chưa ghi nhận action phù hợp'}<br>${esc(d.outcome.label)}${d.outcome.comparison?'<br>Baseline → kết quả: '+esc(d.outcome.comparison):''}${d.outcome.lastData?'<br>Dữ liệu đến '+esc(d.outcome.lastData):''}</div>`).join('')}</details>`;
-  $('content').innerHTML=mngRepeatedSection(all)+`<div class="actions" style="margin-bottom:12px">${filters.map(([key,label,test])=>`<button data-mng-review-filter="${key}" class="${key===mngReviewFilter?'primary':''}">${label} (${all.filter(test).length})</button>`).join('')}</div>${explanation}<details style="margin-bottom:16px"><summary><b>Tổng hợp theo QA</b></summary><div class="table-wrap"><table><thead><tr><th>QA</th><th>CS</th><th>CS thiếu lần</th><th>Không cải thiện 2 lần</th><th>Đạt</th><th>Chưa đạt</th></tr></thead><tbody>${qaHtml}</tbody></table></div></details>`+table(['CS / QA','Số lần request','Thực hiện theo request','Kết quả cam kết gần nhất','Hiệu quả / cần follow'],rows.map(r=>[`<button class="link" data-mng-review-cs="${esc(r.email)}">${esc(r.name)}</button><small>${esc(r.qa)}</small>`,r.details.length,detail(r),esc(r.outcome.label),r.noImproveTwice?'<span class="badge red">Không cải thiện sau 2 lần</span>':r.outcome.improved===true?'Có cải thiện':r.outcome.improved===false?'Không cải thiện so với baseline':'Chưa đủ cơ sở đánh giá']));
+  const range=rangeSelected(),groups=new Map();
+  for(const request of mngReviewRequests()){
+    if(request.date<range.start||request.date>range.end||request.date>today())continue;
+    if(!groups.has(request.email))groups.set(request.email,[]);
+    groups.get(request.email).push({request});
+  }
+  const all=[...groups].map(([email,details])=>({email,details,name:agent(email)?.name||details[0].request.name||email,qa:agent(email)?.qa||'Chưa phân công'})).filter(r=>{
+    const a=agent(r.email);return ['group','queue','batch','seniority','qa'].every(k=>!$('f_'+k)?.value||a?.[k]===$('f_'+k).value)&&(!$('search')?.value||norm(r.name+' '+r.email+' '+r.qa).includes(norm($('search').value)));
+  });
+  const cohort=all.filter(r=>new Set(r.details.map(d=>d.request.date)).size>=2).map(r=>({...r,csat:mngRepeatedMetrics(r)}));
+  const pass=cohort.filter(r=>r.csat.state==='pass').length,fail=cohort.filter(r=>r.csat.state==='fail').length;
+  $('viewTitle').textContent='MNG · CS được request từ 2 ngày';
+  $('viewDesc').textContent='Đếm ngày request khác nhau trong kỳ đang chọn. Mỗi CS chỉ tính một lần; WTD dùng dữ liệu của tuần hiện tại.';
+  $('stats').innerHTML=[['CS được request ≥2 ngày',cohort.length],['WTD đạt',pass],['WTD chưa đạt',fail],['Chưa đủ data / target',cohort.length-pass-fail]].map(([label,n])=>`<div class="stat"><span>${label}</span><strong>${n}</strong></div>`).join('');
+  $('content').innerHTML=mngRepeatedSection(all)+'<p class="muted">Chỉ đếm lịch sử request đã lưu. Những đợt cũ đã bị thay thế trước khi có lưu lịch sử không thể tự khôi phục.</p>';
   $('content').querySelectorAll('[data-mng-repeated]').forEach(b=>b.onclick=()=>{mngRepeatedFilter=b.dataset.mngRepeated;render();});
-  $('content').querySelectorAll('[data-mng-review-filter]').forEach(b=>b.onclick=()=>{mngReviewFilter=b.dataset.mngReviewFilter;page=1;render();});
   $('content').querySelectorAll('[data-mng-review-cs]').forEach(b=>b.onclick=()=>showAgent(b.dataset.mngReviewCs));
-  performanceExport={headers:['CS','Email','QA','Request','Cần làm','Đã đáp ứng','Thiếu','OFF','Kết quả','Không cải thiện 2 lần'],rows:rows.map(r=>[r.name,r.email,r.qa,r.details.length,r.required,r.done,r.missing,r.off,r.outcome.label,r.noImproveTwice?'Có':''])};
+  performanceExport={headers:['CS','Email','QA','Số ngày request','Số action','Channel','Baseline CSAT','WTD CSAT','Target','Kết quả'],rows:cohort.map(r=>[r.name,r.email,r.qa,r.details.length,r.csat.actions.length,r.csat.channel,r.csat.baseline?.csat??'',r.csat.value??'',r.csat.target??'',({pass:'Đạt',fail:'Chưa đạt',nodata:'Chưa đủ dữ liệu',notarget:'Chưa có target'})[r.csat.state]])};
 }
 const beforeMngReviewRender=render;
 render=function(){
