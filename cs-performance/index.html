@@ -1176,8 +1176,8 @@ function renderMngRequests(){
   }
   const paste=!canMngPaste()?'':`<details class="notice" style="margin:0 0 14px"><summary style="cursor:pointer;font-weight:700">➕ Dán danh sách MNG (mỗi sáng)</summary><div style="padding:10px 2px 2px"><p class="muted" style="margin:0 0 8px">Dán trực tiếp từ sheet, mỗi dòng: <b>date · Channel · Agent name · Agent email</b> (phân tách Tab). Có header cũng được — dòng không có email sẽ bỏ qua. Nạp sẽ <b>thay toàn bộ</b> danh sách request hiện tại.</p><div class="actions" style="margin-bottom:8px"><label>Loại request <select id="mngType"><option>Coaching</option><option>Catchup</option><option>Monitoring</option></select></label></div><textarea id="mngPaste" rows="6" style="width:100%;font-size:12px;font-family:monospace;padding:8px;border:1px solid #cdd7e5;border-radius:6px;box-sizing:border-box" placeholder="14/9/2026	Internet Call	03. CA.B Nguyen Kien Cuong	cuong.nguyenkien1.cs@shopeemobile-external.com"></textarea><div class="actions" style="margin-top:8px"><button class="primary" id="mngLoad">Nạp danh sách</button><button id="mngClear" style="color:#c26456">Xoá danh sách</button></div></div></details>`;
   $('content').innerHTML=paste+summary+toggle+body;
-  if($('mngLoad'))$('mngLoad').onclick=()=>{const txt=$('mngPaste').value;const type=$('mngType').value;const by=currentQASession?.()?.name||'MNG';const parsed=parseMngPaste(txt,type,by);if(!parsed.length){toast('Không đọc được dòng nào có email hợp lệ.');return;}db.mngRequests=parsed;if(typeof logHistory==='function')logHistory('Nạp MNG request ('+parsed.length+' CS)','','',type+' · '+parsed.length+' CS');dirty=true;render();toast('Đã nạp '+parsed.length+' request.');};
-  if($('mngClear'))$('mngClear').onclick=()=>{if(confirm('Xoá toàn bộ danh sách MNG request?')){db.mngRequests=[];dirty=true;render();toast('Đã xoá danh sách MNG request.');}};
+  if($('mngLoad'))$('mngLoad').onclick=()=>{const txt=$('mngPaste').value;const type=$('mngType').value;const by=currentQASession?.()?.name||'MNG';const parsed=parseMngPaste(txt,type,by);if(!parsed.length){toast('Không đọc được dòng nào có email hợp lệ.');return;}if(typeof logHistory==='function')logHistory('Nạp MNG request ('+parsed.length+' CS)','','',type+' · '+parsed.length+' CS',{mngRequests:[...(db.mngRequests||[]),...parsed]});db.mngRequests=parsed;dirty=true;render();toast('Đã nạp '+parsed.length+' request.');};
+  if($('mngClear'))$('mngClear').onclick=()=>{if(confirm('Xoá toàn bộ danh sách MNG request?')){logHistory('Lưu lịch sử trước khi xóa MNG request','','','',{mngRequests:[...(db.mngRequests||[])]});db.mngRequests=[];dirty=true;render();toast('Đã xoá danh sách MNG request.');}};
   $('content').querySelectorAll('[data-mng-off]').forEach(b=>b.onchange=()=>{
     const e=withState[+b.dataset.mngOff];
     logHistory('CS OFF',e.r.email,agent(e.r.email)?.name||e.r.name,(b.checked?'Đánh dấu CS OFF':'Bỏ dấu CS OFF')+' · '+today(),{date:today(),off:b.checked});
@@ -1535,6 +1535,88 @@ render=function(){const activityPage=page;beforeActivityRender();if(view==='logs
 const beforeDailyRender=render;
 render=function(){beforeDailyRender();if(view==='performance')embedDailyPerformance();};
 render();
+
+// Management review uses saved requests and recorded actions, never inferred requests.
+function canViewMngReview(){return ['senior tqa','tl tqa','sup tqa','acting tl tqa'].includes(String(window.__QA_USER?.role||'').trim().toLowerCase());}
+function mngReviewRequests(){
+  const byDay=new Map();
+  const archives=(db.history||[]).filter(h=>Array.isArray(h.snapshot?.mngRequests)).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  for(const r of [...archives.flatMap(h=>h.snapshot.mngRequests),...(db.mngRequests||[])]){
+    const email=String(r.email||'').trim().toLowerCase(),date=mngDateNorm(r.date||'');
+    if(!email||!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
+    const key=email+'|'+date,prev=byDay.get(key);
+    if(!prev||mngChannelRank(r.channel)<=mngChannelRank(prev.channel))byDay.set(key,{...r,email,date});
+  }
+  return [...byDay.values()].sort((a,b)=>a.date.localeCompare(b.date));
+}
+function mngReviewOff(email,date){
+  return (db.history||[]).filter(h=>h.type==='CS OFF'&&h.csEmail===email&&h.snapshot?.date===date).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0]?.snapshot?.off===true;
+}
+function mngReviewMatches(type,requestType){
+  const t=String(type||'').trim().toLowerCase(),wanted=String(requestType||'').trim().toLowerCase();
+  return /catch[ -]?up/.test(wanted)?/^(catchup|catch-up)$/.test(t):/^(coaching|coaching 1-1|1:1 coaching|catchup|catch-up)$/.test(t);
+}
+function mngReviewOutcome(action,end){
+  if(!action)return {state:'noaction',label:'Chưa có action phù hợp',improved:null};
+  if(!action.commitMetric||action.commitTarget==null)return {state:'none',label:'Chưa có cam kết',improved:null};
+  if(!action.next||end<action.next)return {state:'pending',label:'Chưa tới hạn / chưa có hạn',improved:null};
+  const start=weekMonday(weekOf(end)),email=action.agent;
+  const rs=(db.ratingsV4||[]).filter(r=>r[0]===email&&r[1]>=start&&r[1]<=end&&(!action.commitChannel||r[5]===action.commitChannel));
+  const ts=(db.rawV3||[]).filter(r=>r[0]===email&&r[2]>=start&&r[2]<=end);
+  const metric=action.commitMetric,tag=calcRaw(ts),total=rs.reduce((n,r)=>n+(Number(r[4])||0),0),good=rs.reduce((n,r)=>n+(Number(r[3])||0),0);
+  const dates=(metric==='csat'?rs.map(r=>r[1]):ts.map(r=>r[2])).sort();
+  const value=metric==='csat'?(total?100*good/total:null):metric==='mistake'?tag.mistake:metric==='repeat'?tag.repeated.length:null;
+  if(value===null||(metric==='csat'?total:tag.tagged)<5||!dates.length||dates.at(-1)<action.next)return {state:'nodata',label:'Chờ dữ liệu sau hạn (≥5 mẫu)',improved:null};
+  const base=metric==='csat'?action.baseline?.csat:metric==='mistake'?action.baseline?.mistake:action.baseline?.repeated?.length;
+  const passed=metric==='csat'?value>=Number(action.commitTarget):value<=Number(action.commitTarget);
+  const improved=base==null?null:metric==='csat'?value>base:value<base;
+  const fmt=v=>v==null?'—':metric==='csat'?Number(v).toFixed(1)+'%':String(v);
+  return {state:passed?'pass':'fail',label:(passed?'Đạt':'Chưa đạt')+' · '+fmt(value)+' / mục tiêu '+fmt(action.commitTarget),improved,comparison:fmt(base)+' → '+fmt(value),lastData:dates.at(-1)};
+}
+function mngReviewRows(){
+  const range=rangeSelected(),end=range.end<today()?range.end:today();
+  const requests=mngReviewRequests().filter(r=>r.date>=range.start&&r.date<=end);
+  const actions=collectTrackerActions().filter(a=>a.agent&&a.date);
+  const groups=new Map();for(const r of requests){if(!groups.has(r.email))groups.set(r.email,[]);groups.get(r.email).push(r);}
+  return [...groups].map(([email,reqs])=>{
+    const a=agent(email),details=reqs.map((r,i)=>{
+      const off=mngReviewOff(email,r.date);
+      const matches=actions.filter(x=>x.agent===email&&qaActivityDay(x.date)===r.date&&mngReviewMatches(x.type,r.type));
+      const latest=matches.filter(x=>x.commitMetric).sort((x,y)=>String(y.date).localeCompare(String(x.date)))[0]||matches[0];
+      const until=reqs[i+1]?addDays(reqs[i+1].date,-1):end;
+      return {request:r,off,matches,outcome:mngReviewOutcome(latest,until)};
+    });
+    const required=details.filter(d=>!d.off),done=required.filter(d=>d.matches.length),latest=required.at(-1),lastTwo=required.slice(-2);
+    return {email,name:a?.name||reqs[0].name||email,qa:a?.qa||'Chưa phân công',details,required:required.length,done:done.length,missing:required.length-done.length,off:details.filter(d=>d.off).length,
+      outcome:latest?.outcome||{state:'off',label:'Các ngày request đều OFF',improved:null},
+      noImproveTwice:lastTwo.length===2&&lastTwo.every(d=>d.outcome.state==='fail'&&d.outcome.improved===false)};
+  }).filter(r=>{const a=agent(r.email);return ['group','queue','batch','seniority','qa'].every(k=>!$('f_'+k)?.value||a?.[k]===$('f_'+k).value)&&(!$('search')?.value||norm(r.name+' '+r.email+' '+r.qa).includes(norm($('search').value)));});
+}
+let mngReviewFilter='all';
+function renderMngReview(){
+  if(!canViewMngReview()){ $('content').innerHTML='<div class="empty">Chỉ MNG được xem báo cáo này.</div>';performanceExport=null;return; }
+  const all=mngReviewRows(),pass=all.filter(r=>r.outcome.state==='pass').length,fail=all.filter(r=>r.outcome.state==='fail').length;
+  const filters=[['all','Tất cả',()=>true],['twice','Không cải thiện sau 2 lần',r=>r.noImproveTwice],['none','Chưa coaching/catchup',r=>r.required>0&&r.done===0],['short','Chưa đủ lần',r=>r.missing>0],['pass','Đạt',r=>r.outcome.state==='pass'],['fail','Chưa đạt',r=>r.outcome.state==='fail'],['waiting','Chờ dữ liệu / cam kết',r=>['pending','nodata','none'].includes(r.outcome.state)]];
+  const rows=all.filter((filters.find(f=>f[0]===mngReviewFilter)||filters[0])[2]).sort((a,b)=>Number(b.noImproveTwice)-Number(a.noImproveTwice)||b.missing-a.missing||a.name.localeCompare(b.name));
+  $('viewTitle').textContent='MNG · Hiệu quả coaching/catchup';
+  $('viewDesc').textContent='Theo kỳ đang chọn · mỗi CS/ngày request cần 1 action phù hợp. Catchup chỉ tính Catchup; Coaching tính Coaching hoặc Catchup. OFF được loại khỏi số lần cần làm.';
+  $('stats').innerHTML=[['CS được request',all.length],['Đạt cam kết',pass],['Chưa đạt cam kết',fail],['Tỷ lệ đạt trên CS đủ dữ liệu',pass+fail?(100*pass/(pass+fail)).toFixed(1)+'%':'—']].map(([label,n])=>`<div class="stat"><span>${label}</span><strong>${n}</strong></div>`).join('');
+  const qaGroups=new Map();for(const r of all){if(!qaGroups.has(r.qa))qaGroups.set(r.qa,[]);qaGroups.get(r.qa).push(r);}
+  const qaHtml=[...qaGroups].map(([qa,rs])=>`<tr><td>${esc(qa)}</td><td>${rs.length}</td><td>${rs.filter(r=>r.missing>0).length}</td><td>${rs.filter(r=>r.noImproveTwice).length}</td><td>${rs.filter(r=>r.outcome.state==='pass').length}</td><td>${rs.filter(r=>r.outcome.state==='fail').length}</td></tr>`).join('');
+  const explanation='<p class="muted">“Không cải thiện sau 2 lần”: hai request gần nhất trong kỳ đều chưa đạt và chỉ số không tốt hơn baseline. Mỗi lần chỉ dùng dữ liệu đến trước request tiếp theo; thiếu baseline/data không bị kết luận là không cải thiện. Ngày hôm nay chưa kết thúc có thể còn chờ QA xử lý. Lịch sử trước khi lưu chi tiết đợt request có thể chưa đầy đủ.</p>';
+  const detail=r=>`<details><summary>${r.done}/${r.required} lần đáp ứng · thiếu ${r.missing}${r.off?' · OFF '+r.off:''}</summary>${r.details.map(d=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>${esc(d.request.date)} · ${esc(d.request.type||'Coaching')}</b><br>${d.off?'OFF · không tính thiếu':d.matches.length?'Đã ghi nhận '+d.matches.length+' action phù hợp':'Chưa ghi nhận action phù hợp'}<br>${esc(d.outcome.label)}${d.outcome.comparison?'<br>Baseline → kết quả: '+esc(d.outcome.comparison):''}${d.outcome.lastData?'<br>Dữ liệu đến '+esc(d.outcome.lastData):''}</div>`).join('')}</details>`;
+  $('content').innerHTML=`<div class="actions" style="margin-bottom:12px">${filters.map(([key,label,test])=>`<button data-mng-review-filter="${key}" class="${key===mngReviewFilter?'primary':''}">${label} (${all.filter(test).length})</button>`).join('')}</div>${explanation}<details style="margin-bottom:16px"><summary><b>Tổng hợp theo QA</b></summary><div class="table-wrap"><table><thead><tr><th>QA</th><th>CS</th><th>CS thiếu lần</th><th>Không cải thiện 2 lần</th><th>Đạt</th><th>Chưa đạt</th></tr></thead><tbody>${qaHtml}</tbody></table></div></details>`+table(['CS / QA','Số lần request','Thực hiện theo request','Kết quả cam kết gần nhất','Hiệu quả / cần follow'],rows.map(r=>[`<button class="link" data-mng-review-cs="${esc(r.email)}">${esc(r.name)}</button><small>${esc(r.qa)}</small>`,r.details.length,detail(r),esc(r.outcome.label),r.noImproveTwice?'<span class="badge red">Không cải thiện sau 2 lần</span>':r.outcome.improved===true?'Có cải thiện':r.outcome.improved===false?'Không cải thiện so với baseline':'Chưa đủ cơ sở đánh giá']));
+  $('content').querySelectorAll('[data-mng-review-filter]').forEach(b=>b.onclick=()=>{mngReviewFilter=b.dataset.mngReviewFilter;page=1;render();});
+  $('content').querySelectorAll('[data-mng-review-cs]').forEach(b=>b.onclick=()=>showAgent(b.dataset.mngReviewCs));
+  performanceExport={headers:['CS','Email','QA','Request','Cần làm','Đã đáp ứng','Thiếu','OFF','Kết quả','Không cải thiện 2 lần'],rows:rows.map(r=>[r.name,r.email,r.qa,r.details.length,r.required,r.done,r.missing,r.off,r.outcome.label,r.noImproveTwice?'Có':''])};
+}
+const beforeMngReviewRender=render;
+render=function(){
+  if(view==='mngReview'&&!canViewMngReview())view='performance';
+  const requestedPage=page;beforeMngReviewRender();
+  if(canViewMngReview())$('tabs').insertAdjacentHTML('beforeend',`<button class="${view==='mngReview'?'active':''}" onclick="view='mngReview';page=1;render()">MNG · Hiệu quả</button>`);
+  if(view==='mngReview'){page=requestedPage;renderMngReview();}
+};
 
 // Local drafts are separate from submitted team records.
 (function(){
