@@ -786,6 +786,7 @@ function showJourneyDetail(journeyId){
           <span style="font-size:12px;color:#8b9dbf">${esc(r.week)}</span>
           ${jVerdictBadge(eff)}
           ${r.loggedAt?`<span style="font-size:12px;color:#657487">${esc(new Date(r.loggedAt).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}))}</span>`:''}
+          <button type="button" onclick="event.preventDefault();event.stopPropagation();showEditRound('${j.id}','${r.id}')" style="font-size:12px;padding:5px 10px">✏️ Sửa action</button>
           <span class="journey-action-hint"><span class="when-closed">Xem chi tiết</span><span class="when-open">Thu gọn</span></span>
         </summary>
         <div class="journey-action-body">
@@ -795,7 +796,7 @@ function showJourneyDetail(journeyId){
         ${eff&&eff.status==='evaluated'?`<p style="margin:4px 0 0;font-size:12px;color:#657487">CSAT ${eff.m0.csat!==null?eff.m0.csat.toFixed(1)+'%':'—'} → ${eff.m1.csat!==null?eff.m1.csat.toFixed(1)+'%':'—'} (${jDeltaStr(eff.csatDelta)}) · Mistake% ${eff.m0.rate!==null?eff.m0.rate.toFixed(1)+'%':'—'} → ${eff.m1.rate!==null?eff.m1.rate.toFixed(1)+'%':'—'} (${jDeltaStr(eff.rateDelta,true)})</p>`:''}
         ${eff&&eff.status==='pending'?`<p style="margin:4px 0 0;font-size:12px;color:#896a1c">Chờ data tuần ${eff.w1}</p>`:''}
         <p style="margin:4px 0 0;font-size:11px;color:#9fb0c8">By: ${esc(r.by||'—')} · ${r.loggedAt?new Date(r.loggedAt).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):''}${r.updatedAt?` · ✏️ sửa ${new Date(r.updatedAt).toLocaleDateString('vi-VN')}`:''}</p>
-        <div class="actions" style="margin-top:8px"><button onclick="showEditRound('${j.id}','${r.id}')" style="font-size:12px">✏️ Sửa action</button><button onclick="{if(confirm('Xóa action này?')){const jj=db.csJourneys.find(x=>x.id==='${j.id}');const removed=jj.rounds.find(x=>x.id==='${r.id}');logHistory('Xóa action',jj.csEmail,jj.csName,'Đã xóa action ${r.id}',removed);jj.rounds=jj.rounds.filter(x=>x.id!=='${r.id}');dirty=true;showJourneyDetail('${j.id}');render()}}" style="font-size:12px;color:#c26456">Xóa</button></div>
+        <div class="actions" style="margin-top:8px"><button onclick="{if(confirm('Xóa action này?')){const jj=db.csJourneys.find(x=>x.id==='${j.id}');const removed=jj.rounds.find(x=>x.id==='${r.id}');logHistory('Xóa action',jj.csEmail,jj.csName,'Đã xóa action ${r.id}',removed);jj.rounds=jj.rounds.filter(x=>x.id!=='${r.id}');dirty=true;showJourneyDetail('${j.id}');render()}}" style="font-size:12px;color:#c26456">Xóa</button></div>
         </div>
       </details>`;
     }).join('');
