@@ -1536,6 +1536,47 @@ const beforeDailyRender=render;
 render=function(){beforeDailyRender();if(view==='performance')embedDailyPerformance();};
 render();
 
+// Local drafts are separate from submitted team records.
+(function(){
+  const attached=new WeakMap();
+  const fields=d=>Array.from(d.querySelectorAll('input,select,textarea')).filter(e=>
+    (e.name||e.id)&&!e.readOnly&&!['hidden','password','file','submit','button'].includes(e.type));
+  const identity=e=>(e.name||e.id)+(e.type==='checkbox'||e.type==='radio'?':'+e.value:'');
+  function clear(d){const state=attached.get(d);if(state)try{localStorage.removeItem(state.key);}catch(e){} }
+  function attach(d,kind,args){
+    const email=String(window.__QA_USER?.email||currentQASession()?.email||'').trim().toLowerCase();
+    if(!email||!d)return;
+    const key='csp:draft:v1:'+email+':'+kind+':'+JSON.stringify(args);
+    const old=attached.get(d);if(old){d.removeEventListener('input',old.save);d.removeEventListener('change',old.save);d.removeEventListener('submit',old.submit);old.notice.remove();}
+    const notice=document.createElement('div');notice.style.cssText='font-size:12px;color:#526889;padding:8px 0';
+    const status=document.createElement('span');status.textContent='Tự lưu nháp trên trình duyệt này';notice.append(status);
+    const discard=document.createElement('button');discard.type='button';discard.textContent='Xóa bản nháp';discard.style.cssText='font-size:12px;margin-left:10px;padding:4px 8px';notice.append(discard);d.append(notice);
+    let restoring=true;
+    const save=()=>{if(restoring)return;try{const values=Object.fromEntries(fields(d).map(e=>[identity(e),e.type==='checkbox'||e.type==='radio'?e.checked:e.value]));localStorage.setItem(key,JSON.stringify({values,at:new Date().toISOString()}));status.textContent='Đã lưu nháp · '+new Date().toLocaleTimeString('vi-VN');}catch(e){status.textContent='Không lưu được nháp trên trình duyệt này';}};
+    const submit=()=>queueMicrotask(()=>{if(!d.open)clear(d);});
+    attached.set(d,{key,save,submit,notice});
+    discard.onclick=()=>{clear(d);status.textContent='Đã xóa bản nháp; nhập tiếp sẽ tạo nháp mới';};
+    try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(saved?.values){
+      // Restore in DOM order so topic/action changes rebuild their dependent fields first.
+      const done=new Set();let el;
+      while((el=fields(d).find(e=>!done.has(identity(e))))){const id=identity(el);done.add(id);if(!Object.hasOwn(saved.values,id))continue;
+        const value=saved.values[id];if(el.tagName==='SELECT'&&!Array.from(el.options).some(o=>o.value===value))continue;
+        if(el.type==='checkbox'||el.type==='radio')el.checked=!!value;else el.value=String(value);
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      status.textContent='Đã khôi phục bản nháp chưa submit';
+    }}catch(e){status.textContent='Không đọc được bản nháp';}
+    restoring=false;d.addEventListener('input',save);d.addEventListener('change',save);d.addEventListener('submit',submit);
+  }
+  function opened(fn,kind){return function(...args){const result=fn.apply(this,args);const d=Array.from(document.querySelectorAll('dialog[open]')).at(-1);if(d)attach(d,kind,args);return result;};}
+  function saved(fn){return function(...args){const d=args.find(a=>a?.tagName==='DIALOG');const result=fn.apply(this,args);if(d&&!d.open)clear(d);return result;};}
+  openEntry=opened(openEntry,'entry');openFollow=opened(openFollow,'follow');
+  showCreateJourney=opened(showCreateJourney,'create-journey');showAddRound=opened(showAddRound,'add-action');
+  showEditRound=opened(showEditRound,'edit-action');showEditRootCause=opened(showEditRootCause,'edit-root-cause');
+  saveCreateJourney=saved(saveCreateJourney);saveAddRound=saved(saveAddRound);
+  saveEditRound=saved(saveEditRound);saveEditRootCause=saved(saveEditRootCause);
+})();
+
 // Account-specific filter preferences on this browser; time always opens at latest week.
 const savedFilterIds=['f_group','f_queue','f_batch','f_seniority','f_qa','f_topic','f_status','f_repeat','perfResult'];
 let weekChosenThisVisit=false;
