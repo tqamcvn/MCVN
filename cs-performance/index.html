@@ -1530,7 +1530,7 @@ function renderActivityHistory(){
   performanceExport={headers:[...headers,'Email CS','Toàn bộ thông tin'],rows:rows.map(r=>[activityTime(r.at),r.name,r.type,r.issue,r.by,r.detail,r.email,activityDetails(r.data)])};
 }
 const beforeActivityRender=render;
-render=function(){beforeActivityRender();if(view==='logs')renderActivityHistory();};
+render=function(){const activityPage=page;beforeActivityRender();if(view==='logs'){page=activityPage;renderActivityHistory();}};
 
 const beforeDailyRender=render;
 render=function(){beforeDailyRender();if(view==='performance')embedDailyPerformance();};
