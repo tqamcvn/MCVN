@@ -1531,7 +1531,24 @@ const beforeDailyRender=render;
 render=function(){beforeDailyRender();if(view==='performance')embedDailyPerformance();};
 render();
 
-;(function(){try{fetch("data.json?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(d){if(!d)return;var n=0;if(Array.isArray(d.agents)&&d.agents.length){db.agents=d.agents;n++;}if(Array.isArray(d.rawV3)){db.rawV3=d.rawV3;n++;}if(Array.isArray(d.ratingsV4)){db.ratingsV4=d.ratingsV4;n++;}if(Array.isArray(d.mngRequests)){db.mngRequests=d.mngRequests;n++;}if(d.sourceUpdatedAt)db.sourceUpdatedAt=d.sourceUpdatedAt;if(d.rawSourceName)db.rawSourceName=d.rawSourceName;if(d.ratingsUpdatedAt)db.ratingsUpdatedAt=d.ratingsUpdatedAt;if(d.ratingsSourceName)db.ratingsSourceName=d.ratingsSourceName;try{periodCache.clear();}catch(e){}try{ratingCache.clear();}catch(e){}if(n&&typeof render==="function")render();console.log("[CSP] live data.json loaded",{agents:(db.agents||[]).length,rawV3:(db.rawV3||[]).length,ratingsV4:(db.ratingsV4||[]).length});}).catch(function(){});}catch(e){}})();
+// Refresh period options after the live feed replaces the embedded data.
+function refreshLivePeriodOptions(){
+  const weeks=[...new Set([...(db.rawV3||[]).map(r=>r[3]),...(db.ratingsV4||[]).map(r=>r[2])].filter(w=>/^\d{4}-W\d{2}$/.test(w)))].sort().reverse();
+  const months=[...new Set([...(db.rawV3||[]).map(r=>String(r[2]||'').slice(0,7)),...(db.ratingsV4||[]).map(r=>String(r[1]||'').slice(0,7))].filter(m=>/^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+  const weekSelect=$('perfWeek'),monthSelect=$('monthFilter');
+  if(weekSelect){
+    const selected=weekSelect.value;
+    weekSelect.innerHTML=weeks.map(w=>`<option value="${w}">${w.slice(5)} · ${w.slice(0,4)}</option>`).join('');
+    weekSelect.value=weeks.includes(selected)?selected:(weeks[0]||'');
+    defaultTimeWeek=weekSelect.value;
+  }
+  if(monthSelect){
+    const selected=monthSelect.value;
+    monthSelect.innerHTML='<option value="">Chọn tháng</option>'+months.map(m=>`<option value="${m}">01 ${new Date(m+'-01T12:00:00').toLocaleDateString('en-US',{month:'short',year:'numeric'})}</option>`).join('');
+    monthSelect.value=months.includes(selected)?selected:'';
+  }
+}
+;(function(){try{fetch("data.json?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(d){if(!d)return;var n=0;if(Array.isArray(d.agents)&&d.agents.length){db.agents=d.agents;n++;}if(Array.isArray(d.rawV3)){db.rawV3=d.rawV3;n++;}if(Array.isArray(d.ratingsV4)){db.ratingsV4=d.ratingsV4;n++;}if(Array.isArray(d.mngRequests)){db.mngRequests=d.mngRequests;n++;}if(d.sourceUpdatedAt)db.sourceUpdatedAt=d.sourceUpdatedAt;if(d.rawSourceName)db.rawSourceName=d.rawSourceName;if(d.ratingsUpdatedAt)db.ratingsUpdatedAt=d.ratingsUpdatedAt;if(d.ratingsSourceName)db.ratingsSourceName=d.ratingsSourceName;try{periodCache.clear();}catch(e){}try{ratingCache.clear();}catch(e){}if(n){refreshLivePeriodOptions();if(typeof render==="function")render();}console.log("[CSP] live data.json loaded",{agents:(db.agents||[]).length,rawV3:(db.rawV3||[]).length,ratingsV4:(db.ratingsV4||[]).length});}).catch(function(){});}catch(e){}})();
 
 ;
 /* ===== Auth integration: QA identity lấy từ Supabase (window.__QA_USER) =====
