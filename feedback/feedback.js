@@ -168,6 +168,8 @@ $('form').onsubmit=async e=>{
 (async()=>{try{const {data,error}=await db.auth.getUser();if(error||!data.user){message('Vui lòng đăng nhập dashboard để xem và gửi phản hồi.');$('list').replaceChildren();return;}user=data.user;draftKey='tqa.feedback.draft.v1.'+user.id;draftId=crypto.randomUUID();restore();$('write').disabled=false;await load();}catch{message('Không tải được feedback. Kiểm tra kết nối hoặc cấu hình dữ liệu.');$('list').replaceChildren();}})();
 
 function renderTask(r){
+  $('task-progress').hidden=!isManager;
+  if(!isManager){$('task-progress').replaceChildren();return;}
   const steps=['Đang xem xét','Đã nhận','Đang thực hiện','Hoàn thành'];const current=steps.indexOf(r.status);
   $('task-progress').replaceChildren(...steps.map((step,i)=>{const li=node('li',(i<=current?'✓ ':'')+step,i===current?'current':i<current?'done':'');if(i===current)li.setAttribute('aria-current','step');return li;}));
   $('task-status').value=steps.slice(1).includes(r.status)?r.status:'';
