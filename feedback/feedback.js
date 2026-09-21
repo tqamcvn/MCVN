@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id);
 const db = window.supabase.createClient(feedbackConfig.url, feedbackConfig.key);
 let user, rows = [], votes = [], files = [], timer, draftKey, sending = false, draftId;
+let people = new Map(), isManager = false, selectedFeedback = null, detailVersion = 0, imageVersion = 0;
 const maxBody = 10000;
 document.body.classList.toggle('dark', new URLSearchParams(location.search).get('theme') === 'dark');
 function message(text) { $('notice').textContent = text; }
@@ -57,15 +58,62 @@ function render(){
   filtered.forEach(r=>{
     const card=node('article','','card'), vote=node('button','⌃\n'+tally(r.id),'vote');vote.setAttribute('aria-pressed',String(mine(r.id)));vote.setAttribute('aria-label',(mine(r.id)?'Bỏ bình chọn: ':'Bình chọn: ')+r.title);
     vote.onclick=async()=>{vote.disabled=true;try{const result=mine(r.id)?await db.from('feedback_votes').delete().eq('feedback_id',r.id).eq('user_id',user.id):await db.from('feedback_votes').insert({feedback_id:r.id,user_id:user.id});if(result.error)throw result.error;await load();}catch{message('Chưa lưu được bình chọn. Vui lòng thử lại.');vote.disabled=false;}};
-    const content=node('div','','card-content'),meta=node('div','','meta'),date=node('time',new Date(r.created_at).toLocaleDateString('en-GB'));date.dateTime=r.created_at;meta.append(date,node('span',r.kind,'badge'),node('span',r.status,'badge status'));
+    const content=node('div','','card-content'),meta=node('div','','meta'),date=node('time',new Date(r.created_at).toLocaleDateString('en-GB'));date.dateTime=r.created_at;meta.append(person(r.author_id),date,node('span',r.kind,'badge'),node('span',r.status,'badge status'));
     const title=node('button',r.title,'title-button');title.onclick=()=>showDetail(r);content.append(meta,title,node('p',r.body,'excerpt'));if(r.attachments?.length)content.append(node('p','⌁ '+r.attachments.length+' đính kèm','muted'));card.append(vote,content);$('list').append(card);
   });
 }
-async function showDetail(r){$('detail-title').textContent=r.title;$('detail-meta').textContent=r.kind+' · '+r.status+' · '+new Date(r.created_at).toLocaleDateString('en-GB');$('detail-body').textContent=r.body;$('detail-files').replaceChildren();(r.attachments||[]).forEach(f=>{const a=node('button',f.name);a.onclick=async()=>{a.disabled=true;const {data,error}=await db.storage.from('feedback-attachments').createSignedUrl(f.path,60);a.disabled=false;if(error){a.textContent='Không tải được ảnh. Nhấn để thử lại.';return;}const link=node('a',f.name);link.href=data.signedUrl;link.target='_blank';link.rel='noopener';a.replaceWith(link);link.click();};$('detail-files').append(a);});$('detail').showModal();}
+function person(id){
+  const p=people.get(id)||{display_name:'Thành viên',avatar_url:''};
+  const wrap=node('span','','person'),avatar=node('span',p.display_name.trim().split(/\s+/).slice(-2).map(x=>x[0]).join('').toUpperCase(),'avatar');
+  if(/^https:\/\//i.test(p.avatar_url)||/^data:image\/(png|jpeg|webp);base64,/i.test(p.avatar_url)){
+    const img=document.createElement('img');img.alt='';img.src=p.avatar_url;img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();avatar.append(img);
+  }
+  wrap.append(avatar,node('span',p.display_name));return wrap;
+}
+$('image-close').onclick=()=>{$('image-dialog').close();};
+$('image-dialog').addEventListener('close',()=>{imageVersion++;$('image-full').removeAttribute('src');});
+async function openImage(file){
+  const version=++imageVersion;$('image-title').textContent=file.name;$('image-full').removeAttribute('src');$('image-full').alt=file.name;$('image-message').textContent='Đang tải ảnh…';$('image-dialog').showModal();
+  try{const {data,error}=await db.storage.from('feedback-attachments').createSignedUrl(file.path,300);if(error)throw error;if(version!==imageVersion)return;
+    $('image-full').onload=()=>{if(version===imageVersion)$('image-message').textContent='';};
+    $('image-full').onerror=()=>{if(version===imageVersion)$('image-message').textContent='Không tải được ảnh. Đóng và thử lại.';};
+    $('image-full').src=data.signedUrl;
+  }catch{if(version===imageVersion)$('image-message').textContent='Không tải được ảnh. Đóng và thử lại.';}
+}
+async function showDetail(r){
+  const version=++detailVersion;selectedFeedback=r;$('detail-title').textContent=r.title;
+  $('detail-meta').replaceChildren(person(r.author_id),node('span',' · '+r.kind+' · '+r.status+' · '+new Date(r.created_at).toLocaleDateString('en-GB')));
+  $('detail-body').textContent=r.body;$('detail-files').replaceChildren();
+  (r.attachments||[]).forEach(f=>{const button=node('button','▧ '+f.name);button.onclick=()=>openImage(f);$('detail-files').append(button);});
+  $('manager-actions').hidden=!isManager;$('reply-form').hidden=!isManager;$('detail-error').textContent='';
+  $('received').disabled=r.status==='Đã nhận';$('completed').disabled=r.status==='Hoàn thành';
+  $('reply-body').value='';try{$('reply-body').value=sessionStorage.getItem('feedback.reply.'+user.id+'.'+r.id)||'';}catch{}
+  $('replies').textContent='Đang tải phản hồi…';if(!$('detail').open)$('detail').showModal();
+  try{const result=await db.from('feedback_replies').select('*').eq('feedback_id',r.id).order('created_at');if(result.error)throw result.error;if(version!==detailVersion)return;
+    $('replies').replaceChildren();if(!result.data.length)$('replies').textContent='Chưa có phản hồi từ MNG.';
+    result.data.forEach(reply=>{const box=node('article','','reply');box.append(person(reply.author_id),node('time',new Date(reply.created_at).toLocaleString('vi-VN'),'muted'),node('p',reply.body));$('replies').append(box);});
+  }catch{if(version===detailVersion)$('replies').textContent='Không tải được phản hồi. Đóng và mở lại để thử lại.';}
+}
+$('reply-body').oninput=()=>{try{sessionStorage.setItem('feedback.reply.'+user.id+'.'+selectedFeedback.id,$('reply-body').value);}catch{}};
+async function setStatus(status){
+  if(!isManager||!selectedFeedback)return;const id=selectedFeedback.id;
+  $('received').disabled=$('completed').disabled=true;
+  try{const result=await db.rpc('feedback_set_status',{target_id:id,new_status:status});if(result.error)throw result.error;await load();if(selectedFeedback.id===id){selectedFeedback=rows.find(r=>r.id===id);$('detail-meta').replaceChildren(person(selectedFeedback.author_id),node('span',' · '+selectedFeedback.kind+' · '+status));$('detail-error').textContent='Đã cập nhật: '+status;}}
+  catch{$('detail-error').textContent='Chưa cập nhật được trạng thái. Vui lòng thử lại.';}
+  finally{$('received').disabled=selectedFeedback.status==='Đã nhận';$('completed').disabled=selectedFeedback.status==='Hoàn thành';}
+}
+$('received').onclick=()=>setStatus('Đã nhận');$('completed').onclick=()=>setStatus('Hoàn thành');
+$('reply-form').onsubmit=async e=>{
+  e.preventDefault();const body=$('reply-body').value.trim();if(!isManager||!body||!selectedFeedback)return;
+  const id=selectedFeedback.id;$('reply-submit').disabled=true;
+  try{const result=await db.from('feedback_replies').insert({feedback_id:id,author_id:user.id,body});if(result.error)throw result.error;try{sessionStorage.removeItem('feedback.reply.'+user.id+'.'+id);}catch{}await load();if(selectedFeedback.id===id)await showDetail(rows.find(r=>r.id===id));}
+  catch{$('detail-error').textContent='Chưa gửi được phản hồi. Nội dung vẫn được giữ lại.';}
+  finally{$('reply-submit').disabled=false;}
+};
 async function load(){
-  const [a,b]=await Promise.all([db.from('feedback').select('*').order('created_at',{ascending:false}),db.from('feedback_votes').select('*')]);
-  if(a.error||b.error)throw a.error||b.error;
-  rows=a.data;votes=b.data;message('');render();
+  const [a,b,p,m]=await Promise.all([db.from('feedback').select('*').order('created_at',{ascending:false}),db.from('feedback_votes').select('*'),db.rpc('feedback_people'),db.rpc('feedback_is_manager')]);
+  if(a.error||b.error||p.error||m.error)throw a.error||b.error||p.error||m.error;
+  rows=a.data;votes=b.data;people=new Map(p.data.map(p=>[p.id,p]));isManager=m.data===true;message('');render();
 }
 let previewUrls=[];
 function renderFiles(){
