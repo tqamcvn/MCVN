@@ -1726,13 +1726,13 @@ function mngRepeatedMetrics(row){
 }
 let mngRepeatedFilter='all';
 let mngRequestScope='twoDays';
-function mngRequestIncluded(r){return mngRequestScope==='all'||new Set(r.details.map(d=>d.request.date)).size>=2;}
+function mngRequestIncluded(r){return mngReviewPaste.length>0||mngRequestScope==='all'||new Set(r.details.map(d=>d.request.date)).size>=2;}
 function mngRepeatedSection(all){
   const cohort=all.filter(mngRequestIncluded).map(r=>({...r,csat:mngRepeatedMetrics(r)}));
   const pass=cohort.filter(r=>r.csat.state==='pass').length,fail=cohort.filter(r=>r.csat.state==='fail').length;
   const shown=cohort.filter(r=>mngRepeatedFilter==='all'||(mngRepeatedFilter==='noaction'?r.csat.actions.length===0:mngRepeatedFilter==='waiting'?!['pass','fail'].includes(r.csat.state):r.csat.state===mngRepeatedFilter));
   const pct=v=>v==null?'—':Number(v).toFixed(1)+'%';
-  return `<section style="border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:18px"><h3 style="margin-top:0">${mngRequestScope==='all'?'Tất cả CS đã được MNG request trong kỳ':'CS được MNG request từ 2 ngày khác nhau trong kỳ'}</h3><div class="actions">${[['all','Tổng CS',cohort.length],['pass','WTD đạt',pass],['fail','WTD chưa đạt',fail],['waiting','Chưa đủ data / target',cohort.length-pass-fail],['noaction','CS chưa action',cohort.filter(r=>r.csat.actions.length===0).length]].map(([key,label,count])=>`<button data-mng-repeated="${key}" class="${key===mngRepeatedFilter?'primary':''}">${label}: ${count}</button>`).join('')}</div><p class="muted">Action tính từ request đầu tiên đến cuối kỳ đã chọn (không vượt hôm nay). WTD là tuần hiện tại, tối thiểu 5 rating; so với cam kết CSAT gần nhất, nếu chưa có thì dùng target CS. Baseline lấy bản đã lưu đầu tiên cùng channel trong kỳ, không tự suy đoán khi thiếu.</p><div class="table-wrap"><table><thead><tr><th>CS / QA</th><th>Số ngày request</th><th>Action QA</th><th>Channel</th><th>Baseline CSAT</th><th>CSAT WTD hiện tại</th><th>Target</th><th>Kết quả</th></tr></thead><tbody>${shown.map(r=>{const m=r.csat;return `<tr><td><button class="link" data-mng-review-cs="${esc(r.email)}">${esc(r.name)}</button><small>${esc(r.qa)}</small></td><td>${r.details.length}<small>${r.details.map(d=>esc(d.request.date)).join("<br>")}</small></td><td><details><summary>${m.actions.length} action</summary>${m.actions.map(a=>`<div>${esc(qaActivityDay(a.date))} · ${esc(a.type)}<small>${esc(a.by||'Chưa lưu QA')}</small></div>`).join('')||'Chưa có action'}</details></td><td>${esc(m.channel||'All channel')}</td><td>${pct(m.baseline?.csat)}<small>${esc(m.baseline?.at||m.baseline?.end||'Chưa lưu baseline')}</small></td><td>${pct(m.value)}<small>${m.total} rating · ${esc(m.lastData||'Chưa có dữ liệu tuần này')}</small></td><td>${pct(m.target)}<small>${m.targetSource}</small></td><td><span class="badge ${m.state==='pass'?'green':m.state==='fail'?'red':''}">${({pass:'Đạt',fail:'Chưa đạt',nodata:'Chưa đủ dữ liệu',notarget:'Chưa có target'})[m.state]}</span></td></tr>`;}).join('')||'<tr><td colspan="8">Chưa có CS phù hợp trong lịch sử request đã lưu.</td></tr>'}</tbody></table></div></section>`;
+  return `<section style="border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:18px"><h3 style="margin-top:0">${mngReviewPaste.length>0?'CS trong danh sách dán · '+cohort.length+' CS':(mngRequestScope==='all'?'Tất cả CS đã được MNG request trong kỳ':'CS được MNG request từ 2 ngày khác nhau trong kỳ')}</h3><div class="actions">${[['all','Tổng CS',cohort.length],['pass','WTD đạt',pass],['fail','WTD chưa đạt',fail],['waiting','Chưa đủ data / target',cohort.length-pass-fail],['noaction','CS chưa action',cohort.filter(r=>r.csat.actions.length===0).length]].map(([key,label,count])=>`<button data-mng-repeated="${key}" class="${key===mngRepeatedFilter?'primary':''}">${label}: ${count}</button>`).join('')}</div><p class="muted">Action tính từ request đầu tiên đến cuối kỳ đã chọn (không vượt hôm nay). WTD là tuần hiện tại, tối thiểu 5 rating; so với cam kết CSAT gần nhất, nếu chưa có thì dùng target CS. Baseline lấy bản đã lưu đầu tiên cùng channel trong kỳ, không tự suy đoán khi thiếu.</p><div class="table-wrap"><table><thead><tr><th>CS / QA</th><th>Số ngày request</th><th>Action QA</th><th>Channel</th><th>Baseline CSAT</th><th>CSAT WTD hiện tại</th><th>Target</th><th>Kết quả</th></tr></thead><tbody>${shown.map(r=>{const m=r.csat;return `<tr><td><button class="link" data-mng-review-cs="${esc(r.email)}">${esc(r.name)}</button><small>${esc(r.qa)}</small></td><td>${r.details.length}<small>${r.details.map(d=>esc(d.request.date)).join("<br>")}</small></td><td><details><summary>${m.actions.length} action</summary>${m.actions.map(a=>`<div>${esc(qaActivityDay(a.date))} · ${esc(a.type)}<small>${esc(a.by||'Chưa lưu QA')}</small></div>`).join('')||'Chưa có action'}</details></td><td>${esc(m.channel||'All channel')}</td><td>${pct(m.baseline?.csat)}<small>${esc(m.baseline?.at||m.baseline?.end||'Chưa lưu baseline')}</small></td><td>${pct(m.value)}<small>${m.total} rating · ${esc(m.lastData||'Chưa có dữ liệu tuần này')}</small></td><td>${pct(m.target)}<small>${m.targetSource}</small></td><td><span class="badge ${m.state==='pass'?'green':m.state==='fail'?'red':''}">${({pass:'Đạt',fail:'Chưa đạt',nodata:'Chưa đủ dữ liệu',notarget:'Chưa có target'})[m.state]}</span></td></tr>`;}).join('')||`<tr><td colspan="8">${mngReviewPaste.length>0?'Không đọc được CS nào từ danh sách dán.':'Chưa có CS phù hợp trong lịch sử request đã lưu.'}</td></tr>`}</tbody></table></div></section>`;
 }
 let mngReviewFilter='all';
 // ---- Dán danh sách để check hiệu quả tại chỗ (không lưu db, không đụng MNG Request) ----
@@ -1756,20 +1756,27 @@ function mngPasteEffSection(){
 function renderMngReview(){
   if(!canViewMngReview()){ $('content').innerHTML='<div class="empty">Chỉ MNG được xem báo cáo này.</div>';performanceExport=null;return; }
   const range=rangeSelected(),groups=new Map();
-  for(const request of mngReviewRequests()){
-    if(request.date<range.start||request.date>range.end||request.date>today())continue;
-    if(!groups.has(request.email))groups.set(request.email,[]);
-    groups.get(request.email).push({request});
+  const usingPaste=mngReviewPaste.length>0;
+  let all;
+  if(usingPaste){
+    all=mngReviewPasteRows();
+  }else{
+    for(const request of mngReviewRequests()){
+      if(request.date<range.start||request.date>range.end||request.date>today())continue;
+      if(!groups.has(request.email))groups.set(request.email,[]);
+      groups.get(request.email).push({request});
+    }
+    all=[...groups].map(([email,details])=>({email,details,name:agent(email)?.name||details[0].request.name||email,qa:agent(email)?.qa||'Chưa phân công'}));
   }
-  const all=[...groups].map(([email,details])=>({email,details,name:agent(email)?.name||details[0].request.name||email,qa:agent(email)?.qa||'Chưa phân công'})).filter(r=>{
+  all=all.filter(r=>{
     const a=agent(r.email);return ['group','queue','batch','seniority','qa'].every(k=>!$('f_'+k)?.value||a?.[k]===$('f_'+k).value)&&(!$('search')?.value||norm(r.name+' '+r.email+' '+r.qa).includes(norm($('search').value)));
   });
   const cohort=all.filter(mngRequestIncluded).map(r=>({...r,csat:mngRepeatedMetrics(r)}));
   const pass=cohort.filter(r=>r.csat.state==='pass').length,fail=cohort.filter(r=>r.csat.state==='fail').length;
-  $('viewTitle').textContent=mngRequestScope==='all'?'MNG · Tất cả CS đã được request':'MNG · CS được request từ 2 ngày';
+  $('viewTitle').textContent=usingPaste?'MNG · Hiệu quả theo danh sách dán':(mngRequestScope==='all'?'MNG · Tất cả CS đã được request':'MNG · CS được request từ 2 ngày');
   $('viewDesc').textContent='Đếm ngày request khác nhau trong kỳ đang chọn. Mỗi CS chỉ tính một lần; WTD dùng dữ liệu của tuần hiện tại.';
   $('stats').innerHTML=[[mngRequestScope==='all'?'Tất cả CS được request':'CS được request ≥2 ngày',cohort.length],['WTD đạt',pass],['WTD chưa đạt',fail],['Chưa đủ data / target',cohort.length-pass-fail],['CS chưa action',cohort.filter(r=>r.csat.actions.length===0).length]].map(([label,n])=>`<div class="stat"><span>${label}</span><strong>${n}</strong></div>`).join('');
-  $('content').innerHTML=mngReviewPasteBox()+mngPasteEffSection()+`<div class="actions" style="margin-bottom:14px">${[['all','Tất cả CS đã được request'],['twoDays','Request từ 2 ngày']].map(([key,label])=>`<button data-mng-request-scope="${key}" class="${mngRequestScope===key?'primary':''}">${label}</button>`).join('')}</div>`+mngRepeatedSection(all)+'<p class="muted">Chỉ đếm lịch sử request đã lưu. Những đợt cũ đã bị thay thế trước khi có lưu lịch sử không thể tự khôi phục.</p>';
+  $('content').innerHTML=mngReviewPasteBox()+(usingPaste?`<div class="actions" style="margin-bottom:12px"><span class="muted">Đang xem theo danh sách dán (${all.length} CS)</span> <button id="mngRvClear" style="color:#c26456">Xoá danh sách dán</button></div>`:`<div class="actions" style="margin-bottom:14px">${[['all','Tất cả CS đã được request'],['twoDays','Request từ 2 ngày']].map(([key,label])=>`<button data-mng-request-scope="${key}" class="${mngRequestScope===key?'primary':''}">${label}</button>`).join('')}</div>`)+mngRepeatedSection(all)+(usingPaste?'':'<p class="muted">Chỉ đếm lịch sử request đã lưu. Những đợt cũ đã bị thay thế trước khi có lưu lịch sử không thể tự khôi phục.</p>');
   $('content').querySelectorAll('[data-mng-request-scope]').forEach(b=>b.onclick=()=>{mngRequestScope=b.dataset.mngRequestScope;mngRepeatedFilter='all';page=1;render();});
   $('content').querySelectorAll('[data-mng-repeated]').forEach(b=>b.onclick=()=>{mngRepeatedFilter=b.dataset.mngRepeated;render();});
   $('content').querySelectorAll('[data-mng-review-cs]').forEach(b=>b.onclick=()=>showAgent(b.dataset.mngReviewCs));
