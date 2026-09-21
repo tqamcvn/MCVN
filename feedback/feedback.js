@@ -89,6 +89,7 @@ async function showDetail(r){
   renderTask(r);
   $('reply-body').value='';try{$('reply-body').value=sessionStorage.getItem('feedback.reply.'+user.id+'.'+r.id)||'';}catch{}
   $('replies').textContent='Đang tải phản hồi…';if(!$('detail').open)$('detail').showModal();
+  markFeedbackNotificationsRead(r.id);
   try{const result=await db.from('feedback_replies').select('*').eq('feedback_id',r.id).order('created_at');if(result.error)throw result.error;if(version!==detailVersion)return;
     $('replies').replaceChildren();if(!result.data.length)$('replies').textContent='Chưa có phản hồi từ MNG.';
     result.data.forEach(reply=>{const box=node('article','','reply');box.append(person(reply.author_id),node('time',new Date(reply.created_at).toLocaleString('vi-VN'),'muted'),node('p',reply.body));$('replies').append(box);});
@@ -174,11 +175,26 @@ function renderTask(r){
   $('task-progress').replaceChildren(...steps.map((step,i)=>{const li=node('li',(i<=current?'✓ ':'')+step,i===current?'current':i<current?'done':'');if(i===current)li.setAttribute('aria-current','step');return li;}));
   $('task-status').value=steps.slice(1).includes(r.status)?r.status:'';
 }
+let notificationRequest=0;
 async function loadNotifications(){
- try{const result=await db.from('feedback_notifications').select('*').order('created_at',{ascending:false}).limit(50);if(result.error)throw result.error;
+ const request=++notificationRequest;
+ try{const result=await db.from('feedback_notifications').select('*').is('read_at',null).order('created_at',{ascending:false}).limit(50);if(result.error)throw result.error;if(request!==notificationRequest)return;
  $('inbox').hidden=!result.data.length;$('unread-count').textContent=result.data.filter(n=>!n.read_at).length+' chưa đọc';$('notification-list').replaceChildren();
  result.data.forEach(n=>{const done=n.status==='Hoàn thành';const text=n.actor_name+(n.kind==='reply'?' đã phản hồi':done?' đã hoàn thành yêu cầu':' đã cập nhật: '+n.status);const button=node('button','','notification '+(n.read_at?'':'unread'));button.append(node('strong',text),node('span',rows.find(r=>r.id===n.feedback_id)?.title||'Feedback'),node('small',new Date(n.created_at).toLocaleString('vi-VN')));
- button.onclick=async()=>{try{await load();const r=rows.find(r=>r.id===n.feedback_id);if(!r)return;await showDetail(r);const read=await db.rpc('feedback_read_notification',{notification_id:n.id});if(read.error)throw read.error;await loadNotifications();window.parent.postMessage({type:'feedback-notifications-changed'},location.origin);}catch{message('Không mở được thông báo. Vui lòng thử lại.');}};$('notification-list').append(button);});
+ button.onclick=async()=>{try{await load();const r=rows.find(r=>r.id===n.feedback_id);if(!r)return;await showDetail(r);}catch{message('Không mở được thông báo. Vui lòng thử lại.');}};$('notification-list').append(button);});
  }catch{ /* Keep feedback usable if the notification request is temporarily unavailable. */ }
 }
 setInterval(()=>{if(user&&!document.hidden)loadNotifications();},30000);
+
+async function markFeedbackNotificationsRead(feedbackId){
+ try{
+  const pending=await db.from('feedback_notifications').select('id').eq('feedback_id',feedbackId).is('read_at',null);
+  if(pending.error)throw pending.error;
+  if(!pending.data.length)return;
+  const results=await Promise.all(pending.data.map(n=>db.rpc('feedback_read_notification',{notification_id:n.id})));
+  const failed=results.find(r=>r.error);if(failed)throw failed.error;
+  // Invalidate older unread requests before rendering the persisted result.
+  notificationRequest++;window.parent.postMessage({type:'feedback-notifications-changed'},location.origin);
+  await loadNotifications();
+ }catch{$('detail-error').textContent='Chưa lưu được trạng thái đã đọc. Hãy mở lại feedback khi có kết nối.';}
+}
