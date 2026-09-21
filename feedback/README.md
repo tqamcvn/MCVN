@@ -14,3 +14,6 @@ Drafts are per account in localStorage, debounced by 2 seconds and flushed on cl
 ## Verification
 Install Playwright in your development environment, then run `node tests/feedback.cjs` (uses installed Microsoft Edge). The test stubs Supabase; it checks draft debounce/reload/close, character counter, failed and successful submits, filtering, full content details, over-limit validation and mobile overflow. Screenshots are written to the OS temp directory. Real database RLS and storage integration still require the activation smoke test above.
 
+
+
+Notifications: apply feedback-management.sql and feedback-notifications.sql after feedback.sql. Notifications are recipient-only, created by database triggers for manager replies/status changes (excluding self-notifications). The sidebar checks unread counts every 30 seconds and after a notification is opened. Completed feedback owners can submit one 1–5 rating with an optional comment. Task statuses are managed through the database-checked RPC.
