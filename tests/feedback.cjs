@@ -9,9 +9,12 @@ const assert=(v,m)=>{if(!v)throw new Error(m)};
 await page.goto('https://feedback.test/');await page.locator('#write').click();await page.locator('#title').fill('Kiểm thử bản nháp');await page.locator('#body').fill('Nội dung '.repeat(150));await page.waitForTimeout(2200);
 assert((await page.locator('#counter').innerText()).includes('1.350'),'counter');await page.reload();await page.locator('#write').click();assert((await page.locator('#body').inputValue()).length===1350,'restore after reload');
 // Synthetic clipboard payloads exercise the same paste event used by Ctrl+V.
-async function pastePayload(type='image/png',size=12){return page.evaluate(({type,size})=>{const data=new DataTransfer();if(type==='text/plain')data.setData('text/plain','ordinary text');else data.items.add(new File([new Uint8Array(size)],'pasted.png',{type}));const event=new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true});document.getElementById('body').dispatchEvent(event);return event.defaultPrevented;},{type,size});}
+async function pastePayload(type='image/png',size=12){return page.evaluate(({type,size})=>{const data=new DataTransfer();if(type==='text/plain')data.setData('text/plain','ordinary text');else data.items.add(new File([size===12?Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWV8AAAAASUVORK5CYII='),c=>c.charCodeAt(0)):new Uint8Array(size)],'pasted.png',{type}));const event=new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true});document.getElementById('body').dispatchEvent(event);return event.defaultPrevented;},{type,size});}
 assert(await pastePayload(),'image paste handled');
 assert(await page.locator('#file-list li').count()===1,'pasted attachment visible');
+await page.locator('#file-list img').evaluate(img=>img.decode());
+assert(await page.locator('#file-list img').evaluate(img=>img.naturalWidth>0),'pasted image preview decodes');
+assert(await page.locator('input[type=file]').count()===0,'file picker removed');
 assert((await page.locator('#body').inputValue()).length===1350,'image paste preserves body');
 assert(!(await pastePayload('text/plain')),'text paste not intercepted');
 await pastePayload();await pastePayload();await pastePayload();

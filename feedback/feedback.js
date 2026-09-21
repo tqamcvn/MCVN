@@ -26,7 +26,7 @@ function restore() {
     draftId = typeof data.id === 'string' ? data.id : draftId;
     $('title').value = data.title; $('body').value = data.body;
     document.querySelector('[name=kind][value="' + (data.kind === 'Lỗi' ? 'Lỗi' : 'Đề xuất') + '"]').checked = true;
-    $('draft-status').textContent = 'Đã khôi phục bản nháp.' + (data.files?.length ? ' Vui lòng chọn lại ảnh: ' + data.files.join(', ') : '');
+    $('draft-status').textContent = 'Đã khôi phục bản nháp.' + (data.files?.length ? ' Vui lòng dán lại ảnh: ' + data.files.join(', ') : '');
   } catch { $('draft-status').textContent = 'Không đọc được bản nháp đã lưu. Hãy giữ trang này mở khi soạn phản hồi.'; }
   countBody();
 }
@@ -67,7 +67,19 @@ async function load(){
   if(a.error||b.error)throw a.error||b.error;
   rows=a.data;votes=b.data;message('');render();
 }
-function renderFiles(){ $('file-list').replaceChildren();files.forEach((file,i)=>{const li=node('li',file.name+' · '+(file.size/1024/1024).toFixed(1)+' MB'),remove=node('button','×');remove.type='button';remove.setAttribute('aria-label','Bỏ '+file.name);remove.onclick=()=>{files.splice(i,1);renderFiles();saveDraft();};li.append(remove);$('file-list').append(li);}); }
+let previewUrls=[];
+function renderFiles(){
+  previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];
+  $('file-list').replaceChildren();
+  files.forEach((file,i)=>{
+    const li=node('li','','image-preview'),img=document.createElement('img');
+    const url=URL.createObjectURL(file);previewUrls.push(url);img.src=url;img.alt='Ảnh đã dán: '+file.name;
+    const caption=node('div','','image-caption'),name=node('span',file.name+' · '+(file.size/1024/1024).toFixed(1)+' MB');
+    const remove=node('button','×');remove.type='button';remove.setAttribute('aria-label','Bỏ '+file.name);
+    remove.onclick=()=>{if(sending)return;files.splice(i,1);renderFiles();saveDraft();};
+    caption.append(name,remove);li.append(img,caption);$('file-list').append(li);
+  });
+}
 function addFiles(incoming){
   if(sending || !incoming.length) return;
   if(files.length+incoming.length>3||incoming.some(f=>f.size>5*1024*1024||!['image/png','image/jpeg','image/webp'].includes(f.type))){
@@ -76,7 +88,6 @@ function addFiles(incoming){
   }
   files.push(...incoming);$('form-error').textContent='';renderFiles();saveDraft();
 }
-$('files').onchange=()=>{const incoming=Array.from($('files').files);$('files').value='';addFiles(incoming);};
 // Handle the user's paste directly; no clipboard permission or background reads.
 document.addEventListener('paste',e=>{
   if(!$('composer').open || sending || !e.clipboardData) return;
