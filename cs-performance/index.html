@@ -1518,14 +1518,46 @@ function activityTime(value){
 }
 function activityIsDemo(record){return !!record?.demo||/\[(?:MINH HỌA|MINH HOA|DEMO)\]/i.test([record?.note,record?.detail,record?.summary,record?.rootCause].filter(Boolean).join(' '));}
 function activityDetails(value){
-  const names={id:'Mã',at:'Thời điểm lưu',createdAt:'Thời điểm tạo',loggedAt:'Thời điểm ghi nhận',updatedAt:'Thời điểm sửa',date:'Ngày ghi nhận',week:'Tuần',agent:'Email CS',csEmail:'Email CS',csName:'Tên CS',reviewer:'QA ghi nhận',qa:'QA',qaEmail:'Email QA',by:'Người ghi nhận',byEmail:'Email người ghi nhận',topic:'Loại ghi nhận',type:'Thao tác',issue:'Issue ID',detail:'Chi tiết',note:'Nội dung',summary:'Tóm tắt',rootCause:'Root cause',rcSource:'Nguồn phát hiện',actionType:'Loại action',action:'Hành động',commitment:'Cam kết / Next steps',commitMetric:'Chỉ số cam kết',commitTarget:'Mục tiêu',commitChannel:'Channel',next:'Ngày follow',followMode:'Chế độ theo dõi',evidence:'Tài liệu / Evidence',baseline:'Baseline',commitBaseline:'Baseline cam kết',status:'Trạng thái',rounds:'Các action',reviews:'Các recheck',csat:'CSAT (%)',mistake:'Số case mistake',tagged:'Số case tagging',rate:'Mistake (%)',start:'Từ ngày',end:'Đến ngày',channel:'Channel',snapshot:'Thông tin tại thời điểm lưu'};
-  const walk=(v,prefix='')=>Object.entries(v||{}).flatMap(([k,x])=>{
-    if(x===undefined||x===null||k==='demo')return [];
-    const label=prefix+(names[k]||k);
-    if(typeof x==='object')return walk(x,label+' / ');
-    return [label+': '+(typeof x==='boolean'?(x?'Có':'Không'):String(x))];
-  });
-  return walk(value).join('\n');
+  value=value||{};
+  const out=[];
+  const line=(label,val)=>{ if(val!=null && String(val).trim()!=='') out.push(label+': '+String(val).trim()); };
+  const para=(label,val)=>{ val=(val==null?'':String(val)).trim(); if(val) out.push(label+':\n'+val); };
+  const recap=String(value.recap||value.note||'').trim(), detail=String(value.detail||'').trim();
+  const content=recap||detail;
+  if(content) para('Nội dung', content);
+  if(value.rootCause) para('Root cause', value.rootCause);
+  if(value.summary && String(value.summary).trim()!==content) para('Tóm tắt', value.summary);
+  if(value.cause) para('Nguyên nhân', value.cause);
+  if(value.action && String(value.action).trim()!==content) para('Hành động', value.action);
+  const next=String(value.nextSteps||value.commitment||'').trim();
+  if(next && next!==content) para('Next steps / Cam kết', next);
+  line('Loại action', value.actionType);
+  line('Loại ghi nhận', value.topic);
+  line('Danh mục', value.category);
+  line('Trạng thái', value.status);
+  line('Mức độ', value.severity);
+  line('Ưu tiên', value.priority);
+  line('Tuần', value.week);
+  line('Ngày follow', value.next);
+  line('Chế độ theo dõi', value.followMode);
+  if(value.commitMetric){
+    const metric={csat:'CSAT (%)',mistake:'Case mistake',repeat:'Issue lặp'}[value.commitMetric]||value.commitMetric;
+    line('Mục tiêu cam kết', metric+' '+(value.commitTarget??'')+' · '+(value.commitChannel||'All channel'));
+  }
+  line('Tài liệu', value.evidence||value.document);
+  const b=value.baseline;
+  if(b && typeof b==='object'){
+    const p=[];
+    if(b.csat!=null) p.push('CSAT '+Number(b.csat).toFixed(1)+'%');
+    if(b.mistake!=null&&b.tagged!=null) p.push('Mistake '+b.mistake+'/'+b.tagged+' case');
+    if(b.start||b.end) p.push((b.start||'?')+' → '+(b.end||'?'));
+    if(p.length) line('Baseline lúc cam kết', p.join(' · '));
+  }
+  line('Người ghi nhận', value.by||value.reviewer||value.qa);
+  const at=value.loggedAt||value.createdAt||value.at||value.date;
+  if(at) line('Thời điểm', typeof activityTime==='function'?activityTime(at):at);
+  if(Array.isArray(value.rounds)&&value.rounds.length) line('Các action', value.rounds.map(r=>r.actionType||'Action').join(', '));
+  return out.join('\n\n') || '(không có chi tiết)';
 }
 
 function csSavedCoaching(email){
