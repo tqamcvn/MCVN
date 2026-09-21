@@ -785,35 +785,53 @@ function saveEditRootCause(journeyId, dialog){
 }
 
 // ---- Journey Detail Panel ----
+// Status "magic moment": CSAT WTD hiện tại vs target của cam kết CSAT gần nhất.
+function journeyMagicStatus(csEmail,r){
+  if(!r||r.commitMetric!=='csat'||r.commitTarget==null)return '';
+  const sd=s=>{const mm=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/);return mm?mm[3]+'/'+mm[2]+'/'+mm[1]:String(s||'');};
+  const cur=commitWTD(csEmail,r.commitChannel||'',today()),target=Number(r.commitTarget);
+  const base=r.baseline&&r.baseline.csat!=null?Number(r.baseline.csat):null;
+  const now=(cur.csat!=null&&cur.total>=5)?Number(cur.csat):null;
+  let big,sub;
+  if(now!=null){
+    const ok=now>=target,gap=target-now;
+    big=`<span style="font-size:24px;font-weight:800;color:${ok?'#16a34a':'#e0483d'}">${now.toFixed(1)}%</span> <span style="font-size:13px;color:#5a6a84">/ target ${target}%</span> <span style="font-weight:700;color:${ok?'#16a34a':'#e0483d'}">${ok?'· Đạt ✓':'· còn '+gap.toFixed(1)+'%'}</span>`;
+    sub=(base!=null?`${now-base>=0?'+':''}${(now-base).toFixed(1)}pp vs baseline ${base.toFixed(1)}% · `:'')+`WTD ${cur.total} rating`;
+  }else{
+    big=`<span style="font-size:16px;font-weight:700;color:#8b6d1c">CSAT WTD chưa đủ data</span> <span style="font-size:13px;color:#5a6a84">/ target ${target}%</span>`;
+    sub=(base!=null?`baseline ${base.toFixed(1)}% · `:'')+`WTD ${cur.total} rating`;
+  }
+  const follow=(r.followMode==='daily'?'Follow daily':r.followMode==='weekly'?'Follow weekly':'Follow')+(r.next?(' · bắt đầu '+sd(r.next)):'');
+  return `<div style="background:#eef5ff;border:1px solid #cfe0fb;border-radius:9px;padding:11px 14px;margin-bottom:12px"><div style="line-height:1.5">${big}</div><div class="muted" style="font-size:12px;margin-top:3px">${esc(sub)} · ${esc(follow)}</div></div>`;
+}
 function showJourneyDetail(journeyId){
   let j=db.csJourneys.find(x=>x.id===journeyId);
   if(!j){toast('Journey không tìm thấy.');return;}
   let a=agent(j.csEmail);
-  let m=a?currentMetrics(a):null;
+  let activeCommit=[...j.rounds].reverse().find(r=>r.commitMetric==='csat'&&r.commitTarget!=null);
 
   let roundsHtml=j.rounds.length===0?'<p class="muted" style="font-style:italic">Chưa có action nào.</p>':
     j.rounds.map((r,i)=>{
       let eff=jEffectiveness(j.csEmail,r.week);
-      return `<details class="journey-action">
-        <summary class="journey-action-summary">
-          <b>Action ${i+1}</b>
-          <span class="badge blue" style="font-size:11px">${esc(r.actionType)}</span>${r.sessionCategory?`<span class="badge">${esc(r.sessionCategory)}</span>`:''}
-          <span style="font-size:12px;color:#8b9dbf">${esc(r.week)}</span>
+      const done=String(r.recap||r.detail||r.note||'').trim();
+      const commit=String(r.nextSteps||r.commitment||'').trim();
+      const when=r.loggedAt?new Date(r.loggedAt).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}):esc(r.week||'');
+      return `<div style="border-left:2px solid #c7d5ea;margin-left:5px;padding:0 0 14px 14px;position:relative">
+        <span style="position:absolute;left:-6px;top:5px;width:10px;height:10px;border-radius:50%;background:#5b8de6"></span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="badge blue" style="font-size:11px">${esc(r.actionType)}</span>${r.sessionCategory?`<span class="badge" style="font-size:11px">${esc(r.sessionCategory)}</span>`:''}
           ${jVerdictBadge(eff)}
-          ${r.loggedAt?`<span style="font-size:12px;color:#657487">${esc(new Date(r.loggedAt).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}))}</span>`:''}
-          <button type="button" onclick="event.preventDefault();event.stopPropagation();showEditRound('${j.id}','${r.id}')" style="font-size:12px;padding:5px 10px">✏️ Sửa action</button>
-          <span class="journey-action-hint"><span class="when-closed">Xem chi tiết</span><span class="when-open">Thu gọn</span></span>
-        </summary>
-        <div class="journey-action-body">
-        ${r.commitment?`<p><b>Next steps · bước tiếp theo:</b> ${esc(r.commitment)}</p>`:''}
-        ${r.evidence?`<p><b>Document · tài liệu tham chiếu:</b> ${esc(r.evidence)}</p>`:''}${r.commitMetric?`<p>${followCommitText(r)}</p>`:r.next?`<p>Ngày follow-up: ${esc(r.next)}</p>`:''}
-        ${r.detail?`<p style="margin:5px 0 0;font-size:13px;color:#415777"><b>Recap:</b> ${esc(r.detail)}</p>`:''}
-        ${eff&&eff.status==='evaluated'?`<p style="margin:4px 0 0;font-size:12px;color:#657487">CSAT ${eff.m0.csat!==null?eff.m0.csat.toFixed(1)+'%':'—'} → ${eff.m1.csat!==null?eff.m1.csat.toFixed(1)+'%':'—'} (${jDeltaStr(eff.csatDelta)}) · Mistake% ${eff.m0.rate!==null?eff.m0.rate.toFixed(1)+'%':'—'} → ${eff.m1.rate!==null?eff.m1.rate.toFixed(1)+'%':'—'} (${jDeltaStr(eff.rateDelta,true)})</p>`:''}
-        ${eff&&eff.status==='pending'?`<p style="margin:4px 0 0;font-size:12px;color:#896a1c">Chờ data tuần ${eff.w1}</p>`:''}
-        <p style="margin:4px 0 0;font-size:11px;color:#9fb0c8">By: ${esc(r.by||'—')} · ${r.loggedAt?new Date(r.loggedAt).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):''}${r.updatedAt?` · ✏️ sửa ${new Date(r.updatedAt).toLocaleDateString('vi-VN')}`:''}</p>
-        <div class="actions" style="margin-top:8px"><button onclick="{if(confirm('Xóa action này?')){const jj=db.csJourneys.find(x=>x.id==='${j.id}');const removed=jj.rounds.find(x=>x.id==='${r.id}');logHistory('Xóa action',jj.csEmail,jj.csName,'Đã xóa action ${r.id}',removed);jj.rounds=jj.rounds.filter(x=>x.id!=='${r.id}');dirty=true;showJourneyDetail('${j.id}');render()}}" style="font-size:12px;color:#c26456">Xóa</button></div>
+          <span class="muted" style="font-size:12px">${when}</span>
+          <button type="button" onclick="showEditRound('${j.id}','${r.id}')" style="font-size:12px;padding:4px 9px;margin-left:auto">✏️ Sửa</button>
         </div>
-      </details>`;
+        ${r.commitMetric?`<div class="muted" style="font-size:12px;margin:4px 0">${followCommitText(r)}</div>`:r.next?`<div class="muted" style="font-size:12px;margin:4px 0">Ngày follow-up: ${esc(r.next)}</div>`:''}
+        ${done?`<div style="font-size:13px;margin:4px 0"><b>Đã làm:</b> ${esc(done)}</div>`:''}
+        ${commit&&commit!==done?`<div style="font-size:13px;margin:4px 0"><b>Cam kết:</b> ${esc(commit)}</div>`:''}
+        ${r.evidence?`<div style="font-size:12px;margin:4px 0"><b>Tài liệu:</b> ${esc(r.evidence)}</div>`:''}
+        ${eff&&eff.status==='evaluated'?`<div style="font-size:12px;color:#657487;margin-top:3px">Hiệu quả: CSAT ${eff.m0.csat!==null?eff.m0.csat.toFixed(1)+'%':'—'} → ${eff.m1.csat!==null?eff.m1.csat.toFixed(1)+'%':'—'} (${jDeltaStr(eff.csatDelta)}) · Mistake% ${eff.m0.rate!==null?eff.m0.rate.toFixed(1)+'%':'—'} → ${eff.m1.rate!==null?eff.m1.rate.toFixed(1)+'%':'—'} (${jDeltaStr(eff.rateDelta,true)})</div>`:''}
+        ${eff&&eff.status==='pending'?`<div style="font-size:12px;color:#896a1c;margin-top:3px">Chờ data tuần ${eff.w1}</div>`:''}
+        <div class="muted" style="font-size:11px;margin-top:4px">By: ${esc(r.by||'—')}${r.updatedAt?` · ✏️ sửa ${new Date(r.updatedAt).toLocaleDateString('vi-VN')}`:''} · <a href="#" onclick="event.preventDefault();if(confirm('Xóa action này?')){const jj=db.csJourneys.find(x=>x.id==='${j.id}');const removed=jj.rounds.find(x=>x.id==='${r.id}');logHistory('Xóa action',jj.csEmail,jj.csName,'Đã xóa action ${r.id}',removed);jj.rounds=jj.rounds.filter(x=>x.id!=='${r.id}');dirty=true;showJourneyDetail('${j.id}');render()}" style="color:#c26456">Xóa</a></div>
+      </div>`;
     }).join('');
 
   $('detailTitle').textContent=j.csName+' · Journey';
@@ -823,10 +841,11 @@ function showJourneyDetail(journeyId){
       <button onclick="showEditRootCause('${j.id}')">✏️ Sửa Issue / Root cause</button>
       <button onclick="{const jj=db.csJourneys.find(x=>x.id==='${j.id}');if(jj&&confirm('Xóa journey này?')){logHistory('Xóa Journey',jj.csEmail,jj.csName,'Root cause: '+jj.rootCause,jj);db.csJourneys=db.csJourneys.filter(x=>x.id!=='${j.id}');dirty=true;$('detail').close();render()}}" style="color:#c26456">Xóa Journey</button>
     </div>
-    <div class="detailbox journey-summary" style="white-space:normal;display:grid;gap:8px;padding:16px">
-      <div><b>Root Cause:</b> <span style="white-space:pre-wrap">${esc(j.rootCause)}</span></div>
-      <div><b>By:</b> ${esc(j.by||'—')} · ${j.createdAt?new Date(j.createdAt).toLocaleDateString('vi-VN'):''}</div>
-      ${m?`<div style="display:flex;flex-wrap:wrap;gap:8px 24px;padding-top:8px;border-top:1px solid var(--line)"><span><b>CSAT hiện tại:</b> ${m.csat!==null?m.csat.toFixed(1)+'%':'—'}</span><span><b>Mistake%:</b> ${m.rate!==null?m.rate.toFixed(1)+'%':'—'}</span></div>`:''}
+    <div class="detailbox journey-summary" style="white-space:normal;padding:16px">
+      ${journeyMagicStatus(j.csEmail,activeCommit)}
+      <div style="font-weight:700;color:#a4341f;font-size:12px;text-transform:uppercase;letter-spacing:.3px">Vấn đề gốc</div>
+      <div style="white-space:pre-wrap;font-size:13px;margin:2px 0 8px">${esc(j.rootCause)}</div>
+      <div class="muted" style="font-size:12px">By: ${esc(j.by||'—')} · ${j.createdAt?new Date(j.createdAt).toLocaleDateString('vi-VN'):''}</div>
     </div>
     <h3 style="margin:16px 0 8px">Lịch sử action (${j.rounds.length})</h3>
     <div style="display:grid;gap:8px">${roundsHtml}</div>
