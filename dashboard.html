@@ -521,6 +521,17 @@ body.ops-view .qa-only { display: none !important; }
 body.ih-view .hide-ih { display: none !important; }
 /* qa-ih: chỉ QA + IH thấy; các role vận hành/quản lý khác thì ẩn */
 body.ops-view:not(.ih-view) .qa-ih { display: none !important; }
+/* ---- Feedback: chấm đỏ thông báo khi MNG phản hồi/hoàn thành ---- */
+.nav-item { position: relative; }
+.nav-badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #e11d48; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--white); }
+body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin: 0; min-width: 9px; width: 9px; height: 9px; padding: 0; border-radius: 50%; font-size: 0; line-height: 0; }
+.fb-notif-pop { position: fixed; left: 16px; bottom: 16px; z-index: 9999; width: min(370px, calc(100vw - 32px)); background: var(--white); color: var(--gray-900); border: 1px solid var(--gray-200); border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,0.20); overflow: hidden; font-size: 13px; }
+.fb-notif-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--gray-100); }
+.fb-notif-head strong { font-size: 13px; }
+.fb-notif-x { background: none; border: 0; font-size: 20px; line-height: 1; cursor: pointer; color: var(--gray-500); padding: 0 2px; }
+.fb-notif-item { padding: 11px 14px; border-bottom: 1px solid var(--gray-100); line-height: 1.5; }
+.fb-notif-item:last-of-type { border-bottom: 0; }
+.fb-notif-foot { padding: 10px 14px; font-size: 12px; color: var(--gray-500); background: var(--gray-50); }
 .stg-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-card); padding: 22px; max-width: 460px; box-shadow: var(--shadow-sm); }
 .stg-title { font-size: 15px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; }
 .stg-desc { font-size: 12.5px; color: var(--gray-500); margin-bottom: 16px; line-height: 1.5; }
@@ -972,7 +983,7 @@ async function renderUser() {
   document.getElementById('hero-email').textContent = email;
   document.getElementById('hero-role').textContent = role;
   document.getElementById('sidebar-role').textContent = t('settings');
-  CUR = { name: name, email: email, picture: picture };
+  CUR = { name: name, email: email, picture: picture, id: u.id };
   refreshHeader();
 
   // Mở đúng tool theo hash trong URL (vd #cqm) — sau khi đã biết quyền.
@@ -980,6 +991,10 @@ async function renderUser() {
 
   // Xác thực xong -> hiện nội dung.
   document.body.style.visibility = 'visible';
+
+  // Thông báo Feedback (MNG phản hồi / hoàn thành) — nạp lần đầu + làm mới định kỳ.
+  loadFeedbackNotifs();
+  setInterval(loadFeedbackNotifs, 180000);
 }
 
 async function logout() {
@@ -1100,7 +1115,10 @@ function activateNav(el){
   el.classList.add('active');
   var grp = el.closest ? el.closest('.nav-group') : null;   // mở nhóm cha nếu là tool con
   if (grp) grp.classList.add('open');
-  if (el.dataset.tool !== undefined) showTool(el.dataset.src, el.dataset.title || 'Tool');
+  if (el.dataset.tool !== undefined) {
+    showTool(el.dataset.src, el.dataset.title || 'Tool');
+    if (el.dataset.tool === 'feedback') setTimeout(showFeedbackNotifs, 200);
+  }
   else if (el.dataset.view === 'settings') showSettings();
   else showHome();
 }
@@ -1395,6 +1413,73 @@ document.getElementById('profile-file').addEventListener('change', function () {
     msg.textContent = t('avatarSaved'); msg.classList.add('ok');
   });
 });
+
+/* ==== Feedback notifications: chấm đỏ + popup khi MNG phản hồi / hoàn thành ==== */
+var FB_NOTIFS = [];
+function fbSeenKey(){ return 'tqa.fb.seen.' + (CUR && CUR.id ? CUR.id : 'anon'); }
+function fbSeenMap(){ try { return JSON.parse(localStorage.getItem(fbSeenKey()) || '{}') || {}; } catch (e) { return {}; } }
+function fbSaveSeen(map){ try { localStorage.setItem(fbSeenKey(), JSON.stringify(map)); } catch (e) {} }
+function fbActionText(status){ return status === 'Hoàn thành' ? 'đã hoàn thành' : status === 'Đã nhận' ? 'đã tiếp nhận' : 'đã phản hồi'; }
+function fbUnseen(){ var seen = fbSeenMap(); return FB_NOTIFS.filter(function (n) { return seen[n.id] !== n.sig; }); }
+function renderFbBadge(){
+  var nav = navByKey('feedback'); if (!nav) return;
+  var badge = nav.querySelector('.nav-badge');
+  var n = fbUnseen().length;
+  if (!badge) { badge = document.createElement('span'); badge.className = 'nav-badge'; nav.appendChild(badge); }
+  if (n > 0) { badge.textContent = n > 9 ? '9+' : String(n); badge.hidden = false; }
+  else badge.hidden = true;
+}
+function fbMarkSeen(){ var seen = fbSeenMap(); FB_NOTIFS.forEach(function (n) { seen[n.id] = n.sig; }); fbSaveSeen(seen); renderFbBadge(); }
+async function loadFeedbackNotifs(){
+  if (!CUR || !CUR.id) return;
+  try {
+    var mine = await sb.from('feedback').select('id,title,status').eq('author_id', CUR.id);
+    if (mine.error) throw mine.error;
+    var list = mine.data || [];
+    if (!list.length) { FB_NOTIFS = []; renderFbBadge(); return; }
+    var ids = list.map(function (r) { return r.id; });
+    var reps = await sb.from('feedback_replies').select('id,feedback_id,author_id,created_at').in('feedback_id', ids).order('created_at');
+    if (reps.error) throw reps.error;
+    var ppl = await sb.rpc('feedback_people');
+    var nameOf = {};
+    if (!ppl.error && ppl.data) ppl.data.forEach(function (p) { nameOf[p.id] = p.display_name; });
+    var byFb = {};
+    (reps.data || []).forEach(function (r) { (byFb[r.feedback_id] = byFb[r.feedback_id] || []).push(r); });
+    var notifs = [];
+    list.forEach(function (f) {
+      var rs = byFb[f.id] || [];
+      var hasStatus = (f.status === 'Đã nhận' || f.status === 'Hoàn thành');
+      if (!rs.length && !hasStatus) return;                 // MNG chưa động vào -> không báo
+      var last = rs.length ? rs[rs.length - 1] : null;
+      var name = last ? (nameOf[last.author_id] || 'MNG') : '';
+      var action = fbActionText(f.status);
+      var msg = name
+        ? ('MNG ' + name + ' ' + action + ' phản hồi “' + f.title + '”. Nhờ bạn góp ý về trải nghiệm nhé!')
+        : ('Phản hồi “' + f.title + '” của bạn ' + action + '. Nhờ bạn góp ý về trải nghiệm nhé!');
+      notifs.push({ id: f.id, title: f.title, status: f.status, name: name, msg: msg, sig: f.status + '|' + rs.length + '|' + (last ? last.id : '') });
+    });
+    FB_NOTIFS = notifs;
+    renderFbBadge();
+    if ((location.hash || '').replace(/^#/, '') === 'feedback') showFeedbackNotifs();
+  } catch (e) { /* bảng feedback_replies chưa tạo / chưa cấp quyền -> im lặng, không hiện badge */ }
+}
+function showFeedbackNotifs(){
+  var unseen = fbUnseen();
+  if (!unseen.length) return;
+  var pop = document.getElementById('fb-notif-pop');
+  if (!pop) { pop = document.createElement('div'); pop.id = 'fb-notif-pop'; pop.className = 'fb-notif-pop'; document.body.appendChild(pop); }
+  pop.replaceChildren();
+  var head = document.createElement('div'); head.className = 'fb-notif-head';
+  var title = document.createElement('strong'); title.textContent = '🔔 Thông báo Feedback'; head.appendChild(title);
+  var x = document.createElement('button'); x.className = 'fb-notif-x'; x.setAttribute('aria-label', 'Đóng'); x.textContent = '×';
+  x.onclick = function () { pop.hidden = true; }; head.appendChild(x); pop.appendChild(head);
+  unseen.forEach(function (n) { var row = document.createElement('div'); row.className = 'fb-notif-item'; row.textContent = n.msg; pop.appendChild(row); });
+  var foot = document.createElement('div'); foot.className = 'fb-notif-foot'; foot.textContent = 'Mở Feedback để xem chi tiết và góp ý về trải nghiệm.'; pop.appendChild(foot);
+  pop.hidden = false;
+  fbMarkSeen();
+  clearTimeout(showFeedbackNotifs._t);
+  showFeedbackNotifs._t = setTimeout(function () { pop.hidden = true; }, 14000);
+}
 
 applyLanguage();
 renderUser();
