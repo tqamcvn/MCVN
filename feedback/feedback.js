@@ -86,7 +86,7 @@ async function showDetail(r){
   $('detail-body').textContent=r.body;$('detail-files').replaceChildren();
   (r.attachments||[]).forEach(f=>{const button=node('button','▧ '+f.name);button.onclick=()=>openImage(f);$('detail-files').append(button);});
   $('manager-actions').hidden=!isManager;$('reply-form').hidden=!isManager;$('detail-error').textContent='';
-  renderTask(r);loadExperience(r,version);
+  renderTask(r);
   $('reply-body').value='';try{$('reply-body').value=sessionStorage.getItem('feedback.reply.'+user.id+'.'+r.id)||'';}catch{}
   $('replies').textContent='Đang tải phản hồi…';if(!$('detail').open)$('detail').showModal();
   try{const result=await db.from('feedback_replies').select('*').eq('feedback_id',r.id).order('created_at');if(result.error)throw result.error;if(version!==detailVersion)return;
@@ -98,7 +98,7 @@ $('reply-body').oninput=()=>{try{sessionStorage.setItem('feedback.reply.'+user.i
 async function setStatus(status){
   if(!isManager||!selectedFeedback)return;const id=selectedFeedback.id;
   $('task-status').disabled=true;
-  try{const result=await db.rpc('feedback_set_status',{target_id:id,new_status:status});if(result.error)throw result.error;await load();if(selectedFeedback.id===id){selectedFeedback=rows.find(r=>r.id===id);$('detail-meta').replaceChildren(person(selectedFeedback.author_id),node('span',' · '+selectedFeedback.kind+' · '+status));renderTask(selectedFeedback);loadExperience(selectedFeedback,detailVersion);$('detail-error').textContent='Đã cập nhật: '+status;}}
+  try{const result=await db.rpc('feedback_set_status',{target_id:id,new_status:status});if(result.error)throw result.error;await load();if(selectedFeedback.id===id){selectedFeedback=rows.find(r=>r.id===id);$('detail-meta').replaceChildren(person(selectedFeedback.author_id),node('span',' · '+selectedFeedback.kind+' · '+status));renderTask(selectedFeedback);$('detail-error').textContent='Đã cập nhật: '+status;}}
   catch{$('detail-error').textContent='Chưa cập nhật được trạng thái. Vui lòng thử lại.';}
   finally{$('task-status').disabled=false;$('task-status').value=['Đã nhận','Đang thực hiện','Hoàn thành'].includes(selectedFeedback.status)?selectedFeedback.status:'';}
 }
@@ -177,17 +177,8 @@ function renderTask(r){
 async function loadNotifications(){
  try{const result=await db.from('feedback_notifications').select('*').order('created_at',{ascending:false}).limit(50);if(result.error)throw result.error;
  $('inbox').hidden=!result.data.length;$('unread-count').textContent=result.data.filter(n=>!n.read_at).length+' chưa đọc';$('notification-list').replaceChildren();
- result.data.forEach(n=>{const done=n.status==='Hoàn thành';const text=n.actor_name+(n.kind==='reply'?' đã phản hồi':done?' đã hoàn thành yêu cầu':' đã cập nhật: '+n.status);const button=node('button','','notification '+(n.read_at?'':'unread'));button.append(node('strong',text),node('span',rows.find(r=>r.id===n.feedback_id)?.title||'Feedback'),node('small',done?'Mời bạn đánh giá trải nghiệm sau khi xử lý.':new Date(n.created_at).toLocaleString('vi-VN')));
+ result.data.forEach(n=>{const done=n.status==='Hoàn thành';const text=n.actor_name+(n.kind==='reply'?' đã phản hồi':done?' đã hoàn thành yêu cầu':' đã cập nhật: '+n.status);const button=node('button','','notification '+(n.read_at?'':'unread'));button.append(node('strong',text),node('span',rows.find(r=>r.id===n.feedback_id)?.title||'Feedback'),node('small',new Date(n.created_at).toLocaleString('vi-VN')));
  button.onclick=async()=>{try{await load();const r=rows.find(r=>r.id===n.feedback_id);if(!r)return;await showDetail(r);const read=await db.rpc('feedback_read_notification',{notification_id:n.id});if(read.error)throw read.error;await loadNotifications();window.parent.postMessage({type:'feedback-notifications-changed'},location.origin);}catch{message('Không mở được thông báo. Vui lòng thử lại.');}};$('notification-list').append(button);});
  }catch{ /* Keep feedback usable if the notification request is temporarily unavailable. */ }
 }
-async function loadExperience(r,version){
- $('experience').hidden=r.status!=='Hoàn thành'||r.author_id!==user.id;$('experience-form').hidden=true;if($('experience').hidden)return;
- $('experience-message').textContent='Đang tải đánh giá…';
- try{const result=await db.from('feedback_experiences').select('*').eq('feedback_id',r.id).maybeSingle();if(result.error)throw result.error;if(version!==detailVersion)return;
- if(result.data){$('experience-message').textContent='Cảm ơn bạn đã đánh giá '+result.data.rating+'/5. '+result.data.comment;}
- else{$('experience-message').textContent='MNG đã hoàn thành yêu cầu. Bạn hãy đánh giá trải nghiệm để đội ngũ cải thiện nhé.';$('experience-form').hidden=false;$('experience-form').reset();}
- }catch{if(version===detailVersion)$('experience-message').textContent='Chưa tải được đánh giá. Hãy đóng và mở lại feedback.';}
-}
-$('experience-form').onsubmit=async e=>{e.preventDefault();const r=selectedFeedback;$('experience-submit').disabled=true;try{const result=await db.from('feedback_experiences').insert({feedback_id:r.id,author_id:user.id,rating:Number($('experience-rating').value),comment:$('experience-comment').value.trim()});if(result.error)throw result.error;await loadExperience(r,detailVersion);}catch{$('experience-message').textContent='Chưa gửi được đánh giá. Vui lòng thử lại.';}finally{$('experience-submit').disabled=false;}};
 setInterval(()=>{if(user&&!document.hidden)loadNotifications();},30000);
