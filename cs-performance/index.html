@@ -1561,10 +1561,47 @@ function activityDetails(value){
 }
 
 function csSavedCoaching(email){
-  const same=value=>String(value||'').trim().toLowerCase()===String(email||'').trim().toLowerCase();
+  const same=v=>String(v||'').trim().toLowerCase()===String(email||'').trim().toLowerCase();
   const journeys=(db.csJourneys||[]).filter(j=>same(j.csEmail)&&!activityIsDemo(j));
   const coaching=(db.coachingFollow||[]).filter(f=>same(f.agent)&&!activityIsDemo(f));
-  return [...journeys.map(j=>'<div class="notice"><b>Journey · '+esc(j.rootCause||j.id)+'</b>'+ (j.rounds||[]).filter(r=>!activityIsDemo(r)).map(r=>'<details><summary>'+esc(r.actionType||'Action')+' · '+esc(activityTime(r.updatedAt||r.loggedAt))+'</summary><div style="white-space:pre-wrap">'+esc(activityDetails(r))+'</div></details>').join('')+'</div>'),...coaching.map(f=>'<details><summary>Coaching · '+esc(activityTime(f.updatedAt||f.createdAt||f.coached))+'</summary><div style="white-space:pre-wrap">'+esc(activityDetails(f))+'</div></details>')].join('');
+  const clamp=(t,n)=>{t=String(t||'').replace(/[ \t]+/g,' ').trim();return t.length>n?t.slice(0,n)+'…':t;};
+  const chip=(t,c)=>`<span class="badge ${c||''}" style="font-size:11px">${esc(t)}</span>`;
+  const shortDate=s=>{const m=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]:esc(String(s||''));};
+  const mLabel={csat:'CSAT',mistake:'Mistake',repeat:'Issue lặp'};
+  const magicStatus=(csEmail,r)=>{
+    if(r.commitMetric!=='csat'||r.commitTarget==null)return '';
+    const cur=commitWTD(csEmail,r.commitChannel||'',today()),target=Number(r.commitTarget);
+    const base=r.baseline&&r.baseline.csat!=null?Number(r.baseline.csat):null;
+    const now=(cur.csat!=null&&cur.total>=5)?Number(cur.csat):null;
+    let big,sub;
+    if(now!=null){
+      const ok=now>=target,gap=target-now;
+      big=`<span style="font-size:22px;font-weight:800;color:${ok?'#16a34a':'#e0483d'}">${now.toFixed(1)}%</span> <span style="font-size:13px;color:#5a6a84">/ target ${target}%</span> <span style="font-weight:700;color:${ok?'#16a34a':'#e0483d'}">${ok?'· Đạt ✓':'· còn '+gap.toFixed(1)+'%'}</span>`;
+      sub=(base!=null?`${now-base>=0?'+':''}${(now-base).toFixed(1)}pp vs baseline ${base.toFixed(1)}% · `:'')+`WTD ${cur.total} rating`;
+    }else{
+      big=`<span style="font-size:16px;font-weight:700;color:#8b6d1c">CSAT WTD chưa đủ data</span> <span style="font-size:13px;color:#5a6a84">/ target ${target}%</span>`;
+      sub=(base!=null?`baseline ${base.toFixed(1)}% · `:'')+`WTD ${cur.total} rating`;
+    }
+    const follow=(r.followMode==='daily'?'Follow daily':r.followMode==='weekly'?'Follow weekly':'Follow')+(r.next?(' · bắt đầu '+shortDate(r.next)):'');
+    return `<div style="background:#eef5ff;border:1px solid #cfe0fb;border-radius:9px;padding:10px 13px;margin-bottom:10px"><div style="line-height:1.5">${big}</div><div class="muted" style="font-size:12px;margin-top:3px">${esc(sub)} · ${esc(follow)}</div></div>`;
+  };
+  const commitLine=r=>{
+    if(r.commitMetric==null||r.commitTarget==null)return '';
+    const op=r.commitMetric==='csat'?'≥':'≤';
+    const base=r.baseline&&r.baseline.csat!=null?(' · baseline '+Number(r.baseline.csat).toFixed(1)+'%'):'';
+    return `<div class="muted" style="font-size:12px;margin:3px 0">🎯 Mục tiêu: ${esc(mLabel[r.commitMetric]||r.commitMetric)} ${op} <b>${esc(String(r.commitTarget))}${r.commitMetric==='csat'?'%':''}</b>${base}</div>`;
+  };
+  const roundHtml=r=>{
+    const done=clamp(r.recap||r.detail||r.note||'',240),commit=clamp(r.nextSteps||r.commitment||'',240);
+    return `<div style="border-left:2px solid #c7d5ea;margin-left:5px;padding:0 0 12px 14px;position:relative"><span style="position:absolute;left:-6px;top:4px;width:10px;height:10px;border-radius:50%;background:#5b8de6"></span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${chip(r.actionType||'Action','blue')}<span class="muted" style="font-size:12px">${esc(activityTime(r.updatedAt||r.loggedAt))}</span></div>${commitLine(r)}${done?`<div style="font-size:13px;margin:4px 0"><b>Đã làm:</b> ${esc(done)}</div>`:''}${commit&&commit!==done?`<div style="font-size:13px;margin:4px 0"><b>Cam kết:</b> ${esc(commit)}</div>`:''}<div class="muted" style="font-size:11px;margin-top:3px">${esc(r.by||'—')}</div></div>`;
+  };
+  const cards=journeys.map(j=>{
+    const rounds=(j.rounds||[]).filter(r=>!activityIsDemo(r)).slice().sort((a,b)=>String(a.loggedAt||a.week||'').localeCompare(String(b.loggedAt||b.week||'')));
+    const active=[...rounds].reverse().find(r=>r.commitMetric==='csat'&&r.commitTarget!=null);
+    return `<div class="notice" style="padding:14px;margin-bottom:12px">${active?magicStatus(j.csEmail,active):''}<div style="font-weight:700;color:#a4341f;font-size:12px;text-transform:uppercase;letter-spacing:.3px">Vấn đề gốc</div><div style="font-size:13px;margin:2px 0 12px;white-space:pre-wrap">${esc(clamp(j.rootCause||j.id,320))}</div><div style="font-weight:700;font-size:12px;color:#5a6a84;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Tiến trình action</div>${rounds.map(roundHtml).join('')||'<p class="muted">Chưa có action.</p>'}</div>`;
+  });
+  const cCards=coaching.map(f=>`<details class="notice" style="margin-bottom:10px"><summary>Coaching · ${esc(activityTime(f.updatedAt||f.createdAt||f.coached))}</summary><div style="white-space:pre-wrap">${esc(activityDetails(f))}</div></details>`);
+  return [...cards,...cCards].join('');
 }
 function csSavedHistory(email){
   const key=String(email||'').trim().toLowerCase();
