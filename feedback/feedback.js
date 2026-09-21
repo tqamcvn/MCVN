@@ -68,7 +68,25 @@ async function load(){
   rows=a.data;votes=b.data;message('');render();
 }
 function renderFiles(){ $('file-list').replaceChildren();files.forEach((file,i)=>{const li=node('li',file.name+' · '+(file.size/1024/1024).toFixed(1)+' MB'),remove=node('button','×');remove.type='button';remove.setAttribute('aria-label','Bỏ '+file.name);remove.onclick=()=>{files.splice(i,1);renderFiles();saveDraft();};li.append(remove);$('file-list').append(li);}); }
-$('files').onchange=()=>{const incoming=Array.from($('files').files);$('files').value='';if(files.length+incoming.length>3||incoming.some(f=>f.size>5*1024*1024||!['image/png','image/jpeg','image/webp'].includes(f.type))){$('form-error').textContent='Chọn tối đa 3 ảnh PNG, JPG hoặc WebP, mỗi ảnh không quá 5 MB.';return;}files.push(...incoming);$('form-error').textContent='';renderFiles();saveDraft();};
+function addFiles(incoming){
+  if(sending || !incoming.length) return;
+  if(files.length+incoming.length>3||incoming.some(f=>f.size>5*1024*1024||!['image/png','image/jpeg','image/webp'].includes(f.type))){
+    $('form-error').textContent='Chọn tối đa 3 ảnh PNG, JPG hoặc WebP, mỗi ảnh không quá 5 MB.';
+    return;
+  }
+  files.push(...incoming);$('form-error').textContent='';renderFiles();saveDraft();
+}
+$('files').onchange=()=>{const incoming=Array.from($('files').files);$('files').value='';addFiles(incoming);};
+// Handle the user's paste directly; no clipboard permission or background reads.
+document.addEventListener('paste',e=>{
+  if(!$('composer').open || sending || !e.clipboardData) return;
+  const incoming=Array.from(e.clipboardData.items || [])
+    .filter(item=>item.kind==='file' && item.type.startsWith('image/'))
+    .map(item=>item.getAsFile()).filter(Boolean);
+  if(!incoming.length) return; // Preserve ordinary text paste.
+  e.preventDefault();
+  addFiles(incoming);
+});
 $('form').onsubmit=async e=>{
   e.preventDefault();if(sending||!user)return;
   if(!$('title').value.trim()||!$('body').value.trim()){$('form-error').textContent='Vui lòng nhập tiêu đề và nội dung.';return;}

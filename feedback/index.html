@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Feedback · TQA MCVN</title><link rel="stylesheet" href="feedback.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js" defer></script><script src="feedback.js" defer></script></head>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Feedback · TQA MCVN</title><link rel="stylesheet" href="feedback.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js" defer></script><script src="feedback.js?v=20260921-paste" defer></script></head>
 <body><main>
 <header><div><span class="eyebrow">CÙNG XÂY DỰNG CÔNG CỤ TỐT HƠN</span><h1>Feedback</h1><p>Góp ý của bạn, thay đổi cho cả đội.</p></div><button class="primary" id="write" disabled>＋ Viết phản hồi</button></header>
 <div id="notice" role="status"></div>
@@ -12,7 +12,7 @@
 <fieldset><legend>Bạn muốn phản hồi điều gì?</legend><div class="choices"><label><input type="radio" name="kind" value="Lỗi" required><span><strong>Báo lỗi</strong><small>Công cụ hoạt động không đúng</small></span></label><label><input type="radio" name="kind" value="Đề xuất" checked><span><strong>Đề xuất</strong><small>Cải tiến hoặc thêm tính năng mới</small></span></label></div></fieldset>
 <label for="title">Tiêu đề</label><input id="title" required maxlength="160" placeholder="Tóm tắt điều bạn muốn phản hồi">
 <div class="label-row"><label for="body">Nội dung</label><span id="counter" class="muted">0 / 10.000 ký tự</span></div><textarea id="body" required rows="10" aria-describedby="counter" placeholder="Bạn gặp vấn đề gì hoặc mong muốn thay đổi điều gì?&#10;&#10;Với lỗi: mô tả các bước thực hiện, kết quả hiện tại và kết quả mong muốn."></textarea>
-<label class="attach">＋ Đính kèm ảnh <input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><small class="muted">Tối đa 3 ảnh, mỗi ảnh 5 MB. Khi mở lại bản nháp, cần chọn lại ảnh.</small><ul id="file-list"></ul>
+<label class="attach">＋ Đính kèm ảnh <input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><small class="muted">Dán ảnh bằng Ctrl+V (Mac: ⌘V) hoặc chọn tệp. Tối đa 3 ảnh, mỗi ảnh 5 MB. Khi mở lại bản nháp, cần chọn lại ảnh.</small><ul id="file-list"></ul>
 <div id="draft-status" role="status" class="muted"></div><p id="form-error" role="alert"></p><footer><button type="button" id="cancel">Đóng, giữ bản nháp</button><button class="primary" id="submit">Gửi phản hồi</button></footer></form></dialog>
 <dialog id="detail" aria-labelledby="detail-title"><div class="dialog-head"><h2 id="detail-title"></h2><button id="detail-close" aria-label="Đóng">×</button></div><p id="detail-meta" class="muted"></p><div id="detail-body"></div><div id="detail-files"></div></dialog>
 </body></html>
