@@ -13,7 +13,7 @@
   const canvas = panel.querySelector('canvas'), ctx = canvas.getContext('2d');
   let mode = '', expected = '', dismissed = false, homeBusy = false;
   let gameTimer = 0, snake, food, direction, queued, score, playing = false, dead = false;
-  let startedAt = 0, previousFocus = null, stableSince = 0, loaded = false;
+  let startedAt = 0, previousFocus = null, stableSince = 0, loaded = false, hardTimer = 0;
   const vectors = {up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
   function name() { const n = $('sidebar-name')?.textContent.trim(); return n && n !== '—' ? n : 'Bạn'; }
   function placeFood() {
@@ -43,7 +43,7 @@
   panel.querySelectorAll('[data-dir]').forEach(b=>b.onclick=()=>steer(b.dataset.dir));
   panel.addEventListener('keydown',e=>{const dir={ArrowUp:'up',w:'up',ArrowDown:'down',s:'down',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right'}[e.key];if(dir){e.preventDefault();steer(dir);}else if(e.code==='Space'&&e.target===canvas){e.preventDefault();play();}});
   let touch=null;canvas.addEventListener('pointerdown',e=>{touch=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointerup',e=>{if(!touch)return;const dx=e.clientX-touch[0],dy=e.clientY-touch[1];touch=null;if(Math.max(Math.abs(dx),Math.abs(dy))>12)steer(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));});
-  function hide(){if(panel.hidden)return;const focused=panel.contains(document.activeElement);panel.hidden=true;stop();if(focused)(previousFocus?.isConnected?previousFocus:$('tool-reload'))?.focus();}
+  function hide(){clearTimeout(hardTimer);if(panel.hidden)return;const focused=panel.contains(document.activeElement);panel.hidden=true;stop();if(focused)(previousFocus?.isConnected?previousFocus:$('tool-reload'))?.focus();}
   function show(status){if(dismissed)return;$('sw-status').textContent=status;$('sw-player').textContent=name();if(panel.hidden){previousFocus=document.activeElement;panel.hidden=false;$('sw-play').textContent='Chơi ngay';reset();}}
   function visible(el){return !!el && el.getClientRects().length>0 && getComputedStyle(el).visibility!=='hidden' && getComputedStyle(el).display!=='none';}
   function inspect(){
@@ -61,7 +61,7 @@
     if(hidden||!text.trim()||busy||doc.readyState==='loading'){stableSince=0;show(Date.now()-startedAt>20000?'Trang tải hơi lâu · Bạn vẫn có thể chơi':'Đang tải dữ liệu');}
     else{if(!stableSince)stableSince=Date.now();if(Date.now()-stableSince>350)hide();}
   }
-  window.TQALoading={start(url){mode='tool';loaded=false;expected=new URL(url,location.href).href;dismissed=false;startedAt=Date.now();stableSince=0;show('Đang mở trang');},home(busy){mode='home';homeBusy=busy;dismissed=false;inspect();},stop(){mode='';hide();}};
+  window.TQALoading={start(url){mode='tool';loaded=false;expected=new URL(url,location.href).href;dismissed=false;startedAt=Date.now();stableSince=0;show('Đang mở trang');clearTimeout(hardTimer);hardTimer=setTimeout(()=>{if(mode==='tool'){dismissed=true;hide();}},4000);},home(busy){mode='home';homeBusy=busy;dismissed=false;inspect();},stop(){mode='';hide();}};
   $('sw-dismiss').onclick=()=>{dismissed=true;hide();};
   $('sw-retry').onclick=()=>{dismissed=false;if(mode==='tool')$('tool-reload').click();else location.reload();};
   window.addEventListener('offline',inspect);
