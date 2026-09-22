@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TQA MCVN — Home</title>
+<link rel="stylesheet" href="/assets/loading-snake.css?v=20260922-1">
+<script defer src="/assets/loading-snake.js?v=20260922-1"></script>
 
 <!-- Ẩn toàn bộ nội dung cho tới khi xác thực xong (chống lộ dữ liệu). -->
 <style id="gate">body { visibility: hidden; }.mascot-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-top:16px}
@@ -1057,6 +1059,7 @@ const toolNewtab = document.getElementById('tool-newtab');
 const settingsView = document.getElementById('settings-view');
 
 function showHome() {
+  window.TQALoading?.home(false);
   toolView.classList.remove('visible');
   settingsView.classList.remove('visible');
   toolFrame.src = 'about:blank';
@@ -1065,6 +1068,7 @@ function showHome() {
 }
 
 function showSettings() {
+  window.TQALoading?.stop();
   toolView.classList.remove('visible');
   toolFrame.src = 'about:blank';
   heroEl.style.display = 'none';
@@ -1087,12 +1091,14 @@ function showTool(src, title) {
   toolTitle.textContent = title;
   if (src) {
     const url = withTheme(src);
+    window.TQALoading?.start(url);
     toolEmpty.classList.remove('visible');
     toolFrame.style.display = 'block';
     toolFrame.src = url;
     toolNewtab.href = url;
     toolNewtab.style.display = 'inline-flex';
   } else {
+    window.TQALoading?.stop();
     toolFrame.style.display = 'none';
     toolFrame.src = 'about:blank';
     toolNewtab.style.display = 'none';
@@ -1161,6 +1167,7 @@ window.addEventListener('hashchange', routeFromHash);
 
 document.getElementById('tool-reload').addEventListener('click', () => {
   if (toolFrame.src && toolFrame.src !== 'about:blank') {
+    window.TQALoading?.start(toolFrame.src);
     // eslint-disable-next-line no-self-assign
     toolFrame.src = toolFrame.src;
   }
@@ -1319,6 +1326,8 @@ function csatStamp(savedAt, fromCache) {
 }
 
 async function loadCsat() {
+  const isHome = () => !location.hash || location.hash === "#home";
+  if (isHome()) window.TQALoading?.home(true);
   // 1) Hiện ngay từ cache -> không cần chờ, không cần load lại
   try {
     const c = JSON.parse(localStorage.getItem('tqa_csat') || 'null');
@@ -1333,6 +1342,7 @@ async function loadCsat() {
       localStorage.setItem('tqa_csat', JSON.stringify(data));
     }
   } catch (e) { /* giữ cache */ }
+  finally { if (isHome()) window.TQALoading?.home(false); }
 }
 
 /* ================================================================= *
