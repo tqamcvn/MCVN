@@ -16,8 +16,12 @@
 .mascot-option input:focus-visible + .mascot-tile{outline:3px solid var(--accent);outline-offset:3px}
 </style>
 
-<!-- Supabase JS (kiểm tra session + lấy role) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Preconnect tới CDN để rút ngắn bắt tay DNS/TLS -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+<!-- Supabase JS (kiểm tra session + lấy role) — defer: không chặn hiển thị trang -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -908,7 +912,7 @@ const I18N = {
 function currentLang(){ return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'vi'; }
 function t(key){ return (I18N[currentLang()] && I18N[currentLang()][key]) || I18N.vi[key] || key; }
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb; // khởi tạo trong bootstrap (DOMContentLoaded) sau khi supabase-js (defer) đã tải xong
 
 function domainOf(email) {
   return (email || '').split('@')[1]?.toLowerCase() || '';
@@ -1481,10 +1485,14 @@ function showFeedbackNotifs(){
   showFeedbackNotifs._t = setTimeout(function () { pop.hidden = true; }, 14000);
 }
 
-applyLanguage();
-renderUser();
-loadQuote();
-loadCsat();
+// supabase-js nạp bằng defer -> đã sẵn sàng khi DOMContentLoaded chạy.
+document.addEventListener('DOMContentLoaded', function () {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  applyLanguage();
+  renderUser();
+  loadQuote();
+  loadCsat();
+});
 </script>
 
 <script src="/lantern-companion/lantern.js?v=20260918-1" defer></script>

@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TQA MCVN — Đăng nhập</title>
 
-<!-- Supabase JS (đăng nhập + session) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Preconnect tới CDN để rút ngắn bắt tay DNS/TLS -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+<!-- Supabase JS (đăng nhập + session) — defer: không chặn hiển thị trang -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -206,7 +210,7 @@ const ALLOWED_DOMAINS = ['shopeemobile-external.com', 'shopee.com'];
 
 /* ================================================================= */
 const $ = (id) => document.getElementById(id);
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb; // khởi tạo trong init() sau khi supabase-js (defer) đã tải xong
 
 const PANELS = ['login-form', 'setpw-form', 'loading-state', 'sent-state', 'success-state'];
 function show(id) {
@@ -307,7 +311,10 @@ async function savePassword() {
   setTimeout(() => location.replace('dashboard'), 500);
 }
 
-(async function init() {
+// supabase-js được nạp bằng defer nên đã sẵn sàng trước khi DOMContentLoaded chạy.
+document.addEventListener('DOMContentLoaded', async function init() {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   const urlErr = readUrlError();
   if (urlErr) {
     show('login-form');
@@ -324,7 +331,7 @@ async function savePassword() {
   $('savepw-btn').addEventListener('click', savePassword);
   $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') passwordLogin(); });
   $('np2').addEventListener('keydown', (e) => { if (e.key === 'Enter') savePassword(); });
-})();
+});
 </script>
 
 </body>
