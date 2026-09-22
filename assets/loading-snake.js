@@ -69,7 +69,9 @@
       show(Date.now()-startedAt>20000?'Trang tải hơi lâu · Bạn vẫn có thể chơi':'Đang tải dữ liệu');
     } else { hide(); }
   }
-  window.TQALoading={start(url){mode='tool';loaded=false;expected=new URL(url,location.href).href;dismissed=false;startedAt=Date.now();stableSince=0;loadAt=0;lastMut=0;mutCount=0;show('Đang mở trang');clearTimeout(hardTimer);hardTimer=setTimeout(()=>{if(mode==='tool'){dismissed=true;hide();}},20000);},home(busy){mode='home';homeBusy=busy;dismissed=false;inspect();},stop(){mode='';hide();}};
+  // Game chờ CHỈ áp dụng cho CQM và Repeated Agent. Các tool khác + trang chủ: mở thẳng, không game.
+  const GAME_TOOLS=/\/(cqm|repeatagent)\//i;
+  window.TQALoading={start(url){let p;try{p=new URL(url,location.href).pathname;}catch(e){p=url||'';}if(!GAME_TOOLS.test(p)){mode='';hide();return;}mode='tool';loaded=false;expected=new URL(url,location.href).href;dismissed=false;startedAt=Date.now();stableSince=0;loadAt=0;lastMut=0;mutCount=0;show('Đang mở trang');clearTimeout(hardTimer);hardTimer=setTimeout(()=>{if(mode==='tool'){dismissed=true;hide();}},20000);},home(busy){mode='';hide();},stop(){mode='';hide();}};
   $('sw-dismiss').onclick=()=>{dismissed=true;hide();};
   $('sw-retry').onclick=()=>{dismissed=false;if(mode==='tool')$('tool-reload').click();else location.reload();};
   window.addEventListener('offline',inspect);
