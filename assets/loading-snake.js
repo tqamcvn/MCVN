@@ -58,11 +58,14 @@
     if(/^(offline|mất kết nối|không có kết nối)/im.test(text)){show('Mất kết nối · Chơi trong lúc chờ');return;}
     // Sẵn sàng = iframe đã load xong VÀ nội dung ngừng render (DOM đứng yên ~700ms).
     // Không dựa vào chuỗi trạng thái: các tool để lại nhãn "Đang tải dữ liệu…" sau khi xong -> gây kẹt.
-    const stillBusy=doc.querySelector('[aria-busy="true"]');
+    // Còn "bận" nếu tool đang hiện chỉ báo tải (aria-busy hoặc nhãn "đang tải/tải dữ liệu/loading")
+    // -> đảm bảo chờ data.json về xong (không mở overlay trong lúc chờ mạng).
+    const loadingEls=doc.querySelectorAll('[aria-busy="true"],[role="status"],#filterLabelText,#data-status,#dash-status,#ts,#dash-meta,#dash-empty,.loading,.loader,#loading,#loading-overlay');
+    const toolBusy=Array.from(loadingEls).some(el=>visible(el)&&(el.getAttribute('aria-busy')==='true'||/đang tải|tải dữ liệu|đang load|loading/i.test((el.textContent||'').slice(0,200))));
     const hidden=!doc.body||getComputedStyle(doc.documentElement).visibility==='hidden'||getComputedStyle(doc.body).visibility==='hidden';
     const idle=Date.now()-lastMut>700;
     const rendered=mutCount>0||Date.now()-loadAt>3000;
-    if(!loaded||hidden||!text.trim()||doc.readyState==='loading'||stillBusy||!idle||!rendered){
+    if(!loaded||hidden||!text.trim()||doc.readyState==='loading'||toolBusy||!idle||!rendered){
       show(Date.now()-startedAt>20000?'Trang tải hơi lâu · Bạn vẫn có thể chơi':'Đang tải dữ liệu');
     } else { hide(); }
   }
