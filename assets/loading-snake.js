@@ -14,6 +14,7 @@
   let mode = '', expected = '', dismissed = false, homeBusy = false;
   let gameTimer = 0, snake, food, direction, queued, score, playing = false, dead = false;
   let startedAt = 0, previousFocus = null, stableSince = 0, loaded = false, hardTimer = 0;
+  let mo = null, lastMut = 0, mutCount = 0, loadAt = 0;
   const vectors = {up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
   function name() { const n = $('sidebar-name')?.textContent.trim(); return n && n !== '—' ? n : 'Bạn'; }
   function placeFood() {
@@ -55,19 +56,24 @@
     // Permission, authentication and other actionable errors must remain visible.
     if(/Không thể mở trang|chưa có quyền truy cập|Lỗi xác thực|Chưa nạp khoá|Phiên đăng nhập/.test(text)){hide();return;}
     if(/^(offline|mất kết nối|không có kết nối)/im.test(text)){show('Mất kết nối · Chơi trong lúc chờ');return;}
-    const candidates=doc.querySelectorAll('[aria-busy="true"],[role="status"],#filterLabelText,#data-status,#ts,#dash-meta,#dash-empty,.empty,.loading,.loader,#loading,#loading-overlay');
-    const busy=Array.from(candidates).some(el=>visible(el)&&(el.getAttribute('aria-busy')==='true'||/đang tải|đang load|loading|tải dữ liệu|đang cập nhật/i.test(el.textContent.slice(0,300))));
+    // Sẵn sàng = iframe đã load xong VÀ nội dung ngừng render (DOM đứng yên ~700ms).
+    // Không dựa vào chuỗi trạng thái: các tool để lại nhãn "Đang tải dữ liệu…" sau khi xong -> gây kẹt.
+    const stillBusy=doc.querySelector('[aria-busy="true"]');
     const hidden=!doc.body||getComputedStyle(doc.documentElement).visibility==='hidden'||getComputedStyle(doc.body).visibility==='hidden';
-    if(hidden||!text.trim()||busy||doc.readyState==='loading'){stableSince=0;show(Date.now()-startedAt>20000?'Trang tải hơi lâu · Bạn vẫn có thể chơi':'Đang tải dữ liệu');}
-    else{if(!stableSince)stableSince=Date.now();if(Date.now()-stableSince>350)hide();}
+    const idle=Date.now()-lastMut>700;
+    const rendered=mutCount>0||Date.now()-loadAt>3000;
+    if(!loaded||hidden||!text.trim()||doc.readyState==='loading'||stillBusy||!idle||!rendered){
+      show(Date.now()-startedAt>20000?'Trang tải hơi lâu · Bạn vẫn có thể chơi':'Đang tải dữ liệu');
+    } else { hide(); }
   }
-  window.TQALoading={start(url){mode='tool';loaded=false;expected=new URL(url,location.href).href;dismissed=false;startedAt=Date.now();stableSince=0;show('Đang mở trang');clearTimeout(hardTimer);hardTimer=setTimeout(()=>{if(mode==='tool'){dismissed=true;hide();}},4000);},home(busy){mode='home';homeBusy=busy;dismissed=false;inspect();},stop(){mode='';hide();}};
+  window.TQALoading={start(url){mode='tool';loaded=false;expected=new URL(url,location.href).href;dismissed=false;startedAt=Date.now();stableSince=0;loadAt=0;lastMut=0;mutCount=0;show('Đang mở trang');clearTimeout(hardTimer);hardTimer=setTimeout(()=>{if(mode==='tool'){dismissed=true;hide();}},20000);},home(busy){mode='home';homeBusy=busy;dismissed=false;inspect();},stop(){mode='';hide();}};
   $('sw-dismiss').onclick=()=>{dismissed=true;hide();};
   $('sw-retry').onclick=()=>{dismissed=false;if(mode==='tool')$('tool-reload').click();else location.reload();};
   window.addEventListener('offline',inspect);
   window.addEventListener('online',()=>{dismissed=false;if(mode==='tool')$('tool-reload').click();else if(mode==='home')loadCsat();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();$('sw-play').textContent='Tiếp tục';}else inspect();});
-  frame.addEventListener('load',()=>{loaded=true;inspect();});
+  function attachObserver(){try{if(mo)mo.disconnect();const d=frame.contentDocument;if(!d)return;mo=new MutationObserver(()=>{lastMut=Date.now();mutCount++;});mo.observe(d.documentElement,{childList:true,subtree:true,characterData:true});}catch(e){}}
+  frame.addEventListener('load',()=>{loaded=true;loadAt=Date.now();lastMut=Date.now();mutCount=0;attachObserver();inspect();});
   setInterval(()=>{if(!document.hidden)inspect();},400);
   reset();
 })();
