@@ -166,7 +166,7 @@ $('form').onsubmit=async e=>{
   }catch{$('form-error').textContent='Chưa gửi được phản hồi. Nội dung và bản nháp vẫn được giữ lại. Vui lòng thử lại.';}
   finally{sending=false;Array.from($('form').elements).forEach(el=>el.disabled=false);$('submit').textContent='Gửi phản hồi';}
 };
-(async()=>{try{const {data,error}=await db.auth.getUser();if(error||!data.user){message('Vui lòng đăng nhập dashboard để xem và gửi phản hồi.');$('list').replaceChildren();return;}user=data.user;draftKey='tqa.feedback.draft.v1.'+user.id;draftId=crypto.randomUUID();restore();$('write').disabled=false;await load();}catch{message('Không tải được feedback. Kiểm tra kết nối hoặc cấu hình dữ liệu.');$('list').replaceChildren();}})();
+(async()=>{try{const {data,error}=await db.auth.getUser();if(error||!data.user){message('Vui lòng đăng nhập dashboard để xem và gửi phản hồi.');$('list').replaceChildren();return;}user=data.user;setupFeedbackMentions(db);draftKey='tqa.feedback.draft.v1.'+user.id;draftId=crypto.randomUUID();restore();$('write').disabled=false;await load();}catch{message('Không tải được feedback. Kiểm tra kết nối hoặc cấu hình dữ liệu.');$('list').replaceChildren();}})();
 
 function renderTask(r){
   $('task-progress').hidden=!isManager;
@@ -180,7 +180,7 @@ async function loadNotifications(){
  const request=++notificationRequest;
  try{const result=await db.from('feedback_notifications').select('*').is('read_at',null).order('created_at',{ascending:false}).limit(50);if(result.error)throw result.error;if(request!==notificationRequest)return;
  $('inbox').hidden=!result.data.length;$('unread-count').textContent=result.data.filter(n=>!n.read_at).length+' chưa đọc';$('notification-list').replaceChildren();
- result.data.forEach(n=>{const done=n.status==='Hoàn thành';const text=n.actor_name+(n.kind==='reply'?' đã phản hồi':done?' đã hoàn thành yêu cầu':' đã cập nhật: '+n.status);const button=node('button','','notification '+(n.read_at?'':'unread'));button.append(node('strong',text),node('span',rows.find(r=>r.id===n.feedback_id)?.title||'Feedback'),node('small',new Date(n.created_at).toLocaleString('vi-VN')));
+ result.data.forEach(n=>{const done=n.status==='Hoàn thành';const text=n.actor_name+(n.kind==='mention'?' đã nhắc đến bạn trong feedback':n.kind==='reply'?' đã phản hồi':done?' đã hoàn thành yêu cầu':' đã cập nhật: '+n.status);const button=node('button','','notification '+(n.read_at?'':'unread'));button.append(node('strong',text),node('span',rows.find(r=>r.id===n.feedback_id)?.title||'Feedback'),node('small',new Date(n.created_at).toLocaleString('vi-VN')));
  button.onclick=async()=>{try{await load();const r=rows.find(r=>r.id===n.feedback_id);if(!r)return;await showDetail(r);}catch{message('Không mở được thông báo. Vui lòng thử lại.');}};$('notification-list').append(button);});
  }catch{ /* Keep feedback usable if the notification request is temporarily unavailable. */ }
 }

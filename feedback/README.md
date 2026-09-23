@@ -17,3 +17,6 @@ Install Playwright in your development environment, then run `node tests/feedbac
 
 
 Notifications: apply feedback-management.sql and feedback-notifications.sql after feedback.sql. Notifications are recipient-only, created by database triggers for manager replies/status changes (excluding self-notifications). The sidebar checks unread counts every 30 seconds and after a notification is opened. Completed feedback owners can submit one 1–5 rating with an optional comment. Task statuses are managed through the database-checked RPC.
+
+
+Mentions: feedback-mentions.sql adds an authenticated directory of active dashboard accounts that have signed in, plus database triggers for @email mentions in feedback and manager replies. Type @ and choose a name/email. Duplicate mentions of one recipient in a message produce one event; self mentions are ignored; the feedback owner already receives the standard reply event. Read notifications remain hidden after refresh.
