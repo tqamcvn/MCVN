@@ -2000,6 +2000,52 @@ function refreshLivePeriodOptions(){
   load();
   window.__CSP_SYNC = sync;   // cho phép gọi tay khi cần
 })();
+
+// Read-only audit. Uses the signed-in user's existing Supabase permissions.
+(function(){
+  if(!window.__CSP_SUPA||!['tl tqa','sup tqa','senior tqa','acting tl tqa'].includes(String(window.__QA_USER?.role||'').toLowerCase()))return;
+  const button=document.createElement('button');button.textContent='Kiểm tra target đã lưu';
+  document.querySelector('header .actions').append(button);
+  button.onclick=async()=>{
+    const dialog=document.createElement('dialog');dialog.style.cssText='width:1100px;max-width:95vw';
+    const close=document.createElement('button');close.textContent='Đóng kiểm tra';close.onclick=()=>dialog.close();dialog.append(close);
+    const title=document.createElement('h2');title.textContent='Đối chiếu target từng CS';dialog.append(title);
+    const status=document.createElement('p');status.textContent='Đang đọc toàn bộ bản ghi và nhật ký…';dialog.append(status);
+    document.body.append(dialog);dialog.showModal();dialog.addEventListener('close',()=>dialog.remove());
+    try{
+      const read=async(table,columns)=>{let rows=[],offset=0;for(;;){const result=await window.__CSP_SUPA.from(table).select(columns).order('id').range(offset,offset+499);if(result.error)throw result.error;rows.push(...result.data);if(result.data.length<500)return rows;offset+=500;status.textContent='Đang kiểm tra '+table+': '+rows.length+' bản ghi';}};
+      const records=await read('csp_records','id,kind,agent_email,data,deleted');
+      const events=await read('csp_events','id,at,kind,entity_id,agent_email,op,payload');
+      const journeys=records.filter(r=>r.kind==='journey'&&!r.deleted);
+      const roster=new Map((db.agents||[]).map(a=>[a.email,{email:a.email,name:a.name,qa:a.qa,inRoster:true}]));
+      journeys.forEach(r=>{if(!roster.has(r.agent_email))roster.set(r.agent_email,{email:r.agent_email,name:r.data.csName,qa:r.data.by,inRoster:false});});
+      const evidence=new Map();
+      function inspect(value,meta,path,depth=0){
+        if(!value||typeof value!=='object'||depth>12)return;
+        if(value.commitMetric&&value.commitTarget!=null&&value.commitTarget!==''&&Number.isFinite(Number(value.commitTarget))){const list=evidence.get(meta.email)||[];list.push({...meta,path,metric:value.commitMetric,target:value.commitTarget,channel:value.commitChannel||'',journeyId:value.csEmail&&value.id?value.id:meta.journeyId||'',roundId:value.actionType?value.id||'':''});evidence.set(meta.email,list);}
+        const journeyId=value.csEmail&&value.id?value.id:meta.journeyId;
+        for(const [k,v] of Object.entries(value))if(v&&typeof v==='object')inspect(v,{...meta,journeyId},path+'.'+k,depth+1);
+      }
+      records.forEach(r=>inspect(r.data,{email:r.agent_email,source:'record',id:r.id,kind:r.kind,deleted:r.deleted},'data'));
+      events.forEach(e=>inspect(e.payload,{email:e.agent_email,source:'event',id:e.id,entityId:e.entity_id,kind:e.kind,at:e.at,op:e.op},'payload'));
+      const rows=[...roster.values()].map(a=>{
+        const js=journeys.filter(j=>j.agent_email===a.email),proof=evidence.get(a.email)||[];
+        const current=js.flatMap(j=>[j.data.initialCommit,...(j.data.rounds||[])].filter(c=>c?.commitMetric&&c.commitTarget!=null).map(c=>({journeyId:j.id,metric:c.commitMetric,target:c.commitTarget,channel:c.commitChannel||''})));
+        const initialHistory=proof.filter(e=>e.journeyId&&js.some(j=>j.id===e.journeyId)&&!e.roundId&&!/\.rounds\./.test(e.path));
+        const history=events.filter(e=>e.agent_email===a.email);
+        const createdWithoutAction=js.filter(j=>history.some(e=>e.kind==='journey'&&e.entity_id===j.id&&e.op==='create'&&Array.isArray(e.payload?.rounds)&&e.payload.rounds.length===0));
+        return {...a,journeys:js.map(j=>({id:j.id,createdAt:j.data.createdAt,actions:j.data.rounds?.length||0,initialTarget:j.data.initialCommit?.commitTarget??null,rootCause:j.data.rootCause})),current,createdWithoutAction:createdWithoutAction.map(j=>j.id),historicalInitialTargets:initialHistory,allSavedTargets:proof,eventCount:history.length};
+      });
+      const report={at:new Date().toISOString(),rosterCount:(db.agents||[]).length,checked:rows.length,records:records.length,events:events.length,journeys:journeys.length,rows};
+      status.textContent='Hoàn tất: '+report.rosterCount+' CS hiện tại; '+rows.length+' CS gồm journey ngoài danh sách; '+records.length+' bản ghi; '+events.length+' sự kiện. Không thay đổi dữ liệu.';
+      const table=document.createElement('table');table.innerHTML='<thead><tr><th>CS</th><th>Email</th><th>Journey</th><th>Tạo chưa action</th><th>Target hiện tại</th><th>Bằng chứng target ban đầu</th></tr></thead>';
+      const body=document.createElement('tbody');for(const r of rows){const tr=document.createElement('tr');for(const value of [r.name,r.email,r.journeys.length,r.createdWithoutAction.length,r.current.map(c=>c.metric+' '+c.target+' '+c.channel).join('; '),r.historicalInitialTargets.map(c=>c.metric+' '+c.target+' '+c.channel).join('; ')||'Không tìm thấy']){const td=document.createElement('td');td.textContent=String(value);tr.append(td);}body.append(tr);}table.append(body);dialog.append(table);
+      const details=document.createElement('details'),summary=document.createElement('summary'),pre=document.createElement('pre');summary.textContent='Dữ liệu đối chiếu đầy đủ';pre.textContent=JSON.stringify(report,null,2);pre.style.whiteSpace='pre-wrap';details.append(summary,pre);dialog.append(details);
+      const exportButton=document.createElement('button');exportButton.textContent='Tải báo cáo JSON';exportButton.onclick=()=>download('cs-target-audit-'+today()+'.json',JSON.stringify(report,null,2),'application/json');dialog.append(exportButton);
+    }catch(error){status.textContent='Chưa hoàn tất kiểm tra: '+error.message;}
+  };
+})();
+
 </script>
 <script src="/lantern-companion/lantern.js?v=20260918-1" defer></script>
 </body></html>
