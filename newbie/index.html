@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<!-- TQA-AUTH-GUARD -->
+<script>document.documentElement.style.visibility="hidden";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function(){
+  var U="https://ytbcydursrpjqnaalhxc.supabase.co", K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
+  var DOMS=["shopeemobile-external.com","shopee.com"], QA_ONLY=true;
+  function deny(){ location.replace("/"); }
+  try{
+    var sb=window.supabase.createClient(U,K);
+    var s=(await sb.auth.getSession()).data.session;
+    if(!s){ deny(); return; }
+    var email=(s.user.email||"").toLowerCase();
+    if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
+    if(QA_ONLY){
+      var role=""; try{ var d=(await sb.from("app_users").select("role").eq("email",email).maybeSingle()).data; if(d) role=d.role||""; }catch(e){}
+      if(!(/qa/i.test(role)||role==="Trainer")){ deny(); return; }
+    }
+    document.documentElement.style.visibility="";
+  }catch(e){ deny(); }
+})();
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Quản Lý Newbie & CSAT - Blue Theme</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            300: '#7cc8fc',
+                            400: '#36b0fa',
+                            500: '#0c94eb',
+                            600: '#0077cc',
+                            700: '#005fa3',
+                            800: '#055185',
+                            900: '#0a436f',
+                            950: '#072b4a',
+                        },
+                        navy: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #0077cc;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #005fa3;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased bg-slate-50">
+
+    <header class="bg-navy-900 text-white shadow-lg sticky top-0 z-50 border-b border-brand-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-brand-600 rounded-xl shadow-md flex items-center justify-center">
+                    <i class="fa-solid fa-chart-line text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        BÁO CÁO TỔNG QUAN NEWBIE & CSAT
+                        <span id="header-updated-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-brand-500 text-white shadow-sm">Đang tải dữ liệu...</span>
+                    </h1>
+                    <p class="text-xs text-brand-200">Hệ thống phân tích biến động Headcount, Lộ trình đào tạo & CSAT By Channel / Rating</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="flex items-center space-x-3">
+                <button onclick="loadData(true)" id="btn-refresh" class="px-3 py-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition border border-emerald-500 flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-arrows-rotate"></i> Cập nhật ngay
+                </button>
+                <button onclick="exportDataSimulated()" class="px-3 py-1.5 text-xs font-semibold bg-brand-700 hover:bg-brand-600 text-white rounded-lg transition border border-brand-500 flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-excel text-emerald-300"></i> Export CSV
+                </button>
+                <button onclick="resetFilters()" class="px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition border border-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Bộ Lọc
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-navy-950 border-t border-slate-800 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto flex space-x-6 text-sm">
+                <button id="tab1-btn" onclick="switchTab('sheet1')" class="py-3 px-2 flex items-center gap-2 text-brand-300 border-b-2 border-brand-400 font-semibold transition">
+                    <i class="fa-solid fa-diagram-project"></i> Lộ Trình & Headcount Newbie
+                </button>
+                <button id="tab2-btn" onclick="switchTab('sheet2')" class="py-3 px-2 flex items-center gap-2 text-slate-400 hover:text-slate-200 font-medium transition border-b-2 border-transparent">
+                    <i class="fa-solid fa-headset"></i> CSAT Matrix, Channel & Contribute Rating
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="data-status-bar" class="hidden max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3"></div>
+
+    <!-- Main Dashboard Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- ==================== SHEET 1: OVERVIEW & HEADCOUNT ==================== -->
+        <div id="sheet1-content" class="space-y-6">
+            
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 overflow-x-auto custom-scrollbar">
+                <div class="flex items-center gap-2 min-w-max whitespace-nowrap">
+                    <div class="flex items-center gap-1.5 pr-2">
+                        <i class="fa-solid fa-filter text-brand-600 text-sm"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Bộ Lọc Overview</span>
+                    </div>
+
+                    <select id="s1-filter-week" onchange="applySheet1Filters()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none font-bold text-brand-700">
+                        <option value="CURRENT">Tuần hiện tại (W38)</option>
+                        <option value="ALL">Tất cả tuần</option>
+                        <option value="W1">Tuần 1 (W1)</option>
+                        <option value="W2">Tuần 2 (W2)</option>
+                        <option value="W3">Tuần 3 (W3)</option>
+                        <option value="W4">Tuần 4 (W4)</option>
+                        <option value="W5">Tuần 5 (W5)</option>
+                        <option value="W6">Tuần 6 (W6)</option>
+                        <option value="W7">Tuần 7 (W7)</option>
+                        <option value="W8">Tuần 8 (W8)</option>
+                    </select>
+
+                    <span class="text-[11px] font-semibold text-slate-500">Khóa</span>
+                    <select id="s1-filter-cohort" onchange="applySheet1Filters()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none font-semibold">
+                        <option value="ALL">Tất cả</option>
+                        <option value="K202">K202</option><option value="K203">K203</option><option value="K204">K204</option><option value="K205">K205</option><option value="K206">K206</option><option value="K207">K207</option><option value="K208">K208</option><option value="K209">K209</option><option value="K210">K210</option><option value="K211">K211</option>
+                    </select>
+
+                    <span class="text-[11px] font-semibold text-slate-500">Queue</span>
+                    <select id="s1-filter-queue" onchange="applySheet1Filters()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="ALL">Tất cả</option><option value="Buyer">Buyer</option><option value="Seller">Seller</option><option value="Log">Log</option>
+                    </select>
+
+                    <span class="text-[11px] font-semibold text-slate-500">Trạng thái</span>
+                    <select id="s1-filter-status" onchange="applySheet1Filters()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="ALL">Tất cả</option><option value="P3Golive">P3 Golive</option><option value="P3Train">P3 Train</option><option value="P2Golive">P2 Golive</option><option value="P2Train">P2 Train</option><option value="P1Train">P1 Train</option>
+                    </select>
+
+                    <span class="text-[11px] font-semibold text-slate-500">QA PIC</span>
+                    <select id="s1-filter-trainer" onchange="applySheet1Filters()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="ALL">Tất cả</option><option value="Tuấn Vũ">Tuấn Vũ</option><option value="Kiên">Kiên</option><option value="Lâm Linh">Lâm Linh</option><option value="Nguyên">Nguyên</option><option value="Vân">Vân / Ngọc Vũ</option><option value="Dĩnh">Dĩnh</option>
+                    </select>
+
+                    <div class="text-xs text-slate-600 bg-brand-50 px-3 py-1.5 rounded-lg border border-brand-200 font-semibold ml-1">
+                        <i class="fa-solid fa-users me-1 text-brand-600"></i> <span id="s1-count-cohorts" class="font-bold text-brand-800">10</span> khóa
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+                <!-- CARD 1: Overall CSAT Newbie -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-brand-700">
+                    <div class="text-xs text-slate-500 font-semibold uppercase">Overall CSAT Newbie</div>
+                    <div class="text-2xl font-bold text-brand-900 mt-1 flex items-baseline gap-1">
+                        <span id="kpi-actual-csat">89.8%</span>
+                        <span class="text-xs font-normal text-slate-500">/ <b class="text-brand-700" id="kpi-target-csat">90.0%</b></span>
+                    </div>
+                    <div class="text-[10px] mt-1 flex items-center gap-1 font-semibold text-rose-600" id="kpi-target-gap-status">
+                        <i class="fa-solid fa-bullseye text-rose-600"></i> Target Benchmark 90.0%
+                    </div>
+                </div>
+
+                <!-- CARD 2: CSAT Call/Chat Hiện Tại -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-indigo-600">
+                    <div class="text-xs text-slate-500 font-semibold uppercase">CSAT Call / Chat Hiện Tại</div>
+                    <div class="text-sm font-bold text-slate-900 mt-1 space-y-0.5">
+                        <div class="flex justify-between items-center"><span class="text-slate-600 font-normal"><i class="fa-solid fa-phone text-indigo-500 me-1"></i>Call:</span><span class="text-brand-900" id="kpi-call-csat">88.5%</span></div>
+                        <div class="flex justify-between items-center"><span class="text-slate-600 font-normal"><i class="fa-solid fa-comments text-sky-500 me-1"></i>Chat:</span><span class="text-brand-900" id="kpi-chat-csat">91.2%</span></div>
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1">Theo dữ liệu đang lọc</div>
+                </div>
+
+                <!-- CARD 3: Buyer / Seller -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-violet-600">
+                    <div class="text-xs text-slate-500 font-semibold uppercase">Buyer / Seller</div>
+                    <div class="text-xs mt-1.5 space-y-1.5">
+                        <div class="flex justify-between gap-2"><span class="font-semibold text-slate-700">Buyer</span><span id="kpi-buyer-total" class="font-bold text-violet-800">0 khóa / 0 CS</span></div>
+                        <div class="flex justify-between gap-2"><span class="font-semibold text-slate-700">Seller</span><span id="kpi-seller-total" class="font-bold text-violet-800">0 khóa / 0 CS</span></div>
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1">Khóa / HC hiện tại</div>
+                </div>
+
+                <!-- CARD 4: Headcount Bắt Đầu -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-brand-600">
+                    <div class="text-xs text-slate-500 font-semibold uppercase">Headcount Bắt Đầu</div>
+                    <div class="text-2xl font-bold text-slate-900 mt-1" id="kpi-total-raw">101 <span class="text-xs font-normal text-slate-500">NS</span></div>
+                    <div class="text-[10px] text-slate-500 mt-1"><i class="fa-solid fa-user-plus text-brand-600"></i> Theo dữ liệu đang lọc</div>
+                </div>
+
+                <!-- CARD 5: Headcount Hiện Tại -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-600">
+                    <div class="text-xs text-slate-500 font-semibold uppercase">Headcount Hiện Tại</div>
+                    <div class="text-2xl font-bold text-emerald-700 mt-1" id="kpi-total-current">71 <span class="text-xs font-normal text-slate-500">NS</span></div>
+                    <div class="text-[10px] font-medium text-emerald-600 mt-1"><i class="fa-solid fa-user-check"></i> Đang Onboarding</div>
+                </div>
+
+                <!-- CARD 6: Attrition -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-amber-500">
+                    <div class="text-xs text-slate-500 font-semibold uppercase">% Attrition Rate</div>
+                    <div class="text-2xl font-bold text-amber-700 mt-1" id="kpi-avg-attrition">29.7%</div>
+                    <div class="text-[10px] text-slate-500 mt-1 font-medium"><i class="fa-solid fa-user-minus text-amber-600"></i> CS nghỉ việc: <b id="kpi-total-quit" class="text-amber-800">0</b></div>
+                </div>
+
+                <!-- CARD 7: Pass Rate -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-teal-600">
+                    <div class="text-xs text-slate-500 font-semibold uppercase">Tỷ Lệ Pass Trung Bình</div>
+                    <div class="text-2xl font-bold text-teal-700 mt-1" id="kpi-avg-pass">85.8%</div>
+                    <div class="text-[10px] text-slate-500 mt-1 leading-tight">CS đạt Target / HC hiện tại</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 1: Headcount Comparison -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-users-line text-brand-600"></i> Headcount Từng Khóa (Bắt đầu vs Quit vs Hiện tại)
+                        </h3>
+                        <span class="text-xs text-slate-500">Đơn vị: Nhân sự</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="chartHeadcount"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Attrition & Pass Rates -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-percent text-brand-600"></i> Tỷ Lệ Pass Rate vs % Attrition Rate Theo Khóa
+                        </h3>
+                        <span class="text-xs text-slate-500">% Tổng hợp</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="chartPassAttrition"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Roadmap Phase Tracker Overview -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-route text-brand-600"></i> Lộ Trình Tiến Độ Các Khóa Đang Hoạt Động (So với W38)
+                        </h3>
+                        <p class="text-xs text-slate-500">Vị trí hiện tại theo Tuần (W1-W8), Phase Đào Tạo & Trạng Thái Trực Tiếp</p>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Golive</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> Training</span>
+                    </div>
+                </div>
+
+                <!-- Active Cohort Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="active-roadmap-cards">
+                    <!-- Dynamic Cards Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Main Roadmap Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden space-y-3">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-table-list text-brand-700"></i> Bảng Lộ Trình Chi Tiết Khóa & Tỷ Lệ Nghỉ Việc
+                        </h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Benchmark Target: Call Seller &ge; 92%, Call Buyer &ge; 93% | Chat Seller &ge; 78%, Chat Buyer &ge; 70%</p>
+                    </div>
+                    <span class="text-xs text-slate-500">Chỉ hiển thị các khóa chưa Done Probation</span>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs text-slate-800 border-collapse">
+                        <thead class="bg-slate-100 text-slate-900 uppercase font-semibold text-[11px] border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Khóa</th>
+                                <th class="p-3">Queue</th>
+                                <th class="p-3">QA / Trainer PIC</th>
+                                <th class="p-3">Teamlead</th>
+                                <th class="p-3 text-center">Bắt đầu (Raw)</th>
+                                <th class="p-3 text-center">Nghỉ việc (Quit)</th>
+                                <th class="p-3 text-center">Hiện tại</th>
+                                <th class="p-3 text-center">% Attrition Rate</th>
+                                <th class="p-3 text-center bg-teal-50/80 text-teal-900">CS Pass Target / Tổng CS</th>
+                                <th class="p-3 text-center">Tuần Đang Học</th>
+                                <th class="p-3 text-center">Phase Hiện Tại</th>
+                                <th class="p-3 text-center">Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="s1-roadmap-table-body" class="divide-y divide-slate-100">
+                            <!-- Table rows dynamic injection -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- ==================== SHEET 2: CSAT DETAILS & WARNINGS ==================== -->
+        <div id="sheet2-content" class="space-y-6 hidden">
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden space-y-3 border-t-4 border-t-brand-600">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-star text-amber-500"></i> Bảng Diễn Biến CSAT Overall Từng Khóa Qua Các Tuần (W1 - W8)
+                        </h3>
+                        <p class="text-xs text-slate-500">Theo dõi sự biến động chất lượng CSAT qua từng giai đoạn onboarding từ Tuần 1 đến Tuần 8</p>
+                    </div>
+                    <span class="text-xs bg-brand-100 text-brand-800 px-2.5 py-1 rounded-full font-semibold">Tự động cập nhật theo bộ lọc</span>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs text-slate-800 border-collapse">
+                        <thead class="bg-slate-100 text-slate-900 uppercase font-semibold text-[11px] border-b border-slate-200 text-center">
+                            <tr>
+                                <th class="p-3 text-left">Khóa</th>
+                                <th class="p-3 text-left">Queue</th>
+                                <th class="p-3">Tuần 1</th>
+                                <th class="p-3">Tuần 2</th>
+                                <th class="p-3">Tuần 3</th>
+                                <th class="p-3">Tuần 4</th>
+                                <th class="p-3">Tuần 5</th>
+                                <th class="p-3">Tuần 6</th>
+                                <th class="p-3">Tuần 7</th>
+                                <th class="p-3">Tuần 8</th>
+                                <th class="p-3 bg-brand-50 font-bold text-brand-900">Overall CSAT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="s2-csat-weekly-body" class="divide-y divide-slate-100">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-brand-600"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Bộ Lọc Phân Tích CSAT Chi Tiết:</span>
+                    </div>
+
+                    <!-- Time View Switcher -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+                        <button onclick="setTimeframe('daily')" id="tf-daily" class="px-3 py-1 rounded-md font-medium text-slate-700 hover:text-slate-900 transition">Hằng Ngày (Daily)</button>
+                        <button onclick="setTimeframe('weekly')" id="tf-weekly" class="px-3 py-1 rounded-md font-bold text-white bg-brand-600 shadow-sm transition">Hằng Tuần (Weekly)</button>
+                        <button onclick="setTimeframe('monthly')" id="tf-monthly" class="px-3 py-1 rounded-md font-medium text-slate-700 hover:text-slate-900 transition">Hằng Tháng (Monthly)</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <!-- Filter QA PIC -->
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">QA / Trainer PIC</label>
+                        <select id="s2-filter-qa" onchange="applySheet2Filters()" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="ALL">Tất cả QA PIC</option>
+                            <option value="Tuấn Vũ">Tuấn Vũ</option>
+                            <option value="Kiên">Kiên</option>
+                            <option value="Lâm Linh">Lâm Linh</option>
+                            <option value="Nguyên">Nguyên</option>
+                            <option value="Vân">Vân / Ngọc Vũ</option>
+                            <option value="Dĩnh">Dĩnh</option>
+                        </select>
+                    </div>
+
+                    <!-- Filter Khóa -->
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Khóa (Chỉ trước Done Probation)</label>
+                        <select id="s2-filter-cohort" onchange="applySheet2Filters()" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 outline-none focus:ring-2 focus:ring-brand-500 font-semibold">
+                            <option value="ALL">Tất cả khóa Onboarding (K202-K211)</option>
+                            <option value="K202">K202</option>
+                            <option value="K203">K203</option>
+                            <option value="K204">K204</option>
+                            <option value="K205">K205</option>
+                            <option value="K206">K206</option>
+                            <option value="K207">K207</option>
+                            <option value="K208">K208</option>
+                            <option value="K209">K209</option>
+                            <option value="K210">K210</option>
+                            <option value="K211">K211</option>
+                        </select>
+                    </div>
+
+                    <!-- Filter Queue -->
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Queue</label>
+                        <select id="s2-filter-queue" onchange="applySheet2Filters()" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="ALL">Tất cả Queue</option>
+                            <option value="Buyer">Buyer Queue</option>
+                            <option value="Seller">Seller Queue</option>
+                            <option value="Log">Log Queue</option>
+                        </select>
+                    </div>
+
+                    <!-- Filter Channel -->
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Kênh CS (Channel)</label>
+                        <select id="s2-filter-channel" onchange="applySheet2Filters()" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800 outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="ALL">Tất cả Kênh CS</option>
+                            <option value="Chat">Chat</option>
+                            <option value="Internet Call">Internet Call</option>
+                            <option value="Other channel">Other channel</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Top 5 CS Low CSAT Warning -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3 border-t-4 border-t-rose-500">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h3 class="text-xs font-bold text-rose-800 uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Cảnh Báo Top 5 CS Newbie Cần Cải Thiện CSAT
+                        </h3>
+                        <span class="text-[10px] text-slate-500">Sắp xếp CSAT tăng dần</span>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs text-slate-800">
+                            <thead class="bg-rose-50 text-rose-900 uppercase text-[10px] font-bold">
+                                <tr>
+                                    <th class="p-2">Họ Tên CS</th>
+                                    <th class="p-2">Khóa</th>
+                                    <th class="p-2">Teamlead</th>
+                                    <th class="p-2 text-center">Kênh</th>
+                                    <th class="p-2 text-center">Thực Tế CSAT</th>
+                                    <th class="p-2 text-center">Đánh Giá Target</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top-5-cs-body" class="divide-y divide-slate-100">
+                                <!-- Dynamic Injection -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top 5 Cohorts Drop Warning -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3 border-t-4 border-t-amber-500">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h3 class="text-xs font-bold text-amber-900 uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-user-minus text-amber-600"></i> Cảnh Báo Top 5 Khóa Có Tỷ Lệ Drop / Attrition Cao
+                        </h3>
+                        <span class="text-[10px] text-slate-500">Sắp xếp Attrition giảm dần</span>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs text-slate-800">
+                            <thead class="bg-amber-50 text-amber-900 uppercase text-[10px] font-bold">
+                                <tr>
+                                    <th class="p-2">Khóa</th>
+                                    <th class="p-2">Queue</th>
+                                    <th class="p-2 text-center">Nghỉ Việc</th>
+                                    <th class="p-2 text-center">% Attrition</th>
+                                    <th class="p-2 text-center">CSAT Gần Nhất</th>
+                                    <th class="p-2 text-center">Mức Cảnh Báo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top-5-cohorts-body" class="divide-y divide-slate-100">
+                                <!-- Dynamic Injection -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-brand-600"></i> Xu Hướng CSAT (<span id="trend-period-text">Weekly</span>) vs Target CSAT
+                        </h3>
+                        <span class="text-xs text-slate-500">% CSAT</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="chartCsatTrend"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-brand-600"></i> Phân Tích CSAT Theo Queue & Kênh CS
+                        </h3>
+                        <span class="text-xs text-slate-500">% CSAT</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="chartCsatQueueChannel"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden space-y-3">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-comments text-sky-600"></i> Dashboard CSAT Theo Channel Các Khóa (Chat / Internet Call / Other Channel)
+                        </h3>
+                        <p class="text-xs text-slate-500">So sánh chỉ số CSAT trực tiếp trên từng kênh hỗ trợ của mỗi khóa</p>
+                    </div>
+                    <span class="text-xs text-slate-500 font-semibold">Tự động tính theo Channel Benchmark</span>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs text-slate-800 border-collapse">
+                        <thead class="bg-slate-100 text-slate-900 uppercase font-semibold text-[11px] border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Khóa</th>
+                                <th class="p-3">Queue</th>
+                                <th class="p-3">QA PIC</th>
+                                <th class="p-3 text-center bg-sky-50 text-sky-900">CSAT Chat</th>
+                                <th class="p-3 text-center bg-indigo-50 text-indigo-900">CSAT Internet Call</th>
+                                <th class="p-3 text-center bg-slate-200/60 text-slate-900">CSAT Other Channel</th>
+                                <th class="p-3 text-center bg-brand-50 text-brand-900 font-bold">Overall CSAT Khóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="s2-csat-channel-body" class="divide-y divide-slate-100">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden space-y-3">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-pie-chart text-emerald-600"></i> Bảng Tỷ Lệ Đóng Góp CSAT Rating (Contribute Rating) Các Khóa
+                        </h3>
+                        <p class="text-xs text-slate-500">Thống kê số lượng lượt đánh giá Tốt (Good 5★), Trung bình (Avg 4★), Xấu (Bad 1-3★) & tỷ lệ đóng góp %</p>
+                    </div>
+                    <span class="text-xs text-slate-500">Tính trên tổng lượt Case CSAT</span>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs text-slate-800 border-collapse">
+                        <thead class="bg-slate-100 text-slate-900 uppercase font-semibold text-[11px] border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Khóa</th>
+                                <th class="p-3">Queue</th>
+                                <th class="p-3 text-center">Tổng Case Đánh Giá</th>
+                                <th class="p-3 text-center bg-emerald-50 text-emerald-800">Good Count (5★)</th>
+                                <th class="p-3 text-center bg-amber-50 text-amber-800">Avg Count (4★)</th>
+                                <th class="p-3 text-center bg-rose-50 text-rose-800">Bad Count (1-3★)</th>
+                                <th class="p-3 text-center font-bold text-emerald-700">% Good Contribution</th>
+                                <th class="p-3 text-center font-bold text-rose-600">% Bad Contribution</th>
+                            </tr>
+                        </thead>
+                        <tbody id="s2-csat-contribute-body" class="divide-y divide-slate-100">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden space-y-3">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-user text-brand-700"></i> Bảng Đánh Giá CSAT Chi Tiết Theo Nhân Sự Newbie
+                        </h3>
+                        <p class="text-xs text-slate-500">Danh sách các lượt chấm & theo dõi điểm CSAT thực tế so với Target CSAT</p>
+                    </div>
+                    <div class="relative w-64">
+                        <input type="text" id="agent-search-input" onkeyup="filterAgentTable()" placeholder="Tìm kiếm nhân sự..." class="w-full text-xs pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-brand-500">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs text-slate-800 border-collapse" id="csat-agent-main-table">
+                        <thead class="bg-slate-100 text-slate-900 uppercase font-semibold text-[11px] border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Tên CS Newbie</th>
+                                <th class="p-3">Khóa</th>
+                                <th class="p-3">QA / Trainer PIC</th>
+                                <th class="p-3">Queue</th>
+                                <th class="p-3 text-center">Kênh CS</th>
+                                <th class="p-3 text-center">Số Lượt Đánh Giá</th>
+                                <th class="p-3 text-center">Thực Tế CSAT</th>
+                                <th class="p-3 text-center">Target CSAT Benchmark</th>
+                                <th class="p-3 text-center">Đánh Giá Target</th>
+                            </tr>
+                        </thead>
+                        <tbody id="s2-agent-csat-body" class="divide-y divide-slate-100">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-navy-900 text-slate-400 text-xs py-4 border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
+            <p>© 2026 Operational Quality & Training Management System. Tone màu chủ đạo Ocean Blue.</p>
+            <p class="text-[11px] text-slate-500" id="footer-updated-text">Cập nhật lúc: --</p>
+        </div>
+    </footer>
+
+    <script>
+        // Global variables & state tracking
+        let chartHCInstance = null;
+        let chartPAInstance = null;
+        let chartTrendInstance = null;
+        let chartQueueChannelInstance = null;
+        let currentTimeframe = 'weekly';
+        let globalTargetCsat = 90.0;
+
+        function Utilities_formatToday_() {
+            const d = new Date();
+            return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        // Dữ liệu thật, nạp từ data.json (do Apps Script đẩy lên từ Google Sheet
+        // "Newbie & CSAT", tab "1. Overall" + "2. Raw"). Xem newbie/apps_script.gs.
+        const DATA_URL = 'data.json';
+        let cohortData = [];
+        let csatAgentsData = [];
+        let trendPayload = { daily: { labels: [], values: [] }, monthly: { labels: [], values: [] } };
+        let queueChannelPayload = {};
+        let dataLoaded = false;
+
+        function setStatusBar(kind, html) {
+            const bar = document.getElementById('data-status-bar');
+            if (!kind) { bar.classList.add('hidden'); bar.innerHTML = ''; return; }
+            const styles = {
+                loading: 'bg-brand-50 border-brand-200 text-brand-800',
+                error: 'bg-rose-50 border-rose-300 text-rose-800'
+            };
+            bar.className = `max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3`;
+            bar.innerHTML = `<div class="text-xs font-medium px-3 py-2 rounded-lg border ${styles[kind] || styles.loading}">${html}</div>`;
+        }
+
+        async function loadData(force) {
+            const btn = document.getElementById('btn-refresh');
+            if (btn) { btn.disabled = true; btn.classList.add('opacity-60'); }
+            setStatusBar('loading', '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu thật từ data.json...');
+            try {
+                const res = await fetch(DATA_URL + '?t=' + Date.now());
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const payload = await res.json();
+
+                cohortData = Array.isArray(payload.cohorts) ? payload.cohorts : [];
+                csatAgentsData = Array.isArray(payload.agents) ? payload.agents : [];
+                trendPayload = payload.trend || { daily: { labels: [], values: [] }, monthly: { labels: [], values: [] } };
+                queueChannelPayload = payload.queueChannel || {};
+                dataLoaded = true;
+
+                populateDynamicFilters();
+
+                const badgeText = payload.lastUpdatedText || 'Không rõ thời điểm cập nhật';
+                document.getElementById('header-updated-badge').innerText = badgeText;
+                document.getElementById('footer-updated-text').innerText = 'Cập nhật lúc: ' + badgeText;
+
+                if (payload.note) {
+                    setStatusBar('loading', '<i class="fa-solid fa-circle-info"></i> ' + payload.note);
+                } else {
+                    setStatusBar(null);
+                }
+
+                renderSheet1();
+                if (!document.getElementById('sheet2-content').classList.contains('hidden')) {
+                    renderSheet2();
+                }
+            } catch (e) {
+                setStatusBar('error', '<i class="fa-solid fa-triangle-exclamation"></i> Không tải được data.json (' + e.message + '). Nếu đây là lần đầu deploy: chạy hàm <code>setup</code> trong Apps Script (newbie/apps_script.gs) rồi chờ GitHub Pages build lại (~1-3 phút).');
+            } finally {
+                if (btn) { btn.disabled = false; btn.classList.remove('opacity-60'); }
+            }
+        }
+
+        // Dựng lại option cho các bộ lọc Khóa / QA PIC theo đúng roster thật
+        // (thay vì danh sách K202-K211 cứng trong file cũ).
+        function populateDynamicFilters() {
+            const activeCohorts = cohortData.filter(c => !c.isDone);
+            const cohortIds = [...new Set(cohortData.map(c => c.id))].sort();
+            const trainers = [...new Set(cohortData.map(c => c.trainer).filter(Boolean))].sort();
+
+            const s1Cohort = document.getElementById('s1-filter-cohort');
+            const prev1 = s1Cohort.value;
+            s1Cohort.innerHTML = '<option value="ALL">Tất cả</option>' +
+                cohortIds.map(id => `<option value="${id}">${id}</option>`).join('');
+            if ([...s1Cohort.options].some(o => o.value === prev1)) s1Cohort.value = prev1;
+
+            const s2Cohort = document.getElementById('s2-filter-cohort');
+            const prev2 = s2Cohort.value;
+            const activeLabel = activeCohorts.length ? `${activeCohorts[0].id}-${activeCohorts[activeCohorts.length - 1].id}` : '';
+            s2Cohort.innerHTML = `<option value="ALL">Tất cả khóa Onboarding${activeLabel ? ' (' + activeLabel + ')' : ''}</option>` +
+                cohortIds.map(id => `<option value="${id}">${id}</option>`).join('');
+            if ([...s2Cohort.options].some(o => o.value === prev2)) s2Cohort.value = prev2;
+
+            const s1Trainer = document.getElementById('s1-filter-trainer');
+            const prevT1 = s1Trainer.value;
+            s1Trainer.innerHTML = '<option value="ALL">Tất cả</option>' +
+                trainers.map(t => `<option value="${t}">${t}</option>`).join('');
+            if ([...s1Trainer.options].some(o => o.value === prevT1)) s1Trainer.value = prevT1;
+
+            const s2Qa = document.getElementById('s2-filter-qa');
+            const prevT2 = s2Qa.value;
+            s2Qa.innerHTML = '<option value="ALL">Tất cả QA PIC</option>' +
+                trainers.map(t => `<option value="${t}">${t}</option>`).join('');
+            if ([...s2Qa.options].some(o => o.value === prevT2)) s2Qa.value = prevT2;
+        }
+
+        function switchTab(tabId) {
+            const sheet1 = document.getElementById('sheet1-content');
+            const sheet2 = document.getElementById('sheet2-content');
+            const tab1Btn = document.getElementById('tab1-btn');
+            const tab2Btn = document.getElementById('tab2-btn');
+
+            if (tabId === 'sheet1') {
+                sheet1.classList.remove('hidden');
+                sheet2.classList.add('hidden');
+                tab1Btn.className = "py-3 px-2 flex items-center gap-2 text-brand-300 border-b-2 border-brand-400 font-semibold transition";
+                tab2Btn.className = "py-3 px-2 flex items-center gap-2 text-slate-400 hover:text-slate-200 font-medium transition border-b-2 border-transparent";
+                renderSheet1();
+            } else {
+                sheet1.classList.add('hidden');
+                sheet2.classList.remove('hidden');
+                tab2Btn.className = "py-3 px-2 flex items-center gap-2 text-brand-300 border-b-2 border-brand-400 font-semibold transition";
+                tab1Btn.className = "py-3 px-2 flex items-center gap-2 text-slate-400 hover:text-slate-200 font-medium transition border-b-2 border-transparent";
+                renderSheet2();
+            }
+        }
+
+        // Filtering data for Sheet 1
+        function getFilteredSheet1Data() {
+            const cohortVal = document.getElementById('s1-filter-cohort').value;
+            const queueVal = document.getElementById('s1-filter-queue').value;
+            const statusVal = document.getElementById('s1-filter-status').value;
+            const trainerVal = document.getElementById('s1-filter-trainer').value;
+            const weekVal = document.getElementById('s1-filter-week').value;
+
+            return cohortData.filter(item => {
+                if (item.isDone || item.status === "Done probation") return false;
+
+                const matchCohort = (cohortVal === 'ALL' || item.id === cohortVal);
+                const matchQueue = (queueVal === 'ALL' || item.queue === queueVal);
+                const matchStatus = (statusVal === 'ALL' || item.status === statusVal);
+                const matchTrainer = (trainerVal === 'ALL' || item.trainer.includes(trainerVal));
+
+                let matchWeek = true;
+                if (weekVal === 'CURRENT') {
+                    matchWeek = (item.curWeekNum > 0);
+                } else if (weekVal !== 'ALL') {
+                    const selectedW = parseInt(weekVal.replace('W', ''));
+                    matchWeek = (item.curWeekNum === selectedW);
+                }
+
+                return matchCohort && matchQueue && matchStatus && matchTrainer && matchWeek;
+            });
+        }
+
+        function renderSheet1() {
+            const filtered = getFilteredSheet1Data();
+            const weekVal = document.getElementById('s1-filter-week').value;
+
+            let totalRaw = 0;
+            let totalCur = 0;
+            let totalQuit = 0;
+            let totalPassCS = 0;
+            let totalCurWithPassData = 0;
+
+            filtered.forEach(c => {
+                totalRaw += c.rawHC;
+                totalCur += c.curHC;
+                totalQuit += c.quitHC;
+                if (c.passRate !== null && c.passRate !== undefined) {
+                    totalPassCS += Math.round(c.curHC * (c.passRate / 100));
+                    totalCurWithPassData += c.curHC;
+                }
+            });
+
+            const overallAttr = totalRaw > 0 ? ((totalQuit / totalRaw) * 100).toFixed(1) : "0.0";
+            const avgPass = totalCurWithPassData > 0 ? ((totalPassCS / totalCurWithPassData) * 100).toFixed(1) : "0.0";
+
+            // CSAT cards must use the same filtered cohort set as the rest of Sheet 1.
+            const validChat = filtered.map(c => c.csatChat).filter(v => v !== null && v !== undefined);
+            const validCall = filtered.map(c => c.csatCall).filter(v => v !== null && v !== undefined);
+            const avgChat = validChat.length ? (validChat.reduce((a, b) => a + b, 0) / validChat.length).toFixed(1) : '--';
+            const avgCall = validCall.length ? (validCall.reduce((a, b) => a + b, 0) / validCall.length).toFixed(1) : '--';
+
+            // Overall CSAT follows the selected week. CURRENT/ALL uses each cohort's latest available week.
+            const overallScores = filtered.map(c => {
+                if (weekVal !== 'CURRENT' && weekVal !== 'ALL') {
+                    const selectedWeekIndex = parseInt(weekVal.replace('W', ''), 10) - 1;
+                    return c.csatWeeks[selectedWeekIndex];
+                }
+                const validWeeks = c.csatWeeks.filter(v => v !== null && v !== undefined);
+                return validWeeks.length ? validWeeks[validWeeks.length - 1] : null;
+            }).filter(v => v !== null && v !== undefined);
+
+            const actualCsat = overallScores.length
+                ? (overallScores.reduce((a, b) => a + b, 0) / overallScores.length).toFixed(1)
+                : null;
+
+            const buyerData = filtered.filter(c => c.queue === 'Buyer');
+            const sellerData = filtered.filter(c => c.queue === 'Seller');
+            const buyerHC = buyerData.reduce((sum, c) => sum + c.curHC, 0);
+            const sellerHC = sellerData.reduce((sum, c) => sum + c.curHC, 0);
+
+            document.getElementById('kpi-call-csat').innerText = avgCall === '--' ? '--' : `${avgCall}%`;
+            document.getElementById('kpi-chat-csat').innerText = avgChat === '--' ? '--' : `${avgChat}%`;
+            document.getElementById('kpi-buyer-total').innerText = `${buyerData.length} khóa / ${buyerHC} CS`;
+            document.getElementById('kpi-seller-total').innerText = `${sellerData.length} khóa / ${sellerHC} CS`;
+            document.getElementById('kpi-total-raw').innerHTML = `${totalRaw} <span class="text-xs font-normal text-slate-500">NS</span>`;
+            document.getElementById('kpi-total-current').innerHTML = `${totalCur} <span class="text-xs font-normal text-slate-500">NS</span>`;
+            document.getElementById('kpi-avg-attrition').innerText = `${overallAttr}%`;
+            document.getElementById('kpi-total-quit').innerText = totalQuit;
+            document.getElementById('kpi-avg-pass').innerText = `${avgPass}%`;
+            document.getElementById('kpi-actual-csat').innerText = actualCsat === null ? '--' : `${actualCsat}%`;
+            document.getElementById('kpi-target-csat').innerText = `${globalTargetCsat.toFixed(1)}%`;
+
+            const gapStatus = document.getElementById('kpi-target-gap-status');
+            if (actualCsat === null) {
+                gapStatus.className = 'text-xs mt-1 flex items-center gap-1 font-semibold text-slate-500';
+                gapStatus.innerHTML = '<i class="fa-solid fa-circle-minus"></i> Không có dữ liệu CSAT theo bộ lọc';
+            } else {
+                const gap = Number(actualCsat) - globalTargetCsat;
+                const met = gap >= 0;
+                gapStatus.className = `text-xs mt-1 flex items-center gap-1 font-semibold ${met ? 'text-emerald-600' : 'text-rose-600'}`;
+                gapStatus.innerHTML = met
+                    ? `<i class="fa-solid fa-circle-check"></i> Đạt Target +${gap.toFixed(1)}ppt`
+                    : `<i class="fa-solid fa-bullseye"></i> Còn thiếu ${Math.abs(gap).toFixed(1)}ppt so với Target`;
+            }
+
+            document.getElementById('s1-count-cohorts').innerText = filtered.length;
+
+            renderRoadmapCards(filtered);
+            renderRoadmapTable(filtered);
+            renderHeadcountChart(filtered);
+            renderPassAttritionChart(filtered);
+        }
+
+        function renderRoadmapCards(data) {
+            const container = document.getElementById('active-roadmap-cards');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-6 text-xs text-slate-500">Không có khóa active tương ứng bộ lọc.</div>`;
+                return;
+            }
+
+            data.forEach(c => {
+                const isGolive = c.status.toLowerCase().includes('golive');
+                const badgeColor = isGolive ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300';
+                const progressWidth = Math.min((c.curWeekNum / 8) * 100, 100);
+
+                const cardHtml = `
+                    <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 hover:shadow-md transition space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-brand-900 text-sm">${c.id} (${c.queue})</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full border ${badgeColor} font-semibold">${c.status}</span>
+                        </div>
+
+                        <div class="text-xs text-slate-700 space-y-0.5">
+                            <div><span class="text-slate-500">QA PIC:</span> ${c.trainer}</div>
+                            <div><span class="text-slate-500">TL:</span> ${c.lead}</div>
+                        </div>
+
+                        <div class="space-y-1 pt-1">
+                            <div class="flex justify-between text-[11px] font-medium text-slate-700">
+                                <span>Tuần hiện tại: <b>${c.curWeekNum > 0 ? 'W' + c.curWeekNum : 'Chuẩn bị'}</b></span>
+                                <span>${progressWidth.toFixed(0)}% lộ trình</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div class="bg-brand-600 h-2 rounded-full transition-all duration-500" style="width: ${progressWidth}%"></div>
+                            </div>
+                            <div class="text-[10px] text-slate-500 flex justify-between pt-0.5">
+                                <span>${c.phase}</span>
+                                <span>Kết thúc: ${c.endDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        function renderRoadmapTable(data) {
+            const tbody = document.getElementById('s1-roadmap-table-body');
+            tbody.innerHTML = '';
+
+            data.forEach(c => {
+                const statusBadge = c.status.toLowerCase().includes('golive')
+                    ? `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-semibold">Golive</span>`
+                    : `<span class="bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-semibold">Training</span>`;
+
+                const hasPassRate = c.passRate !== null && c.passRate !== undefined;
+                const passCSCount = hasPassRate ? Math.round(c.curHC * (c.passRate / 100)) : null;
+                const passRatioText = hasPassRate
+                    ? `${passCSCount} / ${c.curHC} CS (${c.passRate}%)`
+                    : `-- / ${c.curHC} CS (chưa đủ dữ liệu CSAT)`;
+
+                const row = `
+                    <tr class="hover:bg-brand-50/50 transition">
+                        <td class="p-3 font-bold text-slate-900">${c.id}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-medium">${c.queue}</span></td>
+                        <td class="p-3 font-medium">${c.trainer}</td>
+                        <td class="p-3 text-slate-600">${c.lead}</td>
+                        <td class="p-3 text-center font-semibold text-slate-800">${c.rawHC}</td>
+                        <td class="p-3 text-center font-semibold text-rose-600">${c.quitHC}</td>
+                        <td class="p-3 text-center font-bold text-brand-900">${c.curHC}</td>
+                        <td class="p-3 text-center font-semibold ${c.attritionRate > 15 ? 'text-rose-600 font-bold' : 'text-slate-700'}">${c.attritionRate}%</td>
+                        <td class="p-3 text-center font-bold text-teal-800 bg-teal-50/50">${passRatioText}</td>
+                        <td class="p-3 text-center font-bold text-slate-800">${c.curWeekNum > 0 ? 'W' + c.curWeekNum : 'W0'}</td>
+                        <td class="p-3 text-center font-medium">${c.phase}</td>
+                        <td class="p-3 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function renderWeeklyCsatMatrix(data) {
+            const tbody = document.getElementById('s2-csat-weekly-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            data.forEach(c => {
+                const validWeeks = c.csatWeeks.filter(w => w !== null);
+                const avgCsat = validWeeks.length > 0 
+                    ? (validWeeks.reduce((a, b) => a + b, 0) / validWeeks.length).toFixed(1)
+                    : '--';
+
+                let cellsHtml = '';
+                for (let i = 0; i < 8; i++) {
+                    const score = c.csatWeeks[i];
+                    if (score === null || score === undefined) {
+                        cellsHtml += `<td class="p-3 text-center text-slate-300 font-light">-</td>`;
+                    } else {
+                        const scoreColor = score >= globalTargetCsat ? 'text-emerald-700 font-semibold' : score >= 85 ? 'text-amber-700 font-semibold' : 'text-rose-600 font-bold';
+                        cellsHtml += `<td class="p-3 text-center ${scoreColor}">${score}%</td>`;
+                    }
+                }
+
+                const row = `
+                    <tr class="hover:bg-brand-50/50 transition">
+                        <td class="p-3 font-bold text-slate-900">${c.id}</td>
+                        <td class="p-3 text-slate-600">${c.queue}</td>
+                        ${cellsHtml}
+                        <td class="p-3 text-center font-bold text-brand-900 bg-brand-50/80">${avgCsat !== '--' ? avgCsat + '%' : '--'}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function renderCsatByChannelTable(data) {
+            const tbody = document.getElementById('s2-csat-channel-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            data.forEach(c => {
+                const validWeeks = c.csatWeeks.filter(w => w !== null);
+                const overallCsat = validWeeks.length > 0 
+                    ? (validWeeks.reduce((a, b) => a + b, 0) / validWeeks.length).toFixed(1) + '%'
+                    : '--';
+
+                const chatScore = c.csatChat ? `${c.csatChat}%` : '--';
+                const callScore = c.csatCall ? `${c.csatCall}%` : '--';
+                const otherScore = c.csatOther ? `${c.csatOther}%` : '--';
+
+                const row = `
+                    <tr class="hover:bg-brand-50/40 transition">
+                        <td class="p-3 font-bold text-slate-900">${c.id}</td>
+                        <td class="p-3 text-slate-700"><span class="px-2 py-0.5 bg-slate-100 rounded font-medium">${c.queue}</span></td>
+                        <td class="p-3 text-slate-600">${c.trainer}</td>
+                        <td class="p-3 text-center font-semibold text-sky-800 bg-sky-50/40">${chatScore}</td>
+                        <td class="p-3 text-center font-semibold text-indigo-800 bg-indigo-50/40">${callScore}</td>
+                        <td class="p-3 text-center font-semibold text-slate-700 bg-slate-100/50">${otherScore}</td>
+                        <td class="p-3 text-center font-bold text-brand-900 bg-brand-50/80">${overallCsat}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function renderCsatContributeRatingTable(data) {
+            const tbody = document.getElementById('s2-csat-contribute-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            data.forEach(c => {
+                if (c.totalCases === 0) {
+                    const emptyRow = `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3 font-bold text-slate-900">${c.id}</td>
+                            <td class="p-3 text-slate-700">${c.queue}</td>
+                            <td class="p-3 text-center text-slate-400">0</td>
+                            <td class="p-3 text-center text-slate-400">0</td>
+                            <td class="p-3 text-center text-slate-400">0</td>
+                            <td class="p-3 text-center text-slate-400">0</td>
+                            <td class="p-3 text-center text-slate-400">--</td>
+                            <td class="p-3 text-center text-slate-400">--</td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', emptyRow);
+                    return;
+                }
+
+                const goodPct = ((c.goodCases / c.totalCases) * 100).toFixed(1);
+                const badPct = ((c.badCases / c.totalCases) * 100).toFixed(1);
+
+                const row = `
+                    <tr class="hover:bg-brand-50/40 transition">
+                        <td class="p-3 font-bold text-slate-900">${c.id}</td>
+                        <td class="p-3 text-slate-700"><span class="px-2 py-0.5 bg-slate-100 rounded font-medium">${c.queue}</span></td>
+                        <td class="p-3 text-center font-bold text-slate-800">${c.totalCases}</td>
+                        <td class="p-3 text-center font-bold text-emerald-700 bg-emerald-50/40">${c.goodCases}</td>
+                        <td class="p-3 text-center font-semibold text-amber-700 bg-amber-50/40">${c.avgCases}</td>
+                        <td class="p-3 text-center font-bold text-rose-600 bg-rose-50/40">${c.badCases}</td>
+                        <td class="p-3 text-center font-bold text-emerald-700">${goodPct}%</td>
+                        <td class="p-3 text-center font-bold text-rose-600">${badPct}%</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function renderHeadcountChart(data) {
+            const ctx = document.getElementById('chartHeadcount').getContext('2d');
+            if (chartHCInstance) chartHCInstance.destroy();
+
+            const labels = data.map(d => d.id);
+            const rawData = data.map(d => d.rawHC);
+            const curData = data.map(d => d.curHC);
+            const quitData = data.map(d => d.quitHC);
+
+            chartHCInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Bắt đầu (Raw)', data: rawData, backgroundColor: '#94a3b8' },
+                        { label: 'Hiện tại (Active)', data: curData, backgroundColor: '#0077cc' },
+                        { label: 'Nghỉ việc (Quit)', data: quitData, backgroundColor: '#f43f5e' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderPassAttritionChart(data) {
+            const ctx = document.getElementById('chartPassAttrition').getContext('2d');
+            if (chartPAInstance) chartPAInstance.destroy();
+
+            const labels = data.map(d => d.id);
+            const passData = data.map(d => d.passRate);
+            const attrData = data.map(d => d.attritionRate);
+
+            chartPAInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Tỷ Lệ Pass %', data: passData, borderColor: '#0d9488', backgroundColor: 'rgba(13, 148, 136, 0.1)', fill: true, tension: 0.3 },
+                        { label: '% Attrition Rate', data: attrData, borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.1)', fill: true, tension: 0.3 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        y: { min: 0, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderSheet2() {
+            const filteredAgents = getFilteredSheet2Data();
+            const filteredCohorts = getFilteredSheet2Cohorts();
+
+            renderWeeklyCsatMatrix(filteredCohorts);
+            renderTop5CSWarning();
+            renderTop5CohortsWarning();
+            renderCsatTrendChart();
+            renderCsatQueueChannelChart();
+            renderCsatByChannelTable(filteredCohorts);
+            renderCsatContributeRatingTable(filteredCohorts);
+            renderAgentTable(filteredAgents);
+        }
+
+        function getFilteredSheet2Cohorts() {
+            const qaVal = document.getElementById('s2-filter-qa').value;
+            const cohortVal = document.getElementById('s2-filter-cohort').value;
+            const queueVal = document.getElementById('s2-filter-queue').value;
+
+            return cohortData.filter(item => {
+                if (item.isDone || item.status === "Done probation") return false;
+
+                const matchQA = (qaVal === 'ALL' || item.trainer.includes(qaVal));
+                const matchCohort = (cohortVal === 'ALL' || item.id === cohortVal);
+                const matchQueue = (queueVal === 'ALL' || item.queue === queueVal);
+                return matchQA && matchCohort && matchQueue;
+            });
+        }
+
+        function getFilteredSheet2Data() {
+            const qaVal = document.getElementById('s2-filter-qa').value;
+            const cohortVal = document.getElementById('s2-filter-cohort').value;
+            const queueVal = document.getElementById('s2-filter-queue').value;
+            const channelVal = document.getElementById('s2-filter-channel').value;
+
+            return csatAgentsData.filter(item => {
+                const matchQA = (qaVal === 'ALL' || item.qa.includes(qaVal));
+                const matchCohort = (cohortVal === 'ALL' || item.cohort === cohortVal);
+                const matchQueue = (queueVal === 'ALL' || item.queue === queueVal);
+                const matchChannel = (channelVal === 'ALL' || item.channel === channelVal);
+                return matchQA && matchCohort && matchQueue && matchChannel;
+            });
+        }
+
+        function applySheet1Filters() {
+            renderSheet1();
+        }
+
+        function applySheet2Filters() {
+            renderSheet2();
+        }
+
+        function setTimeframe(tf) {
+            currentTimeframe = tf;
+            document.getElementById('tf-daily').className = tf === 'daily' ? 'px-3 py-1 rounded-md font-bold text-white bg-brand-600 shadow-sm transition' : 'px-3 py-1 rounded-md font-medium text-slate-700 hover:text-slate-900 transition';
+            document.getElementById('tf-weekly').className = tf === 'weekly' ? 'px-3 py-1 rounded-md font-bold text-white bg-brand-600 shadow-sm transition' : 'px-3 py-1 rounded-md font-medium text-slate-700 hover:text-slate-900 transition';
+            document.getElementById('tf-monthly').className = tf === 'monthly' ? 'px-3 py-1 rounded-md font-bold text-white bg-brand-600 shadow-sm transition' : 'px-3 py-1 rounded-md font-medium text-slate-700 hover:text-slate-900 transition';
+
+            document.getElementById('trend-period-text').innerText = tf.charAt(0).toUpperCase() + tf.slice(1);
+            renderCsatTrendChart();
+        }
+
+        function renderTop5CSWarning() {
+            const tbody = document.getElementById('top-5-cs-body');
+            tbody.innerHTML = '';
+
+            const filteredAgents = getFilteredSheet2Data();
+            const sorted = [...filteredAgents].sort((a, b) => a.csat - b.csat).slice(0, 5);
+
+            if (sorted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-slate-400">Không có dữ liệu phù hợp bộ lọc.</td></tr>`;
+                return;
+            }
+
+            sorted.forEach(cs => {
+                const diff = (cs.csat - globalTargetCsat).toFixed(1);
+                const badgeRating = cs.csat < globalTargetCsat 
+                    ? `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold text-[10px]">Thiếu ${diff}%</span>`
+                    : `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium text-[10px]">Đạt +${diff}%</span>`;
+
+                const row = `
+                    <tr class="hover:bg-rose-50/50 transition">
+                        <td class="p-2 font-bold text-slate-900">${cs.name}</td>
+                        <td class="p-2">${cs.cohort}</td>
+                        <td class="p-2 text-slate-600">${cs.lead}</td>
+                        <td class="p-2 text-center"><span class="px-1.5 py-0.5 bg-slate-100 rounded text-[10px]">${cs.channel}</span></td>
+                        <td class="p-2 text-center font-bold text-rose-600">${cs.csat}%</td>
+                        <td class="p-2 text-center">${badgeRating}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function renderTop5CohortsWarning() {
+            const tbody = document.getElementById('top-5-cohorts-body');
+            tbody.innerHTML = '';
+
+            const filteredCohorts = getFilteredSheet2Cohorts();
+            const sorted = [...filteredCohorts].sort((a, b) => b.attritionRate - a.attritionRate).slice(0, 5);
+
+            if (sorted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-slate-400">Không có dữ liệu phù hợp bộ lọc.</td></tr>`;
+                return;
+            }
+
+            sorted.forEach(c => {
+                const warningLevel = c.attritionRate >= 18 
+                    ? `<span class="bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full text-[10px]">Cảnh Báo Đỏ</span>`
+                    : `<span class="bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full text-[10px]">Cảnh Báo Vàng</span>`;
+
+                const validCsat = c.csatWeeks.filter(w => w !== null);
+                const lastCsat = validCsat.length > 0 ? validCsat[validCsat.length - 1] + '%' : '--';
+
+                const row = `
+                    <tr class="hover:bg-amber-50/50 transition">
+                        <td class="p-2 font-bold text-slate-900">${c.id}</td>
+                        <td class="p-2">${c.queue}</td>
+                        <td class="p-2 text-center font-bold text-rose-600">${c.quitHC} NS</td>
+                        <td class="p-2 text-center font-bold text-amber-700">${c.attritionRate}%</td>
+                        <td class="p-2 text-center font-semibold text-slate-800">${lastCsat}</td>
+                        <td class="p-2 text-center">${warningLevel}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function renderCsatTrendChart() {
+            const ctx = document.getElementById('chartCsatTrend').getContext('2d');
+            if (chartTrendInstance) chartTrendInstance.destroy();
+
+            let labels, dataPoints;
+            if (currentTimeframe === 'daily') {
+                labels = (trendPayload.daily && trendPayload.daily.labels) || [];
+                dataPoints = (trendPayload.daily && trendPayload.daily.values) || [];
+            } else if (currentTimeframe === 'weekly') {
+                // Tuần 1..8 tính theo vị trí lộ trình riêng của từng khóa (không phải
+                // tuần lịch thật) -> lấy trung bình csatWeeks[i] của các khóa đang active.
+                labels = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4', 'Tuần 5', 'Tuần 6', 'Tuần 7', 'Tuần 8'];
+                dataPoints = labels.map((_, i) => {
+                    const vals = cohortData.filter(c => !c.isDone).map(c => c.csatWeeks[i]).filter(v => v !== null && v !== undefined);
+                    return vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : null;
+                });
+            } else {
+                labels = (trendPayload.monthly && trendPayload.monthly.labels) || [];
+                dataPoints = (trendPayload.monthly && trendPayload.monthly.values) || [];
+            }
+
+            if (!labels.length) {
+                labels = ['Chưa có dữ liệu'];
+                dataPoints = [null];
+            }
+
+            const targetLine = labels.map(() => globalTargetCsat);
+
+            chartTrendInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'CSAT Thực Tế (%)',
+                            data: dataPoints,
+                            borderColor: '#0077cc',
+                            backgroundColor: 'rgba(0, 119, 204, 0.12)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#0a436f'
+                        },
+                        {
+                            label: `Target CSAT Benchmark (${globalTargetCsat}%)`,
+                            data: targetLine,
+                            borderColor: '#e11d48',
+                            borderWidth: 2,
+                            borderDash: [6, 6],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    scales: {
+                        y: { min: 70, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderCsatQueueChannelChart() {
+            const ctx = document.getElementById('chartCsatQueueChannel').getContext('2d');
+            if (chartQueueChannelInstance) chartQueueChannelInstance.destroy();
+
+            const queues = ['Buyer', 'Seller', 'Log'];
+            const targetData = [globalTargetCsat, globalTargetCsat, globalTargetCsat];
+            const chatData = queues.map(q => (queueChannelPayload[q] && queueChannelPayload[q].chat != null) ? queueChannelPayload[q].chat : null);
+            const callData = queues.map(q => (queueChannelPayload[q] && queueChannelPayload[q].call != null) ? queueChannelPayload[q].call : null);
+
+            chartQueueChannelInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Buyer Queue', 'Seller Queue', 'Log Queue'],
+                    datasets: [
+                        { label: 'Kênh Chat', data: chatData, backgroundColor: '#0077cc' },
+                        { label: 'Kênh Call', data: callData, backgroundColor: '#38bdf8' },
+                        { 
+                            label: `Target Benchmark (${globalTargetCsat}%)`, 
+                            data: targetData, 
+                            type: 'line', 
+                            borderColor: '#e11d48', 
+                            borderWidth: 2, 
+                            borderDash: [5, 5], 
+                            pointRadius: 0,
+                            fill: false 
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                    scales: {
+                        y: { min: 70, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function getAgentTarget(item) {
+            const isCall = item.channel === 'Internet Call' || item.channel === 'Call';
+            const isChat = item.channel === 'Chat';
+
+            if (isCall && item.queue === 'Seller') return 92;
+            if (isCall && item.queue === 'Buyer') return 93;
+            if (isChat && item.queue === 'Seller') return 78;
+            if (isChat && item.queue === 'Buyer') return 70;
+            return null;
+        }
+
+        function renderAgentTable(data) {
+            const tbody = document.getElementById('s2-agent-csat-body');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-xs text-slate-500">Không tìm thấy nhân sự phù hợp với bộ lọc.</td></tr>`;
+                return;
+            }
+
+            data.forEach(item => {
+                const target = getAgentTarget(item);
+                const hasTarget = target !== null;
+                const diff = hasTarget ? (item.csat - target).toFixed(1) : null;
+                const isMet = hasTarget ? item.csat >= target : false;
+
+                const badgeTargetStatus = !hasTarget
+                    ? `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold text-[10px]">Chưa có benchmark</span>`
+                    : isMet
+                        ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]"><i class="fa-solid fa-check me-1"></i>Đạt (+${diff}ppt)</span>`
+                        : `<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px]"><i class="fa-solid fa-xmark me-1"></i>Thiếu (${diff}ppt)</span>`;
+
+                const actualColor = !hasTarget ? 'text-slate-800' : (isMet ? 'text-emerald-700' : 'text-rose-600');
+                const targetText = hasTarget ? `≥ ${target}%` : '--';
+
+                const row = `
+                    <tr class="hover:bg-brand-50/40 transition">
+                        <td class="p-3 font-bold text-slate-900">${item.name}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-slate-800 font-semibold">${item.cohort}</span></td>
+                        <td class="p-3 font-medium text-slate-700">${item.qa}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 bg-brand-50 text-brand-900 border border-brand-200 rounded">${item.queue}</span></td>
+                        <td class="p-3 text-center font-medium">${item.channel}</td>
+                        <td class="p-3 text-center font-semibold text-slate-800">${item.count}</td>
+                        <td class="p-3 text-center font-bold ${actualColor}">${item.csat}%</td>
+                        <td class="p-3 text-center font-semibold text-brand-800 bg-brand-50/50">${targetText}</td>
+                        <td class="p-3 text-center">${badgeTargetStatus}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function filterAgentTable() {
+            const query = document.getElementById('agent-search-input').value.toLowerCase();
+            const filtered = csatAgentsData.filter(item => 
+                item.name.toLowerCase().includes(query) || 
+                item.cohort.toLowerCase().includes(query) ||
+                item.qa.toLowerCase().includes(query)
+            );
+            renderAgentTable(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById('s1-filter-week').value = 'CURRENT';
+            document.getElementById('s1-filter-cohort').value = 'ALL';
+            document.getElementById('s1-filter-queue').value = 'ALL';
+            document.getElementById('s1-filter-status').value = 'ALL';
+            document.getElementById('s1-filter-trainer').value = 'ALL';
+
+            document.getElementById('s2-filter-qa').value = 'ALL';
+            document.getElementById('s2-filter-cohort').value = 'ALL';
+            document.getElementById('s2-filter-queue').value = 'ALL';
+            document.getElementById('s2-filter-channel').value = 'ALL';
+            document.getElementById('agent-search-input').value = '';
+
+            renderSheet1();
+            if (!document.getElementById('sheet2-content').classList.contains('hidden')) {
+                renderSheet2();
+            }
+        }
+
+        function exportDataSimulated() {
+            const dummyText = "Tên Khóa, Queue, QA PIC, TL, Raw HC, Quit HC, Cur HC, Attrition Rate, Pass Rate\n" +
+                cohortData.map(c => `${c.id},${c.queue},${c.trainer},${c.lead},${c.rawHC},${c.quitHC},${c.curHC},${c.attritionRate}%,${c.passRate}%`).join("\n");
+            
+            const blob = new Blob([dummyText], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "Newbie_CSAT_Summary_" + Utilities_formatToday_() + ".csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Initialize dashboard on window load
+        window.onload = function() {
+            loadData(false);
+        };
+    </script>
+</body>
+</html>
