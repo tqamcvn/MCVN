@@ -7,7 +7,7 @@ const maxBody = 10000;
 document.body.classList.toggle('dark', new URLSearchParams(location.search).get('theme') === 'dark');
 function message(text) { $('notice').textContent = text; }
 function node(tag, text, cls) { const el = document.createElement(tag); el.textContent = text; if (cls) el.className = cls; return el; }
-function draft() { return {id:draftId,title:$('title').value,body:$('body').value,kind:document.querySelector('[name=kind]:checked').value,files:files.map(f=>f.name)}; }
+function draft() { return {id:draftId,title:$('title').value,body:$('body').mentionValue?.serialize()||$('body').value,kind:document.querySelector('[name=kind]:checked').value,files:files.map(f=>f.name)}; }
 function saveDraft() {
   clearTimeout(timer);
   if (!draftKey || sending) return;
@@ -25,7 +25,7 @@ function restore() {
     const data = JSON.parse(raw);
     if (typeof data.title !== 'string' || typeof data.body !== 'string') throw new Error('draft');
     draftId = typeof data.id === 'string' ? data.id : draftId;
-    $('title').value = data.title; $('body').value = data.body;
+    $('title').value = data.title; if($('body').mentionValue)$('body').mentionValue.restore(data.body);else $('body').value=data.body;
     document.querySelector('[name=kind][value="' + (data.kind === 'Lỗi' ? 'Lỗi' : 'Đề xuất') + '"]').checked = true;
     $('draft-status').textContent = 'Đã khôi phục bản nháp.' + (data.files?.length ? ' Vui lòng dán lại ảnh: ' + data.files.join(', ') : '');
   } catch { $('draft-status').textContent = 'Không đọc được bản nháp đã lưu. Hãy giữ trang này mở khi soạn phản hồi.'; }
@@ -59,7 +59,7 @@ function render(){
     const card=node('article','','card'), vote=node('button','⌃\n'+tally(r.id),'vote');vote.setAttribute('aria-pressed',String(mine(r.id)));vote.setAttribute('aria-label',(mine(r.id)?'Bỏ bình chọn: ':'Bình chọn: ')+r.title);
     vote.onclick=async()=>{vote.disabled=true;try{const result=mine(r.id)?await db.from('feedback_votes').delete().eq('feedback_id',r.id).eq('user_id',user.id):await db.from('feedback_votes').insert({feedback_id:r.id,user_id:user.id});if(result.error)throw result.error;await load();}catch{message('Chưa lưu được bình chọn. Vui lòng thử lại.');vote.disabled=false;}};
     const content=node('div','','card-content'),meta=node('div','','meta'),date=node('time',new Date(r.created_at).toLocaleDateString('en-GB'));date.dateTime=r.created_at;meta.append(person(r.author_id),date,node('span',r.kind,'badge'),node('span',r.status,'badge status'));
-    const title=node('button',r.title,'title-button');title.onclick=()=>showDetail(r);content.append(meta,title,node('p',r.body,'excerpt'));if(r.attachments?.length)content.append(node('p','⌁ '+r.attachments.length+' đính kèm','muted'));card.append(vote,content);$('list').append(card);
+    const title=node('button',r.title,'title-button');title.onclick=()=>showDetail(r);content.append(meta,title,node('p',feedbackMentionText(r.body),'excerpt'));if(r.attachments?.length)content.append(node('p','⌁ '+r.attachments.length+' đính kèm','muted'));card.append(vote,content);$('list').append(card);
   });
 }
 function person(id){
@@ -83,19 +83,19 @@ async function openImage(file){
 async function showDetail(r){
   const version=++detailVersion;selectedFeedback=r;$('detail-title').textContent=r.title;
   $('detail-meta').replaceChildren(person(r.author_id),node('span',' · '+r.kind+' · '+r.status+' · '+new Date(r.created_at).toLocaleDateString('en-GB')));
-  $('detail-body').textContent=r.body;$('detail-files').replaceChildren();
+  $('detail-body').textContent=feedbackMentionText(r.body);$('detail-files').replaceChildren();
   (r.attachments||[]).forEach(f=>{const button=node('button','▧ '+f.name);button.onclick=()=>openImage(f);$('detail-files').append(button);});
   $('manager-actions').hidden=!isManager;$('reply-form').hidden=!isManager;$('detail-error').textContent='';
   renderTask(r);
-  $('reply-body').value='';try{$('reply-body').value=sessionStorage.getItem('feedback.reply.'+user.id+'.'+r.id)||'';}catch{}
+  $('reply-body').value='';try{const wire=sessionStorage.getItem('feedback.reply.'+user.id+'.'+r.id)||'';if($('reply-body').mentionValue)$('reply-body').mentionValue.restore(wire);else $('reply-body').value=wire;}catch{}
   $('replies').textContent='Đang tải phản hồi…';if(!$('detail').open)$('detail').showModal();
   markFeedbackNotificationsRead(r.id);
   try{const result=await db.from('feedback_replies').select('*').eq('feedback_id',r.id).order('created_at');if(result.error)throw result.error;if(version!==detailVersion)return;
     $('replies').replaceChildren();if(!result.data.length)$('replies').textContent='Chưa có phản hồi từ MNG.';
-    result.data.forEach(reply=>{const box=node('article','','reply');box.append(person(reply.author_id),node('time',new Date(reply.created_at).toLocaleString('vi-VN'),'muted'),node('p',reply.body));$('replies').append(box);});
+    result.data.forEach(reply=>{const box=node('article','','reply');box.append(person(reply.author_id),node('time',new Date(reply.created_at).toLocaleString('vi-VN'),'muted'),node('p',feedbackMentionText(reply.body)));$('replies').append(box);});
   }catch{if(version===detailVersion)$('replies').textContent='Không tải được phản hồi. Đóng và mở lại để thử lại.';}
 }
-$('reply-body').oninput=()=>{try{sessionStorage.setItem('feedback.reply.'+user.id+'.'+selectedFeedback.id,$('reply-body').value);}catch{}};
+$('reply-body').oninput=()=>{try{sessionStorage.setItem('feedback.reply.'+user.id+'.'+selectedFeedback.id,$('reply-body').mentionValue?.serialize()||$('reply-body').value);}catch{}};
 async function setStatus(status){
   if(!isManager||!selectedFeedback)return;const id=selectedFeedback.id;
   $('task-status').disabled=true;
@@ -105,7 +105,7 @@ async function setStatus(status){
 }
 $('task-status').onchange=()=>{if($('task-status').value)setStatus($('task-status').value);};
 $('reply-form').onsubmit=async e=>{
-  e.preventDefault();const body=$('reply-body').value.trim();if(!isManager||!body||!selectedFeedback)return;
+  e.preventDefault();const body=($('reply-body').mentionValue?.serialize()||$('reply-body').value).trim();if(!isManager||!body||!selectedFeedback)return;
   const id=selectedFeedback.id;$('reply-submit').disabled=true;
   try{const result=await db.from('feedback_replies').insert({feedback_id:id,author_id:user.id,body});if(result.error)throw result.error;try{sessionStorage.removeItem('feedback.reply.'+user.id+'.'+id);}catch{}await load();if(selectedFeedback.id===id)await showDetail(rows.find(r=>r.id===id));}
   catch{$('detail-error').textContent='Chưa gửi được phản hồi. Nội dung vẫn được giữ lại.';}
@@ -158,7 +158,7 @@ $('form').onsubmit=async e=>{
     if(!existing.data){
       const attachments=[];
       for(let i=0;i<files.length;i++){const file=files[i],path=user.id+'/'+draftId+'/'+i+'-'+crypto.randomUUID();const uploaded=await db.storage.from('feedback-attachments').upload(path,file);if(uploaded.error)throw uploaded.error;attachments.push({name:file.name,path});}
-      const result=await db.from('feedback').insert({id:draftId,author_id:user.id,title:$('title').value.trim(),body:$('body').value.trim(),kind:document.querySelector('[name=kind]:checked').value,attachments});if(result.error)throw result.error;
+      const result=await db.from('feedback').insert({id:draftId,author_id:user.id,title:$('title').value.trim(),body:($('body').mentionValue?.serialize()||$('body').value).trim(),kind:document.querySelector('[name=kind]:checked').value,attachments});if(result.error)throw result.error;
     }
     clearTimeout(timer);try{localStorage.removeItem(draftKey);}catch{}
     $('form').reset();files=[];renderFiles();draftId=crypto.randomUUID();countBody();$('draft-status').textContent='';$('composer').close();
@@ -166,7 +166,7 @@ $('form').onsubmit=async e=>{
   }catch{$('form-error').textContent='Chưa gửi được phản hồi. Nội dung và bản nháp vẫn được giữ lại. Vui lòng thử lại.';}
   finally{sending=false;Array.from($('form').elements).forEach(el=>el.disabled=false);$('submit').textContent='Gửi phản hồi';}
 };
-(async()=>{try{const {data,error}=await db.auth.getUser();if(error||!data.user){message('Vui lòng đăng nhập dashboard để xem và gửi phản hồi.');$('list').replaceChildren();return;}user=data.user;setupFeedbackMentions(db);draftKey='tqa.feedback.draft.v1.'+user.id;draftId=crypto.randomUUID();restore();$('write').disabled=false;await load();}catch{message('Không tải được feedback. Kiểm tra kết nối hoặc cấu hình dữ liệu.');$('list').replaceChildren();}})();
+(async()=>{try{const {data,error}=await db.auth.getUser();if(error||!data.user){message('Vui lòng đăng nhập dashboard để xem và gửi phản hồi.');$('list').replaceChildren();return;}user=data.user;await setupFeedbackMentions(db);draftKey='tqa.feedback.draft.v1.'+user.id;draftId=crypto.randomUUID();restore();$('write').disabled=false;await load();}catch{message('Không tải được feedback. Kiểm tra kết nối hoặc cấu hình dữ liệu.');$('list').replaceChildren();}})();
 
 function renderTask(r){
   $('task-progress').hidden=!isManager;
