@@ -30,7 +30,7 @@ const SHEET_OVERALL   = '1. Overall';
 const SHEET_RAW       = '2. Raw';
 const GH_OWNER  = 'tqamcvn';
 const GH_REPO   = 'MCVN';
-const GH_BRANCH = 'ChatLogPartime';
+const GH_BRANCH = 'main'; // GitHub Pages của repo này build từ branch main, không phải ChatLogPartime
 const GH_PATH   = 'newbie/data.json';
 const TZ        = 'Asia/Ho_Chi_Minh';
 
