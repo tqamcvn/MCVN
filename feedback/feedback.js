@@ -59,7 +59,7 @@ function render(){
     const card=node('article','','card'), vote=node('button','⌃\n'+tally(r.id),'vote');vote.setAttribute('aria-pressed',String(mine(r.id)));vote.setAttribute('aria-label',(mine(r.id)?'Bỏ bình chọn: ':'Bình chọn: ')+r.title);
     vote.onclick=async()=>{vote.disabled=true;try{const result=mine(r.id)?await db.from('feedback_votes').delete().eq('feedback_id',r.id).eq('user_id',user.id):await db.from('feedback_votes').insert({feedback_id:r.id,user_id:user.id});if(result.error)throw result.error;await load();}catch{message('Chưa lưu được bình chọn. Vui lòng thử lại.');vote.disabled=false;}};
     const content=node('div','','card-content'),meta=node('div','','meta'),date=node('time',new Date(r.created_at).toLocaleDateString('en-GB'));date.dateTime=r.created_at;meta.append(person(r.author_id),date,node('span',r.kind,'badge'),statusBadge(r.status));
-    const title=node('button',r.title,'title-button');title.onclick=()=>showDetail(r);content.append(meta,title,node('p',feedbackMentionText(r.body),'excerpt'));if(r.attachments?.length)content.append(node('p','⌁ '+r.attachments.length+' đính kèm','muted'));card.append(vote,content);$('list').append(card);
+    const title=node('button',r.title,'title-button');title.onclick=()=>showDetail(r);content.append(meta,title,node('p',feedbackMentionText(r.body),'excerpt'));if(r.attachments?.length)content.append(attachmentThumbnails(r.attachments));card.append(vote,content);$('list').append(card);
   });
 }
 function person(id){
@@ -200,3 +200,14 @@ async function markFeedbackNotificationsRead(feedbackId){
 }
 
 function statusBadge(status){const badge=node('span',status,'badge status');badge.dataset.status=status;return badge;}
+
+function attachmentThumbnails(attachments){
+ const gallery=node('div','','attachment-thumbnails');gallery.setAttribute('aria-label','Ảnh đính kèm');
+ attachments.forEach(file=>{
+  const button=node('button','','attachment-thumbnail'),image=document.createElement('img'),label=node('span','Đang tải ảnh…','thumbnail-label');
+  button.type='button';button.setAttribute('aria-label','Xem ảnh '+file.name);button.title=file.name;image.alt=file.name;image.loading='lazy';
+  button.append(image,label);button.onclick=()=>openImage(file);gallery.append(button);
+  image.onload=()=>{image.hidden=false;label.hidden=true;};image.onerror=()=>{image.hidden=true;label.hidden=false;label.textContent='Bấm để xem ảnh';};
+  db.storage.from('feedback-attachments').createSignedUrl(file.path,300).then(({data,error})=>{if(error||!data?.signedUrl)throw error||new Error('No image URL');image.src=data.signedUrl;}).catch(()=>{label.textContent='Bấm để xem ảnh';});
+ });return gallery;
+}

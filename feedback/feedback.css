@@ -29,3 +29,5 @@ body.dark .badge.status[data-status="Đang xem xét"],body.dark .badge.status[da
 body.dark .badge.status[data-status="Đã nhận"]{background:#193653;color:#a5ceff;border-color:#36628b}
 body.dark .badge.status[data-status="Đang thực hiện"]{background:#38264c;color:#dbc0fa;border-color:#77528e}
 body.dark .badge.status[data-status="Hoàn thành"],body.dark .badge.status[data-status="Đã hoàn thành"],body.dark .badge.status[data-status="Đã thực hiện"]{background:#1b3b2a;color:#a3e0ba;border-color:#3c7953}
+
+.attachment-thumbnails{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.attachment-thumbnail{position:relative;width:120px;height:86px;padding:0;overflow:hidden;border-radius:9px;background:var(--surface);border:1px solid var(--line)}.attachment-thumbnail img{display:block;width:100%;height:100%;object-fit:cover}.attachment-thumbnail img[hidden],.thumbnail-label[hidden]{display:none}.thumbnail-label{display:block;font-size:11px;color:var(--muted);padding:10px}.attachment-thumbnail:hover{border-color:var(--blue);box-shadow:0 0 0 2px #1675b822}@media(max-width:600px){.attachment-thumbnail{width:94px;height:72px}}
