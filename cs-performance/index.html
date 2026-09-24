@@ -319,7 +319,7 @@ const rawControls=performanceControls;
 performanceControls=function(){rawControls();let selected=$('perfWeek').value,weeks=[...new Set([...(db.rawV3||[]).map(r=>r[3]),...(db.ratingsV4||[]).map(r=>r[2])].filter(Boolean))].sort().reverse().slice(0,4),months=[...new Set([...(db.rawV3||[]).map(r=>r[2].slice(0,7)),...(db.ratingsV4||[]).map(r=>r[1].slice(0,7))].filter(Boolean))].sort().reverse();$('perfWeek').innerHTML=weeks.map(w=>`<option value="${w}">${w.slice(5)} · ${w.slice(0,4)}</option>`).join('');$('perfWeek').value=weeks.includes(selected)?selected:(weeks[0]||'');$('monthFilter').innerHTML='<option value="">Chọn tháng</option>'+months.map(m=>`<option value="${m}">01 ${new Date(m+'-01T12:00:00').toLocaleDateString('en-US',{month:'short',year:'numeric'})}</option>`).join('');};
 const priorV4Render=render;
 render=function(){priorV4Render();$('notice').innerHTML='<b>CSAT:</b> tổng good_cnt / tổng good_bad_cnt từ <b>raw_agent_level</b>. <b>Mistake, sample và P0:</b> từ <b>Raw_final</b>. Hai nguồn được ghép theo email và thời gian; mẫu tagging không được dùng thay rating CSAT. '+(demoOn()?'Issue/coaching MINH HỌA đang bật.':'Issue/coaching MINH HỌA đang tắt.');$('dataStamp').textContent='CSAT: '+(db.ratingsSourceName||'Chưa nạp raw_agent_level')+' · Nạp '+(db.ratingsUpdatedAt?new Date(db.ratingsUpdatedAt).toLocaleString('vi-VN'):'—')+' | Tagging: '+(db.rawSourceName||'Raw_final')+' · Nạp '+(db.sourceUpdatedAt?new Date(db.sourceUpdatedAt).toLocaleString('vi-VN'):'—');};
-function parseRatingCSV(text){let rows=csvParse(text),headers=rows.shift(),required=['agent_email','report_date','report_week','good_cnt','good_bad_cnt'];if(required.some(k=>!headers.includes(k)))throw Error('File CSAT cần cột agent_email, report_date, report_week, good_cnt, good_bad_cnt.');let records=[],newProfiles=[],seen=new Set(db.agents.map(a=>a.email));for(let[n,row]of rows.entries()){let get=k=>row[headers.indexOf(k)]||'',email=get('agent_email').trim().toLowerCase(),date=get('report_date'),weekDate=get('report_week'),good=Number(get('good_cnt')),total=Number(get('good_bad_cnt'));if(!email.includes('@')||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!/^\d{4}-\d{2}-\d{2}$/.test(weekDate)||!Number.isFinite(good)||!Number.isFinite(total)||good<0||total<good)throw Error('Dữ liệu CSAT không hợp lệ tại dòng '+(n+2));records.push([email,date,weekOf(weekDate),good,total]);if(!seen.has(email)){seen.add(email);newProfiles.push({email,name:get('agent_name')||email,group:get('team'),csatGroup:get('team'),queue:['Buyer','Seller'].includes(get('shopee_user_type'))?get('shopee_user_type'):get('team')==='Multi'?'All':'',batch:'',qa:'',seniority:get('agent_seniority'),profileSource:'raw_agent_level'})}}if(!records.length)throw Error('File CSAT không có dữ liệu.');return{records,newProfiles}}
+function parseRatingCSV(text){let rows=csvParse(text),headers=rows.shift(),required=['agent_email','report_date','report_week','good_cnt','good_bad_cnt'];if(required.some(k=>!headers.includes(k)))throw Error('File CSAT cần cột agent_email, report_date, report_week, good_cnt, good_bad_cnt.');let records=[],newProfiles=[],seen=new Set(db.agents.map(a=>a.email));for(let[n,row]of rows.entries()){let get=k=>row[headers.indexOf(k)]||'',email=get('agent_email').trim().toLowerCase(),date=get('report_date'),weekDate=get('report_week'),good=Number(get('good_cnt')),total=Number(get('good_bad_cnt'));if(!email.includes('@')||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!/^\d{4}-\d{2}-\d{2}$/.test(weekDate)||!Number.isFinite(good)||!Number.isFinite(total)||good<0||total<good)throw Error('Dữ liệu CSAT không hợp lệ tại dòng '+(n+2));records.push([email,date,weekOf(weekDate),good,total,ratingChannel(get('channel_name')),segmentValue(get('shopee_user_type'))]);if(!seen.has(email)){seen.add(email);newProfiles.push({email,name:get('agent_name')||email,group:get('team'),csatGroup:get('team'),queue:['Buyer','Seller'].includes(get('shopee_user_type'))?get('shopee_user_type'):get('team')==='Multi'?'All':'',batch:'',qa:'',seniority:get('agent_seniority'),profileSource:'raw_agent_level'})}}if(!records.length)throw Error('File CSAT không có dữ liệu.');return{records,newProfiles}}
 $('loadRawFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let text=await f.text();if(f.name.toLowerCase().endsWith('.json')){let data=JSON.parse(text);if(!Array.isArray(data.rawV3)||!Array.isArray(data.ratingsV4)||!Array.isArray(data.agents)||!Array.isArray(data.issues)||!Array.isArray(data.logs))throw Error('JSON cần là bản sao lưu mới có cả dữ liệu CSAT và tagging.');if(!confirm('Thay toàn bộ dữ liệu bằng JSON này?'))return;db=data}else{let headers=csvParse(text)[0]||[];if(headers.includes('good_cnt')&&headers.includes('good_bad_cnt')){let parsed=parseRatingCSV(text);if(!confirm('Nạp '+parsed.records.length+' dòng CSAT từ good_cnt / good_bad_cnt? Dữ liệu tagging và QA submit giữ nguyên.'))return;db.ratingsV4=parsed.records;db.agents.push(...parsed.newProfiles);db.ratingsSourceName=f.name;db.ratingsUpdatedAt=new Date().toISOString()}else{let parsed=parseRawCSV(text);if(!confirm('Nạp '+parsed.data.length+' dòng tagging? Dữ liệu CSAT và QA submit giữ nguyên.'))return;db.rawV3=parsed.data;db.agents.push(...parsed.profiles);db.rawSourceName=f.name;db.sourceUpdatedAt=new Date().toISOString()}}refreshRaw();performanceControls();initFilters();dirty=true;page=1;render();toast('Đã nạp đúng nguồn dữ liệu. Tải HTML để lưu bản mới.')}catch(err){toast(err.message)}finally{e.target.value=''}};
 const previousHelp=$('helpBtn').onclick;
 $('helpBtn').onclick=()=>{previousHelp();$('detailContent').insertAdjacentHTML('afterbegin','<div class="notice"><b>Hai nguồn độc lập:</b> raw_agent_level cung cấp good_cnt và good_bad_cnt để tính CSAT. Raw_final cung cấp case tagging để tính mistake, sample, issue lặp và P0. Nút Load data tự nhận diện CSV theo tên cột, chỉ thay nguồn tương ứng.</div>')};
@@ -731,6 +731,7 @@ function showEditRound(journeyId, roundId){
   set('journeySessionCategory',r.sessionCategory||'');
   set('journeySessionType',r.sessionType||(['Warning Letter','Training','Refreshing','Catchup','Kick off'].includes(r.actionType)?r.actionType:'Coaching'));set('journeyNextSteps',r.nextSteps||r.commitment||'');set('journeyDocument',r.evidence||r.document||'');set('journeyCommitment',r.commitment||''); set('journeyMetric',r.commitMetric||''); set('journeyTarget',r.commitTarget??''); set('journeyMode',r.followMode||'daily');set('journeyNext',r.followMode==='custom'?r.next||'':'');
   d.querySelector('#edActType').dispatchEvent(new Event('change'));
+  {const section=d.querySelector('[data-journey-commit]'),entries=commitEntries(r);if(entries.length){fillCommitRow(section.querySelector('[data-commit-row]'),entries[0]);entries.slice(1).forEach(c=>addCommitRow(section,c));}}
   d.showModal();
   d.addEventListener('close',()=>d.remove());
 }
@@ -743,7 +744,7 @@ function saveEditRound(journeyId, roundId, dialog){
   let qaSession=currentQASession();if(!qaSession){toast('Vui lòng đăng nhập QA trước khi lưu.');return;}let by=qaSession.name;
   let commit; try{commit=readJourneyCommit(dialog,actType,j.csEmail,r.loggedAt?localISO(new Date(r.loggedAt)):today());}catch(err){toast(err.message);return;}
   r.actionType=actType; r.week=week; r.detail=detail; r.by=by;if(commit.baseline){r.baseline=commit.baseline;r.commitChannel=commit.commitChannel;}
-  r.sessionCategory=commit.sessionCategory;r.sessionType=commit.sessionType;r.recap=commit.recap;r.nextSteps=commit.nextSteps;r.evidence=commit.evidence;r.commitment=commit.commitment||''; r.commitMetric=commit.commitMetric||''; r.commitTarget=commit.commitTarget??null; r.followMode=commit.followMode||r.followMode||'';
+  r.commitments=commit.commitments||[];r.commitSegment=commit.commitSegment||'';r.sessionCategory=commit.sessionCategory;r.sessionType=commit.sessionType;r.recap=commit.recap;r.nextSteps=commit.nextSteps;r.evidence=commit.evidence;r.commitment=commit.commitment||''; r.commitMetric=commit.commitMetric||''; r.commitTarget=commit.commitTarget??null; r.followMode=commit.followMode||r.followMode||'';
   if(commit.next) r.next=commit.next; if(commit.baseline&&!r.baseline) r.baseline=commit.baseline;
   r.updatedAt=new Date().toISOString();
   logHistory('Sửa action · '+actType,j.csEmail,j.csName,detail||'',r);
@@ -790,7 +791,7 @@ function saveEditRootCause(journeyId, dialog){
 function journeyMagicStatus(csEmail,r){
   if(!r||r.commitMetric!=='csat'||r.commitTarget==null)return '';
   const sd=s=>{const mm=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/);return mm?mm[3]+'/'+mm[2]+'/'+mm[1]:String(s||'');};
-  const cur=commitWTD(csEmail,r.commitChannel||'',today()),target=Number(r.commitTarget);
+  const cur=commitWTD(csEmail,r.commitChannel||'',today(),r.commitSegment||''),target=Number(r.commitTarget);
   const base=r.baseline&&r.baseline.csat!=null?Number(r.baseline.csat):null;
   const now=(cur.csat!=null&&cur.total>=5)?Number(cur.csat):null;
   let big,sub;
@@ -843,7 +844,7 @@ function showJourneyDetail(journeyId){
       <button onclick="{const jj=db.csJourneys.find(x=>x.id==='${j.id}');if(jj&&confirm('Xóa journey này?')){logHistory('Xóa Journey',jj.csEmail,jj.csName,'Root cause: '+jj.rootCause,jj);db.csJourneys=db.csJourneys.filter(x=>x.id!=='${j.id}');dirty=true;$('detail').close();render()}}" style="color:#c26456">Xóa Journey</button>
     </div>
     <div class="detailbox journey-summary" style="white-space:normal;padding:16px">
-      ${journeyMagicStatus(j.csEmail,activeCommit)}
+      ${journeyScopedCSAT(j).map(c=>'<div><b>'+esc(commitmentLabel(c))+'</b>'+journeyMagicStatus(j.csEmail,c)+'</div>').join('')}
       ${j.initialCommit?`<p>Cam kết ban đầu (chưa action): ${followCommitText(j.initialCommit)}</p>`:''}
       <div style="font-weight:700;color:#a4341f;font-size:12px;text-transform:uppercase;letter-spacing:.3px">Vấn đề gốc</div>
       <div style="white-space:pre-wrap;font-size:13px;margin:2px 0 8px">${esc(j.rootCause)}</div>
@@ -1005,11 +1006,11 @@ function wireJourneyButtons(){
 // Initial commitments are targets, not completed QA actions.
 function collectTrackerCommitments(){
   const initial=(db.csJourneys||[]).filter(j=>j.initialCommit?.commitMetric&&j.initialCommit.commitTarget!=null).map(j=>({...j.initialCommit,key:'journey:'+j.id+':initial',source:'Journey',sourceId:j.id,agent:j.csEmail,name:j.csName,type:'Cam kết ban đầu · chưa action',date:j.initialCommit.loggedAt||j.createdAt||''}));
-  return [...initial,...collectTrackerActions()];
+  return expandCommitments([...initial,...collectTrackerActions()]);
 }
 function collectTrackerActions(){
   const items=[];
-  for(const j of db.csJourneys||[])for(const r of j.rounds||[])items.push({key:'journey:'+j.id+':'+r.id,source:'Journey',sourceId:j.id,agent:j.csEmail,name:j.csName,type:r.actionType,by:r.by,date:r.loggedAt||'',week:r.week||'',detail:r.detail||r.recap||'',commitment:r.commitment||r.nextSteps||r.next_steps||'',commitMetric:r.commitMetric||'',commitTarget:r.commitTarget,next:r.next||r.followDate||'',followMode:r.followMode||'',baseline:r.baseline||null,commitChannel:r.commitChannel||'',evidence:r.evidence||r.document||''});
+  for(const j of db.csJourneys||[])for(const r of j.rounds||[])items.push({key:'journey:'+j.id+':'+r.id,source:'Journey',sourceId:j.id,agent:j.csEmail,name:j.csName,type:r.actionType,by:r.by,date:r.loggedAt||'',week:r.week||'',detail:r.detail||r.recap||'',commitment:r.commitment||r.nextSteps||r.next_steps||'',commitMetric:r.commitMetric||'',commitTarget:r.commitTarget,next:r.next||r.followDate||'',followMode:r.followMode||'',baseline:r.baseline||null,commitChannel:r.commitChannel||'',evidence:r.evidence||r.document||'',commitments:r.commitments,commitSegment:r.commitSegment||''});
   for(const f of db.coachingFollow||[]){
     items.push({key:'follow:'+f.id,source:'Coaching',sourceId:f.id,agent:f.agent,type:'Coaching',by:f.qa,date:f.coached||'',detail:f.action||'',commitment:f.commitment||'',commitMetric:f.commitMetric||'',commitTarget:f.commitTarget,baseline:f.commitBaseline||null,commitChannel:f.commitChannel||'',next:f.next||''});
     for(const [index,r] of (f.reviews||[]).entries())items.push({key:'follow:'+f.id+':'+index,source:'Coaching',sourceId:f.id,agent:f.agent,type:'Recheck',by:r.qa,date:r.createdAt||r.date||'',detail:r.action||'',commitment:r.commitment||'',commitMetric:r.commitMetric||'',commitTarget:r.commitTarget,baseline:r.commitBaseline||null,commitChannel:r.commitChannel||'',next:r.next||''});
@@ -1024,7 +1025,7 @@ function commitStatus(action,date){
   if(due&&date<due) return {label:'Chưa tới hạn',cls:'muted',state:'pending',due};
   const raw=action.date&&String(action.date).includes('T')?localISO(new Date(action.date)):action.date;
   const start=due||raw||date;
-  const m=commitWTD(action.agent,action.commitChannel||'',date);
+  const m=commitWTD(action.agent,action.commitChannel||'',date,action.commitSegment||'');
   const value=action.commitMetric==='csat'?m.csat:action.commitMetric==='mistake'?m.mistake:(m.repeated?m.repeated.length:null);
   const enough=action.commitMetric==='csat'?(m.total>=5):(m.tagged>=5);
   if(value==null||!enough) return {label:'Chưa đủ data',cls:'muted',state:'nodata'};
@@ -1035,7 +1036,7 @@ function commitStatus(action,date){
 // WTD hiện tại (đến hôm nay) đã đạt target chưa — dùng cho CS còn Pending/chưa tới hạn để quyết offer action hay Monitor case.
 function commitMeetsNow(action,date){
   if(!action||!action.commitMetric||action.commitTarget==null) return null;
-  const m=commitWTD(action.agent,action.commitChannel||'',date||today());
+  const m=commitWTD(action.agent,action.commitChannel||'',date||today(),action.commitSegment||'');
   const value=action.commitMetric==='csat'?m.csat:action.commitMetric==='mistake'?m.mistake:(m.repeated?m.repeated.length:null);
   const enough=action.commitMetric==='csat'?(m.total>=5):(m.tagged>=5);
   if(value==null||!enough) return null;
@@ -1104,13 +1105,13 @@ function renderActionTracker(){
   const rowOf=(e,index)=>{
     const r=e.r;const baseline=r.baseline?.period==='WTD'?r.baseline:commitWTD(r.agent,r.commitChannel||'',r.date?(String(r.date).includes('T')?localISO(new Date(r.date)):r.date):dailyDate),current=commitWTD(r.agent,r.commitChannel||'',today());
     const commit=r.commitment?esc(r.commitment.length>70?r.commitment.slice(0,70)+'…':r.commitment):'—';
-    const target=r.commitMetric&&r.commitTarget!=null?`<div style="margin-top:3px">${badge((metricLabels[r.commitMetric]||r.commitMetric+' ')+r.commitTarget,'')}</div>`:'';
+    const target=followCommitText(r);
     return [
       `<button class="link" data-tracker-cs="${index}">${esc(agent(r.agent)?.name||r.name||r.agent)}</button>`,
       `${badge(r.type,'')}<div style="font-size:11px;color:#9fb0c8;margin-top:3px">${esc(dateLabel(r))}</div>`,
-      esc(r.commitChannel||'All channel'),
-      esc(commitBaselineText(baseline)).replace(' · Mistake:', '<br>Mistake:')+`<small>${esc(baseline.start)} → ${esc(baseline.end)}${r.baseline?.period==='WTD'?'':' · Tính lại từ dữ liệu WTD'}</small>`,
-      esc(commitBaselineText(current))+`<small>${esc(current.start)} → ${esc(current.end)}</small>`,
+      esc(commitEntries(r).map(commitmentLabel).join('; ')),
+      multiCommitMetrics(r,r.agent,today(),true),
+      multiCommitMetrics(r,r.agent,today()),
       `<div style="font-size:12px;color:#415777">${commit}</div>${target}`,
       badge(e.cs.label,e.cs.cls),
       badge(e.qaStatus,e.followedToday||e.st.status==='Đã hoàn tất'?'green':'red')+(e.activity?`<small>${esc(activityTime(e.activity.at))}<br>${esc(e.activity.by)} · ${esc(e.activity.type)}</small>`:''),
@@ -1199,8 +1200,7 @@ function renderMngRequests(){
   const offCell=(e,i)=>`<label class="check" style="white-space:nowrap"><input type="checkbox" data-mng-off="${i}" ${e.off?'checked':''} aria-label="CS OFF hôm nay: ${esc(e.r.email)}"> OFF</label>${e.off?'<small>CS OFF hôm nay · chưa thể action</small>':''}`;
   const reasonCell=(e,i)=>{const cur=e.reason||'';const isOther=!!cur&&!MNG_REASONS.includes(cur);return `<select data-mng-reason="${i}" style="font-size:12px;max-width:160px" aria-label="Lý do chưa action: ${esc(e.r.email)}"><option value="">—</option>${MNG_REASONS.map(x=>`<option${x===cur?' selected':''}>${esc(x)}</option>`).join('')}<option value="__other"${isOther?' selected':''}>Khác…</option></select><input data-mng-reason-text="${i}" placeholder="Nhập lý do khác" value="${esc(isOther?cur:'')}" style="font-size:12px;margin-top:4px;width:160px;${isOther?'':'display:none'}">`;};
   const jCell=e=>e.hasJourney?badge('✅ Có ('+e.nRounds+' action)','green'):badge('⚠️ Chưa có','red');
-  const commitByCS=new Map();try{collectTrackerCommitments().forEach(function(a){if(a.commitMetric&&a.commitTarget!=null){const p=commitByCS.get(a.agent);if(!p||String(a.date||'').localeCompare(String(p.date||''))>0)commitByCS.set(a.agent,a);}});}catch(e){}
-  const targetCell=e=>{const a=commitByCS.get(e.r.email);if(!a)return badge(e.hasJourney?'Chưa đặt':'—','');const st=commitStatus(a,today());if(st.state==='pending'||st.state==='nodata'){const now=commitMeetsNow(a,today());if(now)return badge((now.passed?'WTD đạt ':'WTD chưa ')+'('+now.cur+')',now.passed?'green':'red');}return badge(st.label,st.cls==='green'?'green':st.cls==='red'?'red':'');};
+  const targetCell=mngTargetCell;
   const actCell=(e,i)=>e.hasJourney?`<button type="button" data-mng-add="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Thêm action</button> <button type="button" data-mng-view="${i}" style="font-size:11px;padding:3px 9px">Xem/Cập nhật</button>`:`<button type="button" data-mng-create="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Tạo Journey</button>`;
   const tCell=e=>e.touchedToday?badge('✅ Đã xử lý','green'):badge('Chưa','');
   const sub=window._mngSub||'cs';
@@ -1596,7 +1596,7 @@ function csSavedCoaching(email){
   const mLabel={csat:'CSAT',mistake:'Mistake',repeat:'Issue lặp'};
   const magicStatus=(csEmail,r)=>{
     if(r.commitMetric!=='csat'||r.commitTarget==null)return '';
-    const cur=commitWTD(csEmail,r.commitChannel||'',today()),target=Number(r.commitTarget);
+    const cur=commitWTD(csEmail,r.commitChannel||'',today(),r.commitSegment||''),target=Number(r.commitTarget);
     const base=r.baseline&&r.baseline.csat!=null?Number(r.baseline.csat):null;
     const now=(cur.csat!=null&&cur.total>=5)?Number(cur.csat):null;
     let big,sub;
@@ -1611,12 +1611,7 @@ function csSavedCoaching(email){
     const follow=(r.followMode==='daily'?'Follow daily':r.followMode==='weekly'?'Follow weekly':'Follow')+(r.next?(' · bắt đầu '+shortDate(r.next)):'');
     return `<div style="background:#eef5ff;border:1px solid #cfe0fb;border-radius:9px;padding:10px 13px;margin-bottom:10px"><div style="line-height:1.5">${big}</div><div class="muted" style="font-size:12px;margin-top:3px">${esc(sub)} · ${esc(follow)}</div></div>`;
   };
-  const commitLine=r=>{
-    if(r.commitMetric==null||r.commitTarget==null)return '';
-    const op=r.commitMetric==='csat'?'≥':'≤';
-    const base=r.baseline&&r.baseline.csat!=null?(' · baseline '+Number(r.baseline.csat).toFixed(1)+'%'):'';
-    return `<div class="muted" style="font-size:12px;margin:3px 0">🎯 Mục tiêu: ${esc(mLabel[r.commitMetric]||r.commitMetric)} ${op} <b>${esc(String(r.commitTarget))}${r.commitMetric==='csat'?'%':''}</b>${base}</div>`;
-  };
+  const commitLine=r=>commitEntries(r).length?'<div class="muted" style="font-size:12px;margin:3px 0">🎯 '+followCommitText(r)+'</div>':'';
   const roundHtml=r=>{
     const done=clamp(r.recap||r.detail||r.note||'',240),commit=clamp(r.nextSteps||r.commitment||'',240);
     return `<div style="border-left:2px solid #c7d5ea;margin-left:5px;padding:0 0 12px 14px;position:relative"><span style="position:absolute;left:-6px;top:4px;width:10px;height:10px;border-radius:50%;background:#5b8de6"></span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${chip(r.actionType||'Action','blue')}<span class="muted" style="font-size:12px">${esc(activityTime(r.updatedAt||r.loggedAt))}</span></div>${commitLine(r)}${done?`<div style="font-size:13px;margin:4px 0"><b>Đã làm:</b> ${esc(done)}</div>`:''}${commit&&commit!==done?`<div style="font-size:13px;margin:4px 0"><b>Cam kết:</b> ${esc(commit)}</div>`:''}<div class="muted" style="font-size:11px;margin-top:3px">${esc(r.by||'—')}</div></div>`;
@@ -1624,7 +1619,7 @@ function csSavedCoaching(email){
   const cards=journeys.map(j=>{
     const rounds=(j.rounds||[]).filter(r=>!activityIsDemo(r)).slice().sort((a,b)=>String(a.loggedAt||a.week||'').localeCompare(String(b.loggedAt||b.week||'')));
     const active=[j.initialCommit,...rounds].filter(Boolean).reverse().find(r=>r.commitMetric==='csat'&&r.commitTarget!=null);
-    return `<div class="notice" style="padding:14px;margin-bottom:12px">${active?magicStatus(j.csEmail,active):''}${j.initialCommit?'<div><b>Cam kết ban đầu (chưa action)</b>'+commitLine(j.initialCommit)+'</div>':''}<div style="font-weight:700;color:#a4341f;font-size:12px;text-transform:uppercase;letter-spacing:.3px">Vấn đề gốc</div><div style="font-size:13px;margin:2px 0 12px;white-space:pre-wrap">${esc(clamp(j.rootCause||j.id,320))}</div><div style="font-weight:700;font-size:12px;color:#5a6a84;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Tiến trình action</div>${rounds.map(roundHtml).join('')||'<p class="muted">Chưa có action.</p>'}</div>`;
+    return `<div class="notice" style="padding:14px;margin-bottom:12px">${journeyScopedCSAT(j).map(c=>'<div><b>'+esc(commitmentLabel(c))+'</b>'+magicStatus(j.csEmail,c)+'</div>').join('')}${j.initialCommit?'<div><b>Cam kết ban đầu (chưa action)</b>'+commitLine(j.initialCommit)+'</div>':''}<div style="font-weight:700;color:#a4341f;font-size:12px;text-transform:uppercase;letter-spacing:.3px">Vấn đề gốc</div><div style="font-size:13px;margin:2px 0 12px;white-space:pre-wrap">${esc(clamp(j.rootCause||j.id,320))}</div><div style="font-weight:700;font-size:12px;color:#5a6a84;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Tiến trình action</div>${rounds.map(roundHtml).join('')||'<p class="muted">Chưa có action.</p>'}</div>`;
   });
   const cCards=coaching.map(f=>`<details class="notice" style="margin-bottom:10px"><summary>Coaching · ${esc(activityTime(f.updatedAt||f.createdAt||f.coached))}</summary><div style="white-space:pre-wrap">${esc(activityDetails(f))}</div></details>`);
   return [...cards,...cCards].join('');
@@ -1821,6 +1816,13 @@ render=function(){
     attached.set(d,{key,save,submit,notice});
     discard.onclick=()=>{clear(d);status.textContent='Đã xóa bản nháp; nhập tiếp sẽ tạo nháp mới';};
     try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(saved?.values){
+      // Recreate each saved commitment row before restoring named fields.
+      const section=d.querySelector('[data-journey-commit]');
+      if(section&&typeof addCommitRow==='function'){
+        section.querySelectorAll('[data-commit-row]').forEach(r=>{if(r.dataset.commitRow!=='0')r.remove();});
+        const indexes=[...new Set(Object.keys(saved.values).map(k=>k.match(/^journeyMetric__(\d+)$/)?.[1]).filter(Boolean))].map(Number).sort((a,b)=>a-b);
+        indexes.forEach(i=>addCommitRow(section,null,i));
+      }
       // Restore in DOM order so topic/action changes rebuild their dependent fields first.
       const done=new Set();let el;
       while((el=fields(d).find(e=>!done.has(identity(e))))){const id=identity(el);done.add(id);if(!Object.hasOwn(saved.values,id))continue;
@@ -2045,6 +2047,110 @@ function refreshLivePeriodOptions(){
     }catch(error){status.textContent='Chưa hoàn tất kiểm tra: '+error.message;}
   };
 })();
+
+
+// A round remains one action; commitments are independently scoped targets.
+function commitEntries(record){
+  if(Array.isArray(record?.commitments))return record.commitments;
+  return record?.commitMetric&&record.commitTarget!=null?[record]:[];
+}
+function commitScopeKey(c){return [c.commitMetric,c.commitChannel||'',c.commitSegment||''].join('|');}
+function expandCommitments(actions){return actions.flatMap(a=>commitEntries(a).map(c=>({...a,...c,key:a.key,commitments:undefined})));}
+function latestScopedCommits(actions){
+  const map=new Map();for(const a of actions){const key=commitScopeKey(a),old=map.get(key);if(!old||String(a.date||a.loggedAt||'')>=String(old.date||old.loggedAt||''))map.set(key,a);}return [...map.values()];
+}
+function mngScopedCommits(email,channel){
+  return latestScopedCommits(collectTrackerCommitments().filter(c=>c.agent===email&&c.commitMetric==='csat'&&(c.commitChannel||'')===(channel||'')));
+}
+function mngTargetCell(entry){
+  const channel=entry.r.channel||'',commits=mngScopedCommits(entry.r.email,channel);
+  if(!commits.length)return badge('Chưa đặt CSAT · '+(channel||'All channel'),'');
+  return commits.map(a=>{let st=commitStatus(a,today());if(st.state==='pending'){const now=commitMeetsNow(a,today());if(now)st={label:(now.passed?'WTD đạt ':'WTD chưa đạt ')+now.cur+' · Chưa tới hạn',cls:now.passed?'green':'red'};}
+    return '<div><small>'+esc((a.commitChannel||'All channel')+' · '+(a.commitSegment||'Buyer + Seller')+' · CSAT ≥ '+a.commitTarget+'%')+'</small>'+badge(st.label,st.cls||'')+'</div>';}).join('');
+}
+function segmentValue(value){const s=String(value||'').trim().toLowerCase();return s==='buyer'?'Buyer':s==='seller'?'Seller':'';}
+function ratingChannel(value){const s=String(value||'').trim();return !s?'':/chat/i.test(s)?'Chat':/internet\s*call|\binc\b/i.test(s)?'Internet Call':'Other Channel';}
+function commitMetricSnapshot(email,channel,date,segment){
+  const m=multiCommitLegacyWTD(email,channel,date);
+  if(!segment)return m;
+  const rows=(db.ratingsV4||[]).filter(r=>r[0]===email&&(!channel||r[5]===channel)&&segmentValue(r[6])===segment&&r[1]<=date);
+  let end=date,start=weekMonday(weekOf(date));const dates=rows.map(r=>r[1]).sort();
+  if(dates.length&&!dates.some(d=>d>=start)){end=dates.at(-1);start=weekMonday(weekOf(end));}
+  let good=0,total=0;for(const r of rows)if(r[1]>=start&&r[1]<=end){good+=Number(r[3])||0;total+=Number(r[4])||0;}
+  return {...m,csat:total?100*good/total:null,good,total,start,end,at:end,segment,lastData:dates.at(-1)||''};
+}
+const multiCommitLegacyWTD=commitWTD;
+commitWTD=function(email,channel='',end=today(),segment=''){return commitMetricSnapshot(email,channel,end,segment);};
+function commitRowMarkup(index=0){
+ const suffix=index?'__'+index:'',name=n=>n+suffix;
+ return `<div data-commit-row="${index}" class="notice" style="padding:12px;margin-top:10px"><div class="grid">
+ <label>Chỉ số cam kết<select name="${name('journeyMetric')}"><option value="csat">CSAT (%)</option><option value="mistake">Số case mistake</option><option value="repeat">Số issue lặp</option></select></label>
+ <label>Channel<select name="${name('commitChannel')}"><option value="">All channel</option>${COMMIT_CHANNELS.map(c=>'<option>'+esc(c)+'</option>').join('')}</select></label>
+ <label>Nhóm rating<select name="${name('commitSegment')}"><option value="">Buyer + Seller</option><option>Buyer</option><option>Seller</option></select></label>
+ <label>Mục tiêu<input name="${name('journeyTarget')}" type="number" min="0" max="100" step="any" required></label></div>
+ <p class="muted" data-row-baseline></p>${index?'<button type="button" data-remove-commit>Xóa cam kết này</button>':''}</div>`;
+}
+journeyCommitFields=function(baselineHtml){
+ const email=(baselineHtml||'').match(/data-email="([^"]*)"/)?.[1]||'';
+ return `<section data-journey-commit data-email="${email}"><b>Cam kết theo dõi</b><p class="muted">Mỗi dòng là một mục tiêu riêng. Có thể cam kết nhiều channel và cả CSAT, mistake. Mistake/issue lặp tính toàn kênh.</p><div data-commit-rows>${commitRowMarkup()}</div><button type="button" data-add-commit>+ Thêm cam kết</button><textarea name="journeyCommitment" hidden></textarea><div class="grid"><label>Chế độ theo dõi<select name="journeyMode"><option value="daily">Monitor daily · +2 ngày</option><option value="weekly">Weekly · +7 ngày</option><option value="custom">Tự chọn ngày follow</option></select></label><label data-journey-date hidden>Ngày follow<input name="journeyNext" type="date" disabled></label></div><p>Hạn follow-up: <b data-next-preview></b></p></section>`;
+};
+function wireCommitRow(row,section){
+ const el=n=>row.querySelector('[name^="'+n+'"]');
+ const sync=()=>{const metric=el('journeyMetric').value,csat=metric==='csat';el('commitChannel').disabled=!csat;el('commitSegment').disabled=!csat;if(!csat){el('commitChannel').value='';el('commitSegment').value='';}el('journeyTarget').step=csat?'any':'1';if(csat)el('journeyTarget').max=100;else el('journeyTarget').removeAttribute('max');
+ const m=commitWTD(section.dataset.email,el('commitChannel').value,section.dataset.baseDate||today(),el('commitSegment').value);row.querySelector('[data-row-baseline]').textContent='Baseline: '+(csat?(m.csat==null?'Chưa có dữ liệu đúng phạm vi; vẫn có thể lưu cam kết.':m.csat.toFixed(1)+'% · '+m.total+' rating'):(m.tagged?m.mistake+' mistake / '+m.tagged+' tagging':'Chưa có dữ liệu; vẫn có thể lưu cam kết.'));};
+ row.querySelectorAll('select').forEach(e=>e.addEventListener('change',sync));row.querySelector('[data-remove-commit]')?.addEventListener('click',()=>{row.remove();section.dispatchEvent(new Event('change',{bubbles:true}));});sync();
+}
+function addCommitRow(section,value,requestedIndex){
+ const index=requestedIndex??(1+Math.max(0,...[...section.querySelectorAll('[data-commit-row]')].map(r=>Number(r.dataset.commitRow))));
+ const holder=section.querySelector('[data-commit-rows]');holder.insertAdjacentHTML('beforeend',commitRowMarkup(index));const row=holder.lastElementChild;wireCommitRow(row,section);if(value)fillCommitRow(row,value);return row;
+}
+function fillCommitRow(row,c){for(const [name,value] of Object.entries({journeyMetric:c.commitMetric||'csat',journeyTarget:c.commitTarget??'',commitChannel:c.commitChannel||'',commitSegment:c.commitSegment||''}))row.querySelector('[name^="'+name+'"]').value=value;row.querySelector('select').dispatchEvent(new Event('change'));}
+wireJourneyCommit=function(dialog,selector){
+ const type=dialog.querySelector(selector),section=dialog.querySelector('[data-journey-commit]'),mode=section.querySelector('[name="journeyMode"]'),date=section.querySelector('[name="journeyNext"]');
+ section.querySelectorAll('[data-commit-row]').forEach(row=>wireCommitRow(row,section));section.querySelector('[data-add-commit]').onclick=()=>addCommitRow(section);
+ const sync=()=>{const enabled=String(type.value).toLowerCase()!=='monitor case',notes=needsJourneyNotes(type.value);section.hidden=!enabled;
+ const session=dialog.querySelector('[name="journeySessionCategory"]');if(session){session.closest('label').hidden=!needsSessionCategory(type.value);session.required=needsSessionCategory(type.value);}
+ for(const selector of ['#jActNote, #rnNote, #edNote','[name="journeyNextSteps"]','[name="journeyDocument"]']){const e=dialog.querySelector(selector);if(e)e.closest('label').style.display=notes?'block':'none';}
+ date.closest('label').hidden=mode.value!=='custom';date.disabled=!enabled||mode.value!=='custom';date.required=!date.disabled;date.min=section.dataset.baseDate||today();section.querySelector('[data-next-preview]').textContent=mode.value==='custom'?(date.value||'Chọn ngày follow'):nextFromMode(date.min,mode.value);};
+ type.addEventListener('change',sync);mode.addEventListener('change',sync);date.addEventListener('change',sync);sync();
+};
+readJourneyCommit=function(dialog,actionType,csEmail,baseDate){
+ const get=n=>dialog.querySelector('[name="'+n+'"]')?.value.trim()||'';
+ const recap=dialog.querySelector('#jActNote, #rnNote, #edNote')?.value.trim()||'',nextSteps=get('journeyNextSteps'),evidence=get('journeyDocument');
+ if(needsJourneyNotes(actionType)&&(!recap||!nextSteps))throw Error('Vui lòng nhập Recap và Next steps.');
+ const sessionCategory=needsSessionCategory(actionType)?get('journeySessionCategory'):'';if(needsSessionCategory(actionType)&&!SESSION_CATEGORIES.includes(sessionCategory))throw Error('Vui lòng chọn Session Type.');
+ const notes={recap,nextSteps,evidence,commitment:nextSteps,sessionCategory,sessionType:get('journeySessionType')};
+ if(String(actionType).toLowerCase()==='monitor case')return {...notes,commitments:[]};
+ const commitments=[],scopes=new Set(),followMode=get('journeyMode')||'daily',next=resolveFollowDate(baseDate||today(),followMode,get('journeyNext'));
+ for(const row of dialog.querySelectorAll('[data-commit-row]')){
+ const value=n=>row.querySelector('[name^="'+n+'"]').value.trim();const metric=value('journeyMetric'),raw=value('journeyTarget'),target=Number(raw),channel=metric==='csat'?value('commitChannel'):'',segment=metric==='csat'?value('commitSegment'):'';
+ if(!['csat','mistake','repeat'].includes(metric)||raw===''||!Number.isFinite(target)||target<0||(metric==='csat'?target>100:!Number.isInteger(target)))throw Error('Mỗi cam kết cần mục tiêu hợp lệ: CSAT 0–100; mistake/issue lặp là số nguyên không âm.');
+ const c={commitMetric:metric,commitTarget:target,commitChannel:channel,commitSegment:segment,followMode,next,baseline:commitWTD(csEmail,channel,baseDate||today(),segment)};
+ const key=commitScopeKey(c);if(scopes.has(key))throw Error('Không nhập trùng chỉ số, channel và Buyer/Seller.');scopes.add(key);
+ const base=metric==='csat'?c.baseline.csat:c.baseline.tagged?(metric==='mistake'?c.baseline.mistake:c.baseline.repeated?.length):null;
+ if(base!=null&&(metric==='csat'?target<base:target>base))throw Error('Mục tiêu '+metric+' cần '+(metric==='csat'?'≥':'≤')+' baseline '+Number(base).toFixed(2)+'.');commitments.push(c);
+ }
+ if(!commitments.length)throw Error('Cần ít nhất một cam kết.');return {...notes,...commitments[0],commitments};
+};
+const multiCommitLegacyText=followCommitText;
+followCommitText=function(record){return commitEntries(record).map(c=>multiCommitLegacyText({...record,...c,commitments:undefined})+' · '+esc(c.commitChannel||'All channel')+' · '+esc(c.commitMetric==='csat'?(c.commitSegment||'Buyer + Seller'):'Toàn bộ case')).join('<br>');};
+function commitmentLabel(c){return (c.commitMetric==='csat'?'CSAT · '+(c.commitChannel||'All channel')+' · '+(c.commitSegment||'Buyer + Seller'):c.commitMetric==='mistake'?'Mistake':'Issue lặp');}
+const multiCommitLegacyStatus=commitStatus,multiCommitLegacyNow=commitMeetsNow;
+commitStatus=function(action,date){
+ const entries=commitEntries(action);if(!Array.isArray(action?.commitments)||!entries.length)return multiCommitLegacyStatus(action,date);
+ const outcomes=entries.map(c=>({c,s:multiCommitLegacyStatus({...action,...c,commitments:undefined},date)}));
+ const state=outcomes.some(x=>x.s.state==='fail')?'fail':outcomes.every(x=>x.s.state==='pass')?'pass':outcomes.some(x=>x.s.state==='nodata')?'nodata':'pending';
+ return {state,cls:state==='pass'?'green':state==='fail'?'red':'muted',label:outcomes.map(x=>commitmentLabel(x.c)+': '+x.s.label).join(' · '),due:action.next};
+};
+commitMeetsNow=function(action,date){
+ if(!Array.isArray(action?.commitments))return multiCommitLegacyNow(action,date);
+ const entries=commitEntries(action),results=entries.map(c=>multiCommitLegacyNow({...action,...c,commitments:undefined},date));if(!results.length||results.some(r=>!r))return null;
+ return {passed:results.every(r=>r.passed),cur:results.map((r,i)=>commitmentLabel(entries[i])+' '+r.cur).join('; ')};
+};
+function journeyScopedCSAT(j){return latestScopedCommits(expandCommitments([j.initialCommit,...(j.rounds||[])].filter(Boolean))).filter(c=>c.commitMetric==='csat');}
+function multiCommitMetrics(record,email,date,baseline=false){
+ return commitEntries(record).map(c=>{const m=baseline?c.baseline:commitWTD(email,c.commitChannel||'',date,c.commitSegment||'');return '<div><small>'+esc(commitmentLabel(c))+'</small>'+esc(m?commitBaselineText(m):'Chưa lưu baseline')+'</div>';}).join('')||'—';
+}
 
 </script>
 <script src="/lantern-companion/lantern.js?v=20260918-1" defer></script>
