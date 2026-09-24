@@ -10,6 +10,7 @@
  *    - Dòng ngay trên header: nhãn tuần W39, W38, ... (mới nhất bên trái)
  *    - Phía trên nữa: ngày đầu tuần 9/21/2026, 9/14/2026, ...
  *    Lưu ý: tab dùng ô "Choose channel / Choose team" = "*" để lấy toàn bộ.
+ *    - Cột B: email QA phụ trách agent (trống -> agent bị bỏ qua).
  *
  *  CÀI ĐẶT (1 lần cho project Apps Script này):
  *   1) Mở Extensions > Apps Script từ chính Google Sheet CSAT agent
@@ -33,8 +34,7 @@ const GH_REPO   = 'MCVN';
 const GH_BRANCH = 'main';                   // branch GitHub Pages phục vụ teamqamcvn.com
 const GH_PATH   = 'csat-agent/data.json';
 const TZ        = 'Asia/Ho_Chi_Minh';
-// QA phụ trách agent: lấy từ Agent List mà trang CS Performance đã đẩy sẵn (public, cùng repo).
-const QA_MAP_URL = 'https://teamqamcvn.com/cs-performance/data.json';
+const QA_COL         = 2;                   // cột B = email QA phụ trách agent (1-based)
 const SKIP_TEAM  = /^DP(\.|\s|$)/i;     // bỏ team DP (DP, DP.TL, DP.Sen)
 
 function buildPayload_() {
@@ -62,16 +62,14 @@ function buildPayload_() {
   }
   const firstCsat = weekCols[0].col;
 
-  const qaMap = loadQaMap_();
-  // Không tải được danh sách QA -> dừng, giữ data.json cũ (tránh đẩy bản không có QA làm ẩn hết).
-  if (!Object.keys(qaMap).length) throw new Error('QA map rỗng (không tải được ' + QA_MAP_URL + ') -> bỏ qua lần đẩy này.');
   const agents = [];
   for (let i = head + 1; i < vals.length; i++) {
     const r = vals[i];
     const email = String(r[cEmail] || '').trim().toLowerCase();
     if (email.indexOf('@') < 0) continue;
     if (cBpo !== undefined && SKIP_TEAM.test(String(r[cBpo] || '').trim())) continue;
-    if (!qaMap[email]) continue;                      // agent chưa có QA phụ trách -> bỏ
+    const qaEmail = String(r[QA_COL - 1] || '').trim().toLowerCase();
+    if (qaEmail.indexOf('@') < 0) continue;            // cột B trống -> agent chưa có QA phụ trách -> bỏ
 
     // Nhãn cột thông tin của tab bị lệch so với nội dung -> nhận diện theo giá trị.
     let channel = '', seniority = '';
@@ -88,11 +86,13 @@ function buildPayload_() {
       channel:   channel,
       seniority: seniority,
       ratings:   cRate !== undefined ? toNum_(r[cRate]) : 0,
-      qa:        (qaMap[email] || {}).qa || '',
-      qaEmail:   (qaMap[email] || {}).qaEmail || '',
+      qaEmail:   qaEmail,
       csat:      weekCols.map(function (w) { return toPct_(r[w.col]); })   // cùng thứ tự với weeks[]
     });
   }
+
+  // Không agent nào có email QA ở cột B -> có thể sheet đang lỗi/đổi cột: dừng, giữ data.json cũ.
+  if (!agents.length) throw new Error('Không có agent nào có email QA ở cột ' + String.fromCharCode(64 + QA_COL) + ' -> bỏ qua lần đẩy này.');
 
   const now = new Date();
   return {
@@ -103,22 +103,6 @@ function buildPayload_() {
     counts:          { agents: agents.length },
     agents:          agents
   };
-}
-
-/** email agent -> {qa, qaEmail}. Lỗi tải -> {} (vẫn đẩy CSAT, chỉ thiếu cột QA). */
-function loadQaMap_() {
-  const map = {};
-  try {
-    const res = UrlFetchApp.fetch(QA_MAP_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
-    if (res.getResponseCode() !== 200) throw new Error('HTTP ' + res.getResponseCode());
-    (JSON.parse(res.getContentText()).agents || []).forEach(function (a) {
-      const em = String(a.email || '').trim().toLowerCase();
-      if (em && a.qaEmail) map[em] = { qa: String(a.qa || '').trim(), qaEmail: String(a.qaEmail).trim().toLowerCase() };
-    });
-  } catch (err) {
-    Logger.log('Không tải được QA map: ' + err);
-  }
-  return map;
 }
 
 /** Ngày đầu tuần: ô Date gần nhất phía trên dòng nhãn tuần, cùng cột. */
