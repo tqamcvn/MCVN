@@ -431,6 +431,25 @@ body.sb-collapsed .nav-group-head { justify-content: center; padding-left: 0; pa
 .b { width: 10px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.2; }
 .b.hi { opacity: 1; }
 
+/* ---- CSAT của bạn (theo email đăng nhập) so với MCVN ---- */
+.my-csat { display: flex; flex-wrap: wrap; align-items: stretch; border-top: 1px solid var(--gray-200); background: var(--white); }
+.my-csat[hidden] { display: none; }
+.my-csat .sum-card { flex: 0 0 260px; border-right: 1px solid var(--gray-200); }
+.my-csat .sum-label .my-tag { color: var(--accent); }
+.my-sub { font-size: 11px; color: var(--gray-500); margin-top: 6px; }
+.my-cmp { flex: 1; min-width: 240px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.my-cmp-row { display: grid; grid-template-columns: 92px 1fr 52px; align-items: center; gap: 10px; font-size: 12px; color: var(--gray-700); }
+.my-cmp-row b { font-weight: 600; color: var(--gray-900); text-align: right; font-variant-numeric: tabular-nums; }
+.my-bar { height: 8px; border-radius: 4px; background: var(--gray-100); overflow: hidden; }
+.my-bar > i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.my-bar.ref > i { background: var(--gray-400); }
+.my-gap { font-size: 12px; font-weight: 500; color: var(--gray-700); }
+.my-gap span { display: inline-block; padding: 2px 8px; border-radius: 10px; margin-right: 6px; font-weight: 600; background: var(--gray-100); }
+.my-gap span.up { background: var(--success-light); }
+.my-gap span.dn { background: var(--danger-light); }
+.my-empty { padding: 12px 18px; font-size: 12px; color: var(--gray-500); }
+@media (max-width: 640px) { .my-csat .sum-card { flex: 1 1 100%; border-right: none; border-bottom: 1px solid var(--gray-200); } }
+
 /* ---- Nút thu gọn / mở rộng sidebar ---- */
 .sb-toggle {
   margin-left: auto; flex-shrink: 0;
@@ -759,6 +778,9 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
           <div class="spark"><div class="b" style="height:97%"></div><div class="b" style="height:94%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:97%"></div></div>
         </div>
       </div>
+
+      <!-- CSAT của chính user đăng nhập (csat-agent/data.json) so với MCVN Overall -->
+      <div id="my-csat" class="my-csat" hidden></div>
     </div>
   </div>
 
@@ -888,6 +910,9 @@ const I18N = {
     featurePrefix:'Tính năng', featureSuffix:'đang được phát triển.',
     openSettings:'Mở cài đặt tài khoản', logout:'Đăng xuất', collapse:'Thu gọn thanh menu', expand:'Mở rộng thanh menu',
     homeTitle:'Về Trang chủ', updated:'cập nhật', cached:'đệm',
+    myCsat:'CSAT của bạn', myRatings:'lượt đánh giá', vsMcvn:'So với MCVN Overall', you:'Bạn',
+    pts:'điểm', aboveMcvn:'cao hơn MCVN', belowMcvn:'thấp hơn MCVN', equalMcvn:'bằng MCVN',
+    myCsatNotFound:'Chưa tìm thấy CSAT của tài khoản này trong file CSAT Agent.',
     passwordShort:'Mật khẩu cần ít nhất 6 ký tự.', passwordMismatch:'Hai ô mật khẩu chưa khớp.', saving:'Đang lưu...',
     passwordSaved:'Đã đổi mật khẩu thành công!', enterName:'Nhập tên hiển thị.', profileSaved:'Đã lưu hồ sơ!',
     chooseImage:'Vui lòng chọn file ảnh.', processingImage:'Đang xử lý ảnh...', avatarSaved:'Đã cập nhật ảnh đại diện!', error:'Lỗi'
@@ -910,6 +935,9 @@ const I18N = {
     featurePrefix:'The feature', featureSuffix:'is under development.',
     openSettings:'Open account settings', logout:'Sign out', collapse:'Collapse sidebar', expand:'Expand sidebar',
     homeTitle:'Home', updated:'updated', cached:'cached',
+    myCsat:'Your CSAT', myRatings:'ratings', vsMcvn:'vs MCVN Overall', you:'You',
+    pts:'pts', aboveMcvn:'above MCVN', belowMcvn:'below MCVN', equalMcvn:'same as MCVN',
+    myCsatNotFound:'No CSAT found for this account in the CSAT Agent file.',
     passwordShort:'Password must contain at least 6 characters.', passwordMismatch:'The passwords do not match.', saving:'Saving...',
     passwordSaved:'Password changed successfully!', enterName:'Enter a display name.', profileSaved:'Profile saved!',
     chooseImage:'Please choose an image file.', processingImage:'Processing image...', avatarSaved:'Avatar updated!', error:'Error'
@@ -995,6 +1023,7 @@ async function renderUser() {
   document.getElementById('sidebar-role').textContent = t('settings');
   CUR = { name: name, email: email, picture: picture, id: u.id };
   refreshHeader();
+  loadMyCsat(email, name);
 
   // Mở đúng tool theo hash trong URL (vd #cqm) — sau khi đã biết quyền.
   routeFromHash();
@@ -1201,6 +1230,7 @@ function applyLanguage() {
   if (CUR.name) refreshHeader();
   renderQuote();
   if (LAST_CSAT_SAVED_AT) csatStamp(LAST_CSAT_SAVED_AT, LAST_CSAT_FROM_CACHE);
+  renderMyCsat();
   try { if (toolFrame && toolFrame.contentWindow) toolFrame.contentWindow.postMessage({ type:'tqa-language', lang:lang }, '*'); } catch(e) {}
 }
 document.getElementById('lang-vn').addEventListener('click', function(){ localStorage.setItem(LANG_KEY, 'vi'); applyLanguage(); });
@@ -1318,7 +1348,100 @@ function renderCsat(raw) {
   if (!any) return false;
   document.getElementById('mom').innerHTML = mom;
   document.getElementById('wow').innerHTML = wow;
+  const m = byKey['MCVN'];
+  if (m) { MCVN_WEEK = Number(m[14]); renderMyCsat(); }
   return true;
+}
+
+/* ================================================================= *
+ *  CSAT của bạn: tìm dòng theo email (hoặc tên) trong                *
+ *  csat-agent/data.json (Apps Script đẩy mỗi 30') -> so với MCVN    *
+ * ================================================================= */
+let MCVN_WEEK = null, MY_CSAT = null;
+function normPersonName(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd')
+    .toLowerCase().replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function findMyCsatRow(data, email, name) {
+  const list = (data && data.agents) || [];
+  const em = String(email || '').trim().toLowerCase();
+  const byEmail = list.find(function (a) { return a.email === em; });
+  if (byEmail) return byEmail;
+  // Fallback theo tên: tên trong file dạng "03. CA.S Nguyen Thi Bao An" -> khớp phần đuôi, chỉ nhận khi duy nhất.
+  const nm = normPersonName(name);
+  if (nm.split(' ').length < 2) return null;
+  const hits = list.filter(function (a) {
+    const s = normPersonName(a.name);
+    return s === nm || s.endsWith(' ' + nm);
+  });
+  return hits.length === 1 ? hits[0] : null;
+}
+function pickMyCsat(data, row) {
+  const weeks = data.weeks || [];
+  const vals = row.csat || [];
+  const has = function (v) { return v !== null && v !== undefined; };
+  const i = vals.findIndex(has);                 // tuần mới nhất có số
+  if (i < 0) return null;
+  const spark = [];
+  for (let k = i; k < vals.length && spark.length < 4; k++) if (has(vals[k])) spark.unshift(vals[k]);
+  let prev = null;
+  for (let k = i + 1; k < vals.length; k++) if (has(vals[k])) { prev = vals[k]; break; }
+  return { team: row.team, channel: row.channel, ratings: row.ratings,
+           week: weeks[i] || '', value: vals[i], prev: prev, spark: spark };
+}
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+}
+function renderMyCsat() {
+  const box = document.getElementById('my-csat');
+  if (!box || !MY_CSAT) return;
+  if (MY_CSAT.notFound) {
+    box.innerHTML = '<div class="my-empty">' + t('myCsatNotFound') + '</div>';
+    box.hidden = false;
+    return;
+  }
+  const m = MY_CSAT;
+  const meta = [m.team, m.channel].filter(Boolean).join(' · ');
+  const card = '<div class="sum-card">' +
+    '<div class="sum-label"><span class="my-tag">' + t('myCsat') + '</span> · ' + escHtml(m.week) + '</div>' +
+    '<div class="sum-val">' + csatPct(m.value) + '</div>' +
+    (m.prev !== null ? csatDelta(m.value - m.prev, 'WoW') : '<div class="sum-delta">&nbsp;</div>') +
+    (m.spark.length > 1 ? csatSpark(m.spark) : '') +
+    '<div class="my-sub">' + escHtml(meta) + (m.ratings ? (meta ? ' · ' : '') + m.ratings + ' ' + t('myRatings') : '') + '</div>' +
+    '</div>';
+  let cmp = '';
+  if (MCVN_WEEK !== null && !isNaN(MCVN_WEEK)) {
+    const gap = (m.value - MCVN_WEEK) * 100;
+    const cls = gap > 0.05 ? 'up' : gap < -0.05 ? 'dn' : '';
+    const txt = cls === 'up' ? t('aboveMcvn') : cls === 'dn' ? t('belowMcvn') : t('equalMcvn');
+    const w = function (v) { return Math.max(0, Math.min(100, Number(v) * 100)).toFixed(1); };
+    cmp = '<div class="my-cmp">' +
+      '<div class="sum-label">' + t('vsMcvn') + ' · WoW</div>' +
+      '<div class="my-cmp-row"><span>' + t('you') + '</span><div class="my-bar"><i style="width:' + w(m.value) + '%"></i></div><b>' + csatPct(m.value) + '</b></div>' +
+      '<div class="my-cmp-row"><span>MCVN Overall</span><div class="my-bar ref"><i style="width:' + w(MCVN_WEEK) + '%"></i></div><b>' + csatPct(MCVN_WEEK) + '</b></div>' +
+      '<div class="my-gap"><span class="' + cls + '">' + (gap >= 0 ? '+' : '−') + Math.abs(gap).toFixed(1) + ' ' + t('pts') + '</span>' + txt + '</div>' +
+      '</div>';
+  }
+  box.innerHTML = card + cmp;
+  box.hidden = false;
+}
+async function loadMyCsat(email, name) {
+  const key = 'tqa_my_csat_' + String(email || '').toLowerCase();
+  // 1) Hiện ngay từ cache của chính user này
+  try {
+    const c = JSON.parse(localStorage.getItem(key) || 'null');
+    if (c) { MY_CSAT = c; renderMyCsat(); }
+  } catch (e) {}
+  // 2) Lấy bản mới (file .json không bị Cloudflare cache)
+  try {
+    const res = await fetch('/csat-agent/data.json?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const row = findMyCsatRow(data, email, name);
+    MY_CSAT = (row && pickMyCsat(data, row)) || { notFound: true };
+    renderMyCsat();
+    try { localStorage.setItem(key, JSON.stringify(MY_CSAT)); } catch (e) {}
+  } catch (e) { /* chưa có data.json (Apps Script chưa setup) -> giữ cache / ẩn khối */ }
 }
 let LAST_CSAT_SAVED_AT = null, LAST_CSAT_FROM_CACHE = false;
 function csatStamp(savedAt, fromCache) {
