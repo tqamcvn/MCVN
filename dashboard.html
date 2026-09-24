@@ -1444,7 +1444,8 @@ function teamKeyOf(code) {
   if (/^MT\b|^MT\./.test(c)) return 'Team Multi';
   return '';
 }
-function isSkipped(a) { return /^DP\b|^DP\./i.test(String(a.team || '')); }   // bỏ team DP
+// Bỏ team DP + agent chưa có QA phụ trách (không hiển thị cho ai, kể cả chính agent đó)
+function isSkipped(a) { return /^DP\b|^DP\./i.test(String(a.team || '')) || !a.qaEmail; }
 function hasCsat(v, a) { return v !== null && v !== undefined && !(v === 0 && !a.ratings); }   // 0% mà không có lượt ĐG = không có data
 function fmtGap(d) {   // d: chênh lệch dạng tỉ lệ (0.05 = 5%)
   const v = Number(d) * 100;

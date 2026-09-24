@@ -63,12 +63,15 @@ function buildPayload_() {
   const firstCsat = weekCols[0].col;
 
   const qaMap = loadQaMap_();
+  // Không tải được danh sách QA -> dừng, giữ data.json cũ (tránh đẩy bản không có QA làm ẩn hết).
+  if (!Object.keys(qaMap).length) throw new Error('QA map rỗng (không tải được ' + QA_MAP_URL + ') -> bỏ qua lần đẩy này.');
   const agents = [];
   for (let i = head + 1; i < vals.length; i++) {
     const r = vals[i];
     const email = String(r[cEmail] || '').trim().toLowerCase();
     if (email.indexOf('@') < 0) continue;
     if (cBpo !== undefined && SKIP_TEAM.test(String(r[cBpo] || '').trim())) continue;
+    if (!qaMap[email]) continue;                      // agent chưa có QA phụ trách -> bỏ
 
     // Nhãn cột thông tin của tab bị lệch so với nội dung -> nhận diện theo giá trị.
     let channel = '', seniority = '';
