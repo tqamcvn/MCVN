@@ -1,6 +1,6 @@
 # Dashboard viewers
 
-The shared dashboard toolbar and Home header render MUI AvatarGroup. Each actual dashboard navigation joins `dashboard-viewers:<tool key>` via the existing authenticated Supabase client. Settings, logout and page exit leave the channel. Presence is ephemeral; it does not query or change database records. An open dashboard tab counts as viewing, even when the tab is in the background. Tabs of the same account in the same dashboard count once.
+The shared dashboard toolbar renders MUI AvatarGroup. Home does not display or track viewers. Each actual dashboard navigation joins `dashboard-viewers:<tool key>` via the existing authenticated Supabase client. Home, Settings, logout and page exit leave the channel. Presence is ephemeral; it does not query or change database records. An open dashboard tab counts as viewing, even when the tab is in the background. Tabs of the same account in the same dashboard count once.
 
 Only ID, display name, avatar and update time are sent. The feature uses standard public Supabase Presence channels; channel names are not access controls. Presence is a display feature, never an authorization source. If the project disables public channels, configure authenticated private-channel policies before changing the channel to private. Connection errors show an unavailable label and clear stale avatars.
 

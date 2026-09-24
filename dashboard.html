@@ -727,7 +727,6 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
 
 <main class="main">
   <div class="hero">
-    <div class="dashboard-viewers-host" id="home-viewers"></div>
     <div class="hero-top">
       <div class="hero-avatar" id="hero-av">··</div>
       <div class="hero-info">
@@ -1165,7 +1164,7 @@ const toolNewtab = document.getElementById('tool-newtab');
 const settingsView = document.getElementById('settings-view');
 
 function showHome() {
-  window.TQAPresence?.show(sb, CUR, 'home', document.getElementById('home-viewers'));
+  window.TQAPresence?.stop();
   window.TQALoading?.home(false);
   toolView.classList.remove('visible');
   settingsView.classList.remove('visible');
