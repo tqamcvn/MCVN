@@ -64,10 +64,11 @@ function render(){
 }
 function person(id){
   const p=people.get(id)||{display_name:'Thành viên',avatar_url:''};
-  const wrap=node('span','','person'),avatar=node('span',p.display_name.trim().split(/\s+/).slice(-2).map(x=>x[0]).join('').toUpperCase(),'avatar');
+  const wrap=node('button','','person'),avatar=node('span',p.display_name.trim().split(/\s+/).slice(-2).map(x=>x[0]).join('').toUpperCase(),'avatar');
   if(/^https:\/\//i.test(p.avatar_url)||/^data:image\/(png|jpeg|webp);base64,/i.test(p.avatar_url)){
     const img=document.createElement('img');img.alt='';img.src=p.avatar_url;img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();avatar.append(img);
   }
+  wrap.type='button';wrap.setAttribute('aria-haspopup','dialog');wrap.setAttribute('aria-label','Xem thông tin '+p.display_name);wrap.onclick=e=>{e.stopPropagation();showFeedbackProfile(id);};
   wrap.append(avatar,node('span',p.display_name));return wrap;
 }
 $('image-close').onclick=()=>{$('image-dialog').close();};

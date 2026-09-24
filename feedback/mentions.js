@@ -20,6 +20,7 @@ async function setupFeedbackMentions(db){
    const details=document.createElement('dl');for(const [label,value] of [['Biệt danh',p.nickname||'Chưa đặt'],['Role',p.role||'Chưa cập nhật'],['Team',p.team||'Chưa cập nhật']]){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;details.append(dt,dd);}content.append(details);
   }catch{if(version===profileVersion)content.textContent='Chưa tải được thông tin. Đóng và bấm vào tên để thử lại.';}
  }
+ window.showFeedbackProfile=id=>showProfile({id});
  window.feedbackMentionText=text=>String(text).replace(/@([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g,(raw,email)=>'@'+((directory||[]).find(p=>p.email.toLowerCase()===email.toLowerCase())?.display_name||'Thành viên'));
  window.feedbackMentionContent=text=>{
   const fragment=document.createDocumentFragment();const source=String(text);let cursor=0;
