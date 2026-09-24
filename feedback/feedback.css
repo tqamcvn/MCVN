@@ -17,3 +17,15 @@ textarea + small{margin-top:12px}
 .mention-options{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px;margin:6px 0;max-height:220px;overflow:auto}.mention-options[hidden]{display:none}.mention-options button{display:block;width:100%;text-align:left;border:0;padding:9px 12px}.mention-options button[aria-selected=true]{background:#eaf3fb;color:#22618f}.mention-options small{display:block;font-weight:400;margin-top:3px}
 
 .mention-options button{display:flex;align-items:center;gap:10px}.mention-avatar{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex-shrink:0;border-radius:50%;background:#e0eaf4;color:#356486;font-size:10px}
+
+/* Status semantics: review, accepted, active work, completed. */
+.badge.status{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:600}
+.badge.status[data-status="Đang xem xét"],.badge.status[data-status="Đã lên kế hoạch"]{background:#fff4d6;color:#855600;border-color:#f0cf7c}
+.badge.status[data-status="Đã nhận"]{background:#e8f2ff;color:#1859a8;border-color:#b6d3f5}
+.badge.status[data-status="Đang thực hiện"]{background:#f1eaff;color:#6c35a5;border-color:#d8bef1}
+.badge.status[data-status="Hoàn thành"],.badge.status[data-status="Đã hoàn thành"],.badge.status[data-status="Đã thực hiện"]{background:#e6f5ec;color:#216b43;border-color:#afd9bf}
+body.dark .badge.status{background:#303c4c;color:#d1dbe8;border-color:#536177}
+body.dark .badge.status[data-status="Đang xem xét"],body.dark .badge.status[data-status="Đã lên kế hoạch"]{background:#443717;color:#f7d88b;border-color:#80652a}
+body.dark .badge.status[data-status="Đã nhận"]{background:#193653;color:#a5ceff;border-color:#36628b}
+body.dark .badge.status[data-status="Đang thực hiện"]{background:#38264c;color:#dbc0fa;border-color:#77528e}
+body.dark .badge.status[data-status="Hoàn thành"],body.dark .badge.status[data-status="Đã hoàn thành"],body.dark .badge.status[data-status="Đã thực hiện"]{background:#1b3b2a;color:#a3e0ba;border-color:#3c7953}
