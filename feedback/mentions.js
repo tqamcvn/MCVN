@@ -4,6 +4,14 @@ async function setupFeedbackMentions(db){
  const getDirectory=()=>directory?Promise.resolve(directory):(loading||(loading=db.rpc('feedback_mention_users').then(result=>{if(result.error)throw result.error;directory=result.data||[];return directory;}).finally(()=>loading=null)));
  try{await getDirectory();}catch{}
  window.feedbackMentionText=text=>String(text).replace(/@([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g,(raw,email)=>'@'+((directory||[]).find(p=>p.email.toLowerCase()===email.toLowerCase())?.display_name||'Thành viên'));
+ window.feedbackMentionContent=text=>{
+  const fragment=document.createDocumentFragment();const source=String(text);let cursor=0;
+  for(const match of source.matchAll(/@([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g)){
+   fragment.append(document.createTextNode(source.slice(cursor,match.index)));
+   const tag=document.createElement('span');tag.className='mention-highlight';tag.textContent=feedbackMentionText(match[0]);fragment.append(tag);cursor=match.index+match[0].length;
+  }
+  fragment.append(document.createTextNode(source.slice(cursor)));return fragment;
+ };
  const fold=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase();
  [['body','body-mentions'],['reply-body','reply-mentions']].forEach(([fieldId,listId])=>{
  const field=document.getElementById(fieldId),list=document.getElementById(listId);if(!field||!list)return;

@@ -59,7 +59,7 @@ function render(){
     const card=node('article','','card'), vote=node('button','⌃\n'+tally(r.id),'vote');vote.setAttribute('aria-pressed',String(mine(r.id)));vote.setAttribute('aria-label',(mine(r.id)?'Bỏ bình chọn: ':'Bình chọn: ')+r.title);
     vote.onclick=async()=>{vote.disabled=true;try{const result=mine(r.id)?await db.from('feedback_votes').delete().eq('feedback_id',r.id).eq('user_id',user.id):await db.from('feedback_votes').insert({feedback_id:r.id,user_id:user.id});if(result.error)throw result.error;await load();}catch{message('Chưa lưu được bình chọn. Vui lòng thử lại.');vote.disabled=false;}};
     const content=node('div','','card-content'),meta=node('div','','meta'),date=node('time',new Date(r.created_at).toLocaleDateString('en-GB'));date.dateTime=r.created_at;meta.append(person(r.author_id),date,node('span',r.kind,'badge'),statusBadge(r.status));
-    const title=node('button',r.title,'title-button');title.onclick=()=>showDetail(r);content.append(meta,title,node('p',feedbackMentionText(r.body),'excerpt'));if(r.attachments?.length)content.append(attachmentThumbnails(r.attachments));card.append(vote,content);$('list').append(card);
+    const title=node('button',r.title,'title-button');title.onclick=()=>showDetail(r);content.append(meta,title,mentionParagraph(r.body,'excerpt'));if(r.attachments?.length)content.append(attachmentThumbnails(r.attachments));card.append(vote,content);$('list').append(card);
   });
 }
 function person(id){
@@ -83,7 +83,7 @@ async function openImage(file){
 async function showDetail(r){
   const version=++detailVersion;selectedFeedback=r;$('detail-title').textContent=r.title;
   $('detail-meta').replaceChildren(person(r.author_id),node('span',' · '+r.kind+' · '),statusBadge(r.status),node('span',' · '+new Date(r.created_at).toLocaleDateString('en-GB')));
-  $('detail-body').textContent=feedbackMentionText(r.body);$('detail-files').replaceChildren();
+  $('detail-body').replaceChildren(feedbackMentionContent(r.body));$('detail-files').replaceChildren();
   (r.attachments||[]).forEach(f=>{const button=node('button','▧ '+f.name);button.onclick=()=>openImage(f);$('detail-files').append(button);});
   $('manager-actions').hidden=!isManager;$('reply-form').hidden=!isManager;$('detail-error').textContent='';
   renderTask(r);
@@ -92,7 +92,7 @@ async function showDetail(r){
   markFeedbackNotificationsRead(r.id);
   try{const result=await db.from('feedback_replies').select('*').eq('feedback_id',r.id).order('created_at');if(result.error)throw result.error;if(version!==detailVersion)return;
     $('replies').replaceChildren();if(!result.data.length)$('replies').textContent='Chưa có phản hồi từ MNG.';
-    result.data.forEach(reply=>{const box=node('article','','reply');box.append(person(reply.author_id),node('time',new Date(reply.created_at).toLocaleString('vi-VN'),'muted'),node('p',feedbackMentionText(reply.body)));$('replies').append(box);});
+    result.data.forEach(reply=>{const box=node('article','','reply');box.append(person(reply.author_id),node('time',new Date(reply.created_at).toLocaleString('vi-VN'),'muted'),mentionParagraph(reply.body));$('replies').append(box);});
   }catch{if(version===detailVersion)$('replies').textContent='Không tải được phản hồi. Đóng và mở lại để thử lại.';}
 }
 $('reply-body').oninput=()=>{try{sessionStorage.setItem('feedback.reply.'+user.id+'.'+selectedFeedback.id,$('reply-body').mentionValue?.serialize()||$('reply-body').value);}catch{}};
@@ -211,3 +211,5 @@ function attachmentThumbnails(attachments){
   db.storage.from('feedback-attachments').createSignedUrl(file.path,300).then(({data,error})=>{if(error||!data?.signedUrl)throw error||new Error('No image URL');image.src=data.signedUrl;}).catch(()=>{label.textContent='Bấm để xem ảnh';});
  });return gallery;
 }
+
+function mentionParagraph(body,cls){const paragraph=node('p','',cls);paragraph.append(feedbackMentionContent(body));return paragraph;}
