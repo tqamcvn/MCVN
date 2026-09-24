@@ -2094,6 +2094,7 @@ function mngFocusChannels(email,requested){
 function mngRequestCommits(email,channel){return mngFocusChannels(email,channel).flatMap(c=>mngScopedCommits(email,c));}
 function mngFocusTargetCell(entry){return mngFocusChannels(entry.r.email,entry.r.channel).map(channel=>mngTargetCell({r:{...entry.r,channel}})).join('');}
 function mngTargetCell(entry){
+  const badge=(label,cls)=>{const colors=cls==='green'?['#dcfce7','#166534']:cls==='red'?['#fee2e2','#b91c1c']:['#f1f5f9','#475569'];return '<span class="badge '+(cls||'')+'" style="background:'+colors[0]+';color:'+colors[1]+';font-weight:700">'+esc(label)+'</span>';};
   const channel=entry.r.channel||'',commits=mngScopedCommits(entry.r.email,channel);
   if(!commits.length)return badge('Chưa đặt CSAT · '+(channel||'All channel'),'');
   return commits.map(a=>{let st=commitStatus(a,today());if(st.state==='pending'){const now=commitMeetsNow(a,today());if(now)st={label:(now.passed?'WTD đạt ':'WTD chưa đạt ')+now.cur+' · Chưa tới hạn',cls:now.passed?'green':'red'};}
