@@ -1174,7 +1174,7 @@ function mngOffToday(email){
   return latest?.snapshot?.off===true;
 }
 // Lý do CS chưa được action trong ngày (ngoài OFF): ca NS chưa phản hồi, QA nghỉ/AL, chờ SUP...
-const MNG_REASONS=['CS ca NS chưa phản hồi','CS chưa phản hồi QA','QA nghỉ / AL','Chờ SUP / Escalate'];
+const MNG_REASONS=['CS ca NS chưa phản hồi','CS chưa phản hồi QA','QA nghỉ / AL','QA OFF','QA AL','QA TR','Chờ SUP / Escalate'];
 function mngReasonToday(email){
   const latest=(db.history||[]).filter(h=>h.type==='Lý do chưa action'&&h.csEmail===email&&h.snapshot?.date===today()).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
   return latest?.snapshot?.reason||'';
@@ -1183,6 +1183,12 @@ function mngTodayCounts(entries){
   const unique=new Map();for(const e of entries)unique.set(e.r.email,e);
   const rows=[...unique.values()];
   return {total:rows.length,noJourney:rows.filter(e=>!e.hasJourney).length,done:rows.filter(e=>e.touchedToday).length,pending:rows.filter(e=>!e.touchedToday&&!e.off).length,off:rows.filter(e=>e.off).length};
+}
+function mngQAAbsenceCounts(entries){
+  const rows=[...new Map(entries.map(e=>[e.r.email,e])).values()];
+  const marked=rows.filter(e=>/^QA (?:nghỉ|OFF|AL|TR)(?:\b|\s|\/)/i.test(String(e.reason||'').trim()));
+  const qas=new Set(marked.map(e=>{const a=agent(e.r.email);return String(a?.qaEmail||a?.qa||'').trim().toLowerCase();}).filter(Boolean));
+  return {qa:qas.size,cs:marked.filter(e=>!e.touchedToday&&!e.off).length};
 }
 function renderMngRequests(){
   const badge=(t,c)=>`<span class="badge ${c==='green'?'green':c==='red'?'red':c==='blue'?'blue':''}" style="font-size:11px">${esc(t)}</span>`;
@@ -1195,7 +1201,8 @@ function renderMngRequests(){
   $('viewTitle').textContent='MNG Request · '+nTotal+' CS';
   $('viewDesc').textContent='Danh sách CS do MNG yêu cầu coaching/catchup (cập nhật từ nguồn MNG). QA tạo Journey nếu chưa có, hoặc thêm action / cập nhật Journey nếu đã có.';
   const chip=(n,l,c)=>`<div class="stat" style="flex:1;min-width:120px;min-height:auto;padding:9px 13px;border-top-color:${c}"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8b9dbf">${l}</span><strong style="font-size:22px;display:block;margin:3px 0 0;color:${c}">${n}</strong></div>`;
-  const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px">${chip(nTotal,'CS được request','#5b8de6')}${chip(nNoJourney,'Chưa có Journey','#e0483d')}${chip(nTouched,'Đã action hôm nay','#16a34a')}${chip(todayCounts.pending,'CS chưa action hôm nay (trừ OFF)','#e0483d')}${chip(todayCounts.off,'CS OFF hôm nay','#b7791f')}</div>`;
+  const qaAbsence=mngQAAbsenceCounts(withState);
+  const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px">${chip(nTotal,'CS được request','#5b8de6')}${chip(nNoJourney,'Chưa có Journey','#e0483d')}${chip(nTouched,'Đã action hôm nay','#16a34a')}${chip(todayCounts.pending,'CS chưa action hôm nay (trừ OFF)','#e0483d')}${chip(todayCounts.off,'CS OFF hôm nay','#b7791f')}<div class="stat" data-mng-qa-absence style="flex:1;min-width:190px;min-height:auto;padding:9px 13px;border-top-color:#8b5cf6"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8b9dbf">QA OFF / AL / TR hôm nay</span><strong style="font-size:22px;display:block;margin:3px 0 0;color:#8b5cf6">${qaAbsence.qa} QA · ${qaAbsence.cs} CS chưa action</strong><small>Theo lý do đã ghi nhận · CS không gồm OFF</small></div></div>`;
   const csBtn=(e,i)=>`<button class="link" data-mng-cs="${i}">${esc(agent(e.r.email)?.name||e.r.name||e.r.email)}</button><small>${esc(e.r.email)}</small>`;
   const offCell=(e,i)=>`<label class="check" style="white-space:nowrap"><input type="checkbox" data-mng-off="${i}" ${e.off?'checked':''} aria-label="CS OFF hôm nay: ${esc(e.r.email)}"> OFF</label>${e.off?'<small>CS OFF hôm nay · chưa thể action</small>':''}`;
   const reasonCell=(e,i)=>{const cur=e.reason||'';const isOther=!!cur&&!MNG_REASONS.includes(cur);return `<select data-mng-reason="${i}" style="font-size:12px;max-width:160px" aria-label="Lý do chưa action: ${esc(e.r.email)}"><option value="">—</option>${MNG_REASONS.map(x=>`<option${x===cur?' selected':''}>${esc(x)}</option>`).join('')}<option value="__other"${isOther?' selected':''}>Khác…</option></select><input data-mng-reason-text="${i}" placeholder="Nhập lý do khác" value="${esc(isOther?cur:'')}" style="font-size:12px;margin-top:4px;width:160px;${isOther?'':'display:none'}">`;};
