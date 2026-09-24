@@ -27,6 +27,7 @@
 /* ===================== CONFIG ===================== */
 const SPREADSHEET_ID = '1NrKWbj6Fd42RgkYMZv0bUgPsUM6oWtdDQn5gb6mAEQ0';
 const SHEET_GID      = 680802481;           // tab CSAT theo agent (gid trong URL)
+const LATEST_COL     = 11;                  // cột K = CSAT tuần mới nhất (1-based)
 const GH_OWNER  = 'tqamcvn';
 const GH_REPO   = 'MCVN';
 const GH_BRANCH = 'main';                   // branch GitHub Pages phục vụ teamqamcvn.com
@@ -47,14 +48,15 @@ function buildPayload_() {
   const cBpo   = idx[normHeader_('BPO')];
   const cRate  = idx[normHeader_('Rating')];
 
-  // Các cột "CSAT" có nhãn tuần (W39...) ở dòng ngay trên header.
+  // Tuần mới nhất LUÔN là cột K; các tuần cũ hơn là các cột "CSAT" liền kề bên phải.
+  // Nhãn tuần (W39...) lấy ở dòng ngay trên header.
   const weekRow = head > 0 ? vals[head - 1] : [];
   const weekCols = [];
-  hdr.forEach(function (h, c) {
+  for (let c = LATEST_COL - 1; c < hdr.length; c++) {
+    if (c > LATEST_COL - 1 && normHeader_(hdr[c]) !== 'csat') break;
     const wk = String(weekRow[c] || '').trim().toUpperCase();
-    if (normHeader_(h) === 'csat' && /^W\d+$/.test(wk)) weekCols.push({ col: c, week: wk, start: weekStart_(vals, head, c) });
-  });
-  if (!weekCols.length) throw new Error('Không thấy cột CSAT theo tuần (W..) ở dòng ' + head);
+    weekCols.push({ col: c, week: /^W\d+$/.test(wk) ? wk : ('W?' + (c + 1)), start: weekStart_(vals, head, c) });
+  }
   const firstCsat = weekCols[0].col;
 
   const agents = [];

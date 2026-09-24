@@ -959,6 +959,7 @@ const I18N = {
     belowTitle:'Agent thấp hơn baseline', baseline:'Baseline', searchAgent:'Tìm agent / email…',
     colAgent:'Agent', colTeam:'Team', colRatings:'Lượt ĐG', colGap:'vs baseline',
     noneBelow:'Không có agent nào thấp hơn baseline 🎉', belowNote:'So CSAT tuần {w} với {b} ({v})',
+    noCsatWeek:'Chưa có CSAT tuần này',
     myCsatNotFound:'Chưa tìm thấy CSAT của tài khoản này trong file CSAT Agent.',
     passwordShort:'Mật khẩu cần ít nhất 6 ký tự.', passwordMismatch:'Hai ô mật khẩu chưa khớp.', saving:'Đang lưu...',
     passwordSaved:'Đã đổi mật khẩu thành công!', enterName:'Nhập tên hiển thị.', profileSaved:'Đã lưu hồ sơ!',
@@ -986,6 +987,7 @@ const I18N = {
     belowTitle:'Agents below baseline', baseline:'Baseline', searchAgent:'Search agent / email…',
     colAgent:'Agent', colTeam:'Team', colRatings:'Ratings', colGap:'vs baseline',
     noneBelow:'No agents below the baseline 🎉', belowNote:'Week {w} CSAT vs {b} ({v})',
+    noCsatWeek:'No CSAT this week yet',
     myCsatNotFound:'No CSAT found for this account in the CSAT Agent file.',
     passwordShort:'Password must contain at least 6 characters.', passwordMismatch:'The passwords do not match.', saving:'Saving...',
     passwordSaved:'Password changed successfully!', enterName:'Enter a display name.', profileSaved:'Profile saved!',
@@ -1442,14 +1444,11 @@ function pickMyCsat(data, row) {
   const weeks = data.weeks || [];
   const vals = row.csat || [];
   const has = function (v) { return v !== null && v !== undefined; };
-  const i = vals.findIndex(has);                 // tuần mới nhất có số
-  if (i < 0) return null;
-  const spark = [];
-  for (let k = i; k < vals.length && spark.length < 4; k++) if (has(vals[k])) spark.unshift(vals[k]);
-  let prev = null;
-  for (let k = i + 1; k < vals.length; k++) if (has(vals[k])) { prev = vals[k]; break; }
+  // Luôn lấy tuần mới nhất = cột K của sheet (weeks[0]); WoW so với tuần kế (cột L).
+  const spark = vals.slice(0, 4).filter(has).reverse();
   return { team: row.team, channel: row.channel, ratings: row.ratings,
-           week: weeks[i] || '', value: vals[i], prev: prev, spark: spark };
+           week: weeks[0] || '', value: has(vals[0]) ? vals[0] : null,
+           prev: has(vals[1]) ? vals[1] : null, spark: spark };
 }
 function escHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
@@ -1467,13 +1466,14 @@ function renderMine() {
   const meta = [m.team, m.channel].filter(Boolean).join(' · ');
   const card = '<div class="sum-card">' +
     '<div class="sum-label"><span class="my-tag">' + t('myCsat') + '</span> · ' + escHtml(m.week) + '</div>' +
-    '<div class="sum-val">' + csatPct(m.value) + '</div>' +
-    (m.prev !== null ? csatDelta(m.value - m.prev, 'WoW') : '<div class="sum-delta">&nbsp;</div>') +
+    '<div class="sum-val">' + (m.value !== null ? csatPct(m.value) : '—') + '</div>' +
+    (m.value !== null && m.prev !== null ? csatDelta(m.value - m.prev, 'WoW') : '<div class="sum-delta">' + (m.value === null ? t('noCsatWeek') : '&nbsp;') + '</div>') +
     (m.spark.length > 1 ? csatSpark(m.spark) : '') +
     '<div class="my-sub">' + escHtml(meta) + (m.ratings ? (meta ? ' · ' : '') + m.ratings + ' ' + t('myRatings') : '') + '</div>' +
     '</div>';
   const w = function (v) { return Math.max(0, Math.min(100, Number(v) * 100)).toFixed(1); };
   const own = teamKeyOf(m.team);
+  if (m.value === null) { box.innerHTML = card; box.hidden = false; return; }
   let rows = '';
   CSAT_TEAMS.forEach(function (tm) {
     const v = TEAM_WEEK[tm.key];
