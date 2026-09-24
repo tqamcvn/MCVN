@@ -1174,7 +1174,7 @@ function mngOffToday(email){
   return latest?.snapshot?.off===true;
 }
 // Lý do CS chưa được action trong ngày (ngoài OFF): ca NS chưa phản hồi, QA nghỉ/AL, chờ SUP...
-const MNG_REASONS=['CS ca NS chưa phản hồi','CS chưa phản hồi QA','QA nghỉ / AL','QA OFF','QA AL','QA TR','Chờ SUP / Escalate'];
+const MNG_REASONS=['CS ca NS chưa phản hồi','CS chưa phản hồi QA','QA OFF','QA AL','QA TR','Chờ SUP / Escalate'];
 function mngQAAbsenceToday(qa){
   const latest=(db.history||[]).filter(h=>h.type==='QA OFF / AL / TR'&&h.snapshot?.date===today()&&h.snapshot?.qa===qa).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
   return ['QA OFF','QA AL','QA TR'].includes(latest?.snapshot?.reason)?latest.snapshot.reason:'';
