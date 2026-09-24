@@ -6,6 +6,7 @@
 <title>TQA MCVN — Home</title>
 <link rel="stylesheet" href="/assets/loading-snake.css?v=20260922-1">
 <script defer src="/assets/loading-snake.js?v=20260922-5"></script>
+<script defer src="/assets/dashboard-presence.js?v=20260924-1"></script>
 
 <!-- Ẩn toàn bộ nội dung cho tới khi xác thực xong (chống lộ dữ liệu). -->
 <style id="gate">body { visibility: hidden; }.mascot-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-top:16px}
@@ -517,7 +518,17 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
   border-bottom: 1px solid var(--gray-200); flex-shrink: 0;
 }
 .tool-bar-title { font-size: 14px; font-weight: 600; color: var(--gray-900); }
-.tool-bar-actions { margin-left: auto; display: flex; gap: 8px; }
+.tool-bar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.tool-bar { flex-wrap: wrap; overflow: visible; }
+.dashboard-viewers-host { flex-shrink: 0; overflow: visible; }
+.dashboard-viewers { display: flex; align-items: center; gap: 10px; overflow: visible; }
+.dashboard-viewers-label { font-size: 11px; color: var(--gray-600); white-space: nowrap; }
+.dashboard-viewers .MuiAvatar-root:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .tool-bar { padding: 10px 12px; gap: 8px; }
+  .tool-bar-actions { flex-wrap: wrap; }
+  .dashboard-viewers-label { max-width: 115px; white-space: normal; }
+}
 .tool-btn {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 500; color: var(--gray-700);
@@ -717,6 +728,7 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
 
 <main class="main">
   <div class="hero">
+    <div class="dashboard-viewers-host" id="home-viewers"></div>
     <div class="hero-top">
       <div class="hero-avatar" id="hero-av">··</div>
       <div class="hero-info">
@@ -814,8 +826,13 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
       <details id="below-box" class="below-box qa-ih" hidden>
         <summary><span data-i18n="belowTitle">Agent thấp hơn baseline</span> <span class="below-count" id="below-count">0</span></summary>
         <div class="below-ctrl">
+          <select id="below-scope" hidden>
+            <option value="mine" data-i18n="scopeMine">Agent tôi phụ trách</option>
+            <option value="all" data-i18n="scopeAll">Tất cả agent</option>
+          </select>
           <label for="below-base" data-i18n="baseline">Baseline</label>
           <select id="below-base">
+            <option value="OWN" data-i18n="baseOwnTeam">Team của từng agent</option>
             <option value="MCVN">MCVN Overall</option>
             <option value="Team Call">Team Call</option>
             <option value="Team Chat">Team Chat</option>
@@ -834,6 +851,7 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
     <div class="tool-bar">
       <div class="tool-bar-title" id="tool-title">Tool</div>
       <div class="tool-bar-actions">
+        <div class="dashboard-viewers-host" id="tool-viewers"></div>
         <button class="tool-btn" id="tool-reload" title="Tải lại" data-i18n-title="reload">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           <span data-i18n="reload">Tải lại</span>
@@ -960,6 +978,9 @@ const I18N = {
     colAgent:'Agent', colTeam:'Team', colRatings:'Lượt ĐG', colGap:'vs baseline',
     noneBelow:'Không có agent nào thấp hơn baseline 🎉', belowNote:'So CSAT tuần {w} với {b} ({v})',
     noCsatWeek:'Chưa có CSAT tuần này',
+    myAgentsCsat:'CSAT agent bạn phụ trách', myAgents:'Agent của bạn', qaSub:'TB {n} agent · {d} có CSAT {w}',
+    scopeMine:'Agent tôi phụ trách', scopeAll:'Tất cả agent', baseOwnTeam:'Team của từng agent',
+    belowNoteOwn:'So CSAT tuần {w} của mỗi agent với team của agent đó',
     myCsatNotFound:'Chưa tìm thấy CSAT của tài khoản này trong file CSAT Agent.',
     passwordShort:'Mật khẩu cần ít nhất 6 ký tự.', passwordMismatch:'Hai ô mật khẩu chưa khớp.', saving:'Đang lưu...',
     passwordSaved:'Đã đổi mật khẩu thành công!', enterName:'Nhập tên hiển thị.', profileSaved:'Đã lưu hồ sơ!',
@@ -988,6 +1009,9 @@ const I18N = {
     colAgent:'Agent', colTeam:'Team', colRatings:'Ratings', colGap:'vs baseline',
     noneBelow:'No agents below the baseline 🎉', belowNote:'Week {w} CSAT vs {b} ({v})',
     noCsatWeek:'No CSAT this week yet',
+    myAgentsCsat:'Your agents CSAT', myAgents:'Your agents', qaSub:'Avg of {n} agents · {d} with {w} CSAT',
+    scopeMine:'My agents', scopeAll:'All agents', baseOwnTeam:'Each agent’s team',
+    belowNoteOwn:'Week {w} CSAT of each agent vs that agent’s team',
     myCsatNotFound:'No CSAT found for this account in the CSAT Agent file.',
     passwordShort:'Password must contain at least 6 characters.', passwordMismatch:'The passwords do not match.', saving:'Saving...',
     passwordSaved:'Password changed successfully!', enterName:'Enter a display name.', profileSaved:'Profile saved!',
@@ -1088,6 +1112,7 @@ async function renderUser() {
 }
 
 async function logout() {
+  window.TQAPresence?.stop();
   try { await sb.auth.signOut(); } catch (e) {}
   location.replace('/');
 }
@@ -1143,6 +1168,7 @@ const toolNewtab = document.getElementById('tool-newtab');
 const settingsView = document.getElementById('settings-view');
 
 function showHome() {
+  window.TQAPresence?.show(sb, CUR, 'home', document.getElementById('home-viewers'));
   window.TQALoading?.home(false);
   toolView.classList.remove('visible');
   settingsView.classList.remove('visible');
@@ -1152,6 +1178,7 @@ function showHome() {
 }
 
 function showSettings() {
+  window.TQAPresence?.stop();
   window.TQALoading?.stop();
   toolView.classList.remove('visible');
   toolFrame.src = 'about:blank';
@@ -1169,6 +1196,9 @@ function withTheme(src) {
 }
 
 function showTool(src, title) {
+  const presenceKey = document.querySelector('.nav-item.active')?.dataset.tool;
+  if (src && presenceKey) window.TQAPresence?.show(sb, CUR, presenceKey, document.getElementById('tool-viewers'));
+  else window.TQAPresence?.stop();
   settingsView.classList.remove('visible');
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
@@ -1417,6 +1447,8 @@ function teamKeyOf(code) {
   if (/^MT\b|^MT\./.test(c)) return 'Team Multi';
   return '';
 }
+function isSkipped(a) { return /^DP\b|^DP\./i.test(String(a.team || '')); }   // bỏ team DP
+function hasCsat(v, a) { return v !== null && v !== undefined && !(v === 0 && !a.ratings); }   // 0% mà không có lượt ĐG = không có data
 function fmtGap(d) {   // d: chênh lệch dạng tỉ lệ (0.05 = 5%)
   const v = Number(d) * 100;
   const cls = v > 0.05 ? 'up' : v < -0.05 ? 'dn' : '';
@@ -1426,8 +1458,7 @@ function normPersonName(s) {
   return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd')
     .toLowerCase().replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
-function findMyCsatRow(data, email, name) {
-  const list = (data && data.agents) || [];
+function findMyCsatRow(list, email, name) {
   const em = String(email || '').trim().toLowerCase();
   const byEmail = list.find(function (a) { return a.email === em; });
   if (byEmail) return byEmail;
@@ -1440,18 +1471,43 @@ function findMyCsatRow(data, email, name) {
   });
   return hits.length === 1 ? hits[0] : null;
 }
+// Luôn lấy tuần mới nhất = cột K của sheet (weeks[0]); WoW so với tuần kế (cột L).
 function pickMyCsat(data, row) {
-  const weeks = data.weeks || [];
   const vals = row.csat || [];
-  const has = function (v) { return v !== null && v !== undefined; };
-  // Luôn lấy tuần mới nhất = cột K của sheet (weeks[0]); WoW so với tuần kế (cột L).
-  const spark = vals.slice(0, 4).filter(has).reverse();
-  return { team: row.team, channel: row.channel, ratings: row.ratings,
-           week: weeks[0] || '', value: has(vals[0]) ? vals[0] : null,
-           prev: has(vals[1]) ? vals[1] : null, spark: spark };
+  const at = function (k) { return hasCsat(vals[k], row) ? vals[k] : null; };
+  return { kind: 'own', teamKey: teamKeyOf(row.team), meta: [row.team, row.channel].filter(Boolean).join(' · '),
+           ratings: row.ratings, week: (data.weeks || [])[0] || '', value: at(0), prev: at(1),
+           spark: [at(3), at(2), at(1), at(0)].filter(function (v) { return v !== null; }) };
+}
+// QA: CSAT trung bình (không trọng số) các agent mình phụ trách, theo từng tuần.
+function pickQaCsat(data, list) {
+  const avg = function (k) {
+    const vs = list.map(function (a) { return (a.csat || [])[k]; }).filter(function (v, i) { return hasCsat(v, list[i]); });
+    return vs.length ? vs.reduce(function (s, v) { return s + v; }, 0) / vs.length : null;
+  };
+  const cnt = {};
+  list.forEach(function (a) { const k = teamKeyOf(a.team); if (k) cnt[k] = (cnt[k] || 0) + 1; });
+  const teamKey = Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; })[0] || '';
+  const withData = list.filter(function (a) { return hasCsat((a.csat || [])[0], a); }).length;
+  return { kind: 'qa', teamKey: teamKey, count: list.length, withData: withData,
+           week: (data.weeks || [])[0] || '', value: avg(0), prev: avg(1),
+           spark: [avg(3), avg(2), avg(1), avg(0)].filter(function (v) { return v !== null; }) };
 }
 function escHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+}
+function csatMiniCard(m) {
+  const label = m.kind === 'qa' ? t('myAgentsCsat') : t('myCsat');
+  const sub = m.kind === 'qa'
+    ? t('qaSub').replace('{n}', m.count).replace('{d}', m.withData).replace('{w}', escHtml(m.week))
+    : escHtml(m.meta) + (m.ratings ? (m.meta ? ' · ' : '') + m.ratings + ' ' + t('myRatings') : '');
+  return '<div class="sum-card">' +
+    '<div class="sum-label"><span class="my-tag">' + label + '</span> · ' + escHtml(m.week) + '</div>' +
+    '<div class="sum-val">' + (m.value !== null ? csatPct(m.value) : '—') + '</div>' +
+    (m.value !== null && m.prev !== null ? csatDelta(m.value - m.prev, 'WoW') : '<div class="sum-delta">' + (m.value === null ? t('noCsatWeek') : '&nbsp;') + '</div>') +
+    (m.spark.length > 1 ? csatSpark(m.spark) : '') +
+    '<div class="my-sub">' + sub + '</div>' +
+    '</div>';
 }
 function renderMyCsat() { renderMine(); renderBelow(); }
 function renderMine() {
@@ -1462,58 +1518,63 @@ function renderMine() {
     box.hidden = false;
     return;
   }
-  const m = MY_CSAT;
-  const meta = [m.team, m.channel].filter(Boolean).join(' · ');
-  const card = '<div class="sum-card">' +
-    '<div class="sum-label"><span class="my-tag">' + t('myCsat') + '</span> · ' + escHtml(m.week) + '</div>' +
-    '<div class="sum-val">' + (m.value !== null ? csatPct(m.value) : '—') + '</div>' +
-    (m.value !== null && m.prev !== null ? csatDelta(m.value - m.prev, 'WoW') : '<div class="sum-delta">' + (m.value === null ? t('noCsatWeek') : '&nbsp;') + '</div>') +
-    (m.spark.length > 1 ? csatSpark(m.spark) : '') +
-    '<div class="my-sub">' + escHtml(meta) + (m.ratings ? (meta ? ' · ' : '') + m.ratings + ' ' + t('myRatings') : '') + '</div>' +
-    '</div>';
-  const w = function (v) { return Math.max(0, Math.min(100, Number(v) * 100)).toFixed(1); };
-  const own = teamKeyOf(m.team);
-  if (m.value === null) { box.innerHTML = card; box.hidden = false; return; }
-  let rows = '';
-  CSAT_TEAMS.forEach(function (tm) {
-    const v = TEAM_WEEK[tm.key];
-    if (v === undefined) return;
-    rows += '<div class="my-cmp-row' + (tm.key === own ? ' own' : '') + '"><span>' + tm.label + '</span>' +
-      '<div class="my-bar ref"><i style="width:' + w(v) + '%"></i></div><b>' + csatPct(v) + '</b>' + fmtGap(m.value - v) + '</div>';
-  });
-  const cmp = rows ? '<div class="my-cmp">' +
-    '<div class="sum-label">' + t('vsTeams') + ' · WoW</div>' +
-    '<div class="my-cmp-row me"><span>' + t('you') + '</span><div class="my-bar"><i style="width:' + w(m.value) + '%"></i></div><b>' + csatPct(m.value) + '</b><span></span></div>' +
-    rows + '</div>' : '';
-  box.innerHTML = card + cmp;
+  // QA có agent phụ trách -> thẻ chính là CSAT agent của QA; nếu QA cũng có CSAT cá nhân thì hiện thêm.
+  const main = MY_CSAT.qa || MY_CSAT.own;
+  let html = csatMiniCard(main);
+  if (MY_CSAT.qa && MY_CSAT.own) html += csatMiniCard(MY_CSAT.own);
+  if (main.value !== null) {
+    const w = function (v) { return Math.max(0, Math.min(100, Number(v) * 100)).toFixed(1); };
+    let rows = '';
+    CSAT_TEAMS.forEach(function (tm) {
+      const v = TEAM_WEEK[tm.key];
+      if (v === undefined) return;
+      rows += '<div class="my-cmp-row' + (tm.key === main.teamKey ? ' own' : '') + '"><span>' + tm.label + '</span>' +
+        '<div class="my-bar ref"><i style="width:' + w(v) + '%"></i></div><b>' + csatPct(v) + '</b>' + fmtGap(main.value - v) + '</div>';
+    });
+    if (rows) html += '<div class="my-cmp">' +
+      '<div class="sum-label">' + t('vsTeams') + ' · WoW</div>' +
+      '<div class="my-cmp-row me"><span>' + (main.kind === 'qa' ? t('myAgents') : t('you')) + '</span><div class="my-bar"><i style="width:' + w(main.value) + '%"></i></div><b>' + csatPct(main.value) + '</b><span></span></div>' +
+      rows + '</div>';
+  }
+  box.innerHTML = html;
   box.hidden = false;
 }
-// Danh sách agent có CSAT tuần mới nhất < baseline đang chọn (MCVN = mọi agent; Team X = agent thuộc team X)
+// Danh sách agent có CSAT tuần mới nhất < baseline đang chọn
+// (phạm vi: agent QA phụ trách / tất cả; baseline MCVN = mọi team, Team X = agent thuộc team X)
 function renderBelow() {
   const box = document.getElementById('below-box');
   if (!box || !CSAT_AGENTS) return;
+  const all = (CSAT_AGENTS.agents || []).filter(function (a) { return !isSkipped(a); });
+  const mine = all.filter(function (a) { return a.qaEmail === MY_EMAIL; });
+  const scopeSel = document.getElementById('below-scope');
+  scopeSel.hidden = !mine.length;
+  if (!mine.length) scopeSel.value = 'all';
   const sel = document.getElementById('below-base');
   if (!sel.dataset.touched) {
-    const own = MY_CSAT && !MY_CSAT.notFound ? teamKeyOf(MY_CSAT.team) : '';
-    sel.value = own && TEAM_WEEK[own] !== undefined ? own : 'MCVN';
+    const main = MY_CSAT && !MY_CSAT.notFound ? (MY_CSAT.qa || MY_CSAT.own) : null;
+    const own = main ? main.teamKey : '';
+    sel.value = mine.length ? 'OWN' : (own && TEAM_WEEK[own] !== undefined ? own : 'MCVN');
   }
   const base = sel.value;
-  const bv = TEAM_WEEK[base];
+  // Baseline của từng agent: OWN = CSAT team của chính agent đó
+  const baseOf = function (a) { return base === 'OWN' ? TEAM_WEEK[teamKeyOf(a.team)] : TEAM_WEEK[base]; };
+  const bv = base === 'OWN' ? (Object.keys(TEAM_WEEK).length ? 0 : undefined) : TEAM_WEEK[base];
   const list = document.getElementById('below-list');
   const week = (CSAT_AGENTS.weeks || [])[0] || '';
   box.hidden = false;
   if (bv === undefined) { list.innerHTML = ''; document.getElementById('below-count').textContent = '–'; return; }
   const q = normPersonName(document.getElementById('below-q').value || '');
   const qMail = String(document.getElementById('below-q').value || '').trim().toLowerCase();
-  const rows = (CSAT_AGENTS.agents || []).filter(function (a) {
+  const rows = (scopeSel.value === 'mine' ? mine : all).filter(function (a) {
     const v = (a.csat || [])[0];
-    if (v === null || v === undefined) return false;
-    if (v === 0 && !a.ratings) return false;                     // tuần này không có lượt đánh giá
-    if (base !== 'MCVN' && teamKeyOf(a.team) !== base) return false;
-    return v < bv;
+    if (!hasCsat(v, a)) return false;                             // cột K trống / không có lượt ĐG
+    if (base !== 'MCVN' && base !== 'OWN' && teamKeyOf(a.team) !== base) return false;
+    const b = baseOf(a);
+    return b !== undefined && v < b;
   }).sort(function (a, b) { return a.csat[0] - b.csat[0]; });
   document.getElementById('below-count').textContent = rows.length;
-  const note = t('belowNote').replace('{w}', week).replace('{b}', sel.options[sel.selectedIndex].text).replace('{v}', csatPct(bv));
+  const note = base === 'OWN' ? t('belowNoteOwn').replace('{w}', week)
+    : t('belowNote').replace('{w}', week).replace('{b}', sel.options[sel.selectedIndex].text).replace('{v}', csatPct(bv));
   document.getElementById('below-note').textContent = note;
   const shown = (q || qMail) ? rows.filter(function (a) {
     return normPersonName(a.name).indexOf(q) >= 0 || a.email.indexOf(qMail) >= 0;
@@ -1521,19 +1582,20 @@ function renderBelow() {
   if (!shown.length) { list.innerHTML = '<div class="below-empty">' + t('noneBelow') + '</div>'; return; }
   list.innerHTML = '<div class="below-scroll"><table class="below-tbl"><thead><tr>' +
     '<th>#</th><th>' + t('colAgent') + '</th><th class="col-team">' + t('colTeam') + '</th>' +
-    '<th class="num">CSAT ' + escHtml(week) + '</th><th class="num">' + t('colGap') + '</th><th class="num">' + t('colRatings') + '</th>' +
+    '<th class="num">CSAT ' + escHtml(week) + '</th><th class="num col-team">' + t('baseline') + '</th><th class="num">' + t('colGap') + '</th><th class="num">' + t('colRatings') + '</th>' +
     '</tr></thead><tbody>' + shown.map(function (a, i) {
       return '<tr' + (a.email === MY_EMAIL ? ' class="me"' : '') + '><td>' + (i + 1) + '</td>' +
         '<td><div class="ag-name">' + escHtml(a.name) + '</div><div class="ag-mail">' + escHtml(a.email) + '</div></td>' +
         '<td class="col-team">' + escHtml([a.team, a.channel].filter(Boolean).join(' · ')) + '</td>' +
-        '<td class="num">' + csatPct(a.csat[0]) + '</td><td class="num">' + fmtGap(a.csat[0] - bv) + '</td>' +
+        '<td class="num">' + csatPct(a.csat[0]) + '</td><td class="num col-team">' + csatPct(baseOf(a)) + '</td><td class="num">' + fmtGap(a.csat[0] - baseOf(a)) + '</td>' +
         '<td class="num">' + (a.ratings || 0) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
 document.getElementById('below-base').addEventListener('change', function () { this.dataset.touched = '1'; renderBelow(); });
+document.getElementById('below-scope').addEventListener('change', renderBelow);
 document.getElementById('below-q').addEventListener('input', renderBelow);
 async function loadMyCsat(email, name) {
-  const key = 'tqa_my_csat_' + String(email || '').toLowerCase();
+  const key = 'tqa_my_csat2_' + String(email || '').toLowerCase();
   // 1) Hiện ngay từ cache của chính user này
   try {
     const c = JSON.parse(localStorage.getItem(key) || 'null');
@@ -1546,8 +1608,12 @@ async function loadMyCsat(email, name) {
     const data = await res.json();
     CSAT_AGENTS = data;
     MY_EMAIL = String(email || '').trim().toLowerCase();
-    const row = findMyCsatRow(data, email, name);
-    MY_CSAT = (row && pickMyCsat(data, row)) || { notFound: true };
+    const list = (data.agents || []).filter(function (a) { return !isSkipped(a); });
+    const row = findMyCsatRow(list, email, name);
+    const handled = list.filter(function (a) { return a.qaEmail === MY_EMAIL; });   // agent mà user (QA) phụ trách
+    MY_CSAT = (row || handled.length)
+      ? { own: row ? pickMyCsat(data, row) : null, qa: handled.length ? pickQaCsat(data, handled) : null }
+      : { notFound: true };
     renderMyCsat();
     try { localStorage.setItem(key, JSON.stringify(MY_CSAT)); } catch (e) {}
   } catch (e) { /* chưa có data.json (Apps Script chưa setup) -> giữ cache / ẩn khối */ }
@@ -1604,6 +1670,7 @@ function greetingText() {
 }
 
 function refreshHeader() {
+  window.TQAPresence?.update(CUR);
   document.getElementById('hero-greeting').textContent = greetingText();
   document.getElementById('hero-name').textContent = CUR.name + (currentLang() === 'vi' ? ' ơi!' : '!');
   document.getElementById('sidebar-name').textContent = CUR.name;

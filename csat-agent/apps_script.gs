@@ -33,6 +33,9 @@ const GH_REPO   = 'MCVN';
 const GH_BRANCH = 'main';                   // branch GitHub Pages phục vụ teamqamcvn.com
 const GH_PATH   = 'csat-agent/data.json';
 const TZ        = 'Asia/Ho_Chi_Minh';
+// QA phụ trách agent: lấy từ Agent List mà trang CS Performance đã đẩy sẵn (public, cùng repo).
+const QA_MAP_URL = 'https://teamqamcvn.com/cs-performance/data.json';
+const SKIP_TEAM  = /^DP(\.|\s|$)/i;     // bỏ team DP (DP, DP.TL, DP.Sen)
 
 function buildPayload_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -59,11 +62,13 @@ function buildPayload_() {
   }
   const firstCsat = weekCols[0].col;
 
+  const qaMap = loadQaMap_();
   const agents = [];
   for (let i = head + 1; i < vals.length; i++) {
     const r = vals[i];
     const email = String(r[cEmail] || '').trim().toLowerCase();
     if (email.indexOf('@') < 0) continue;
+    if (cBpo !== undefined && SKIP_TEAM.test(String(r[cBpo] || '').trim())) continue;
 
     // Nhãn cột thông tin của tab bị lệch so với nội dung -> nhận diện theo giá trị.
     let channel = '', seniority = '';
@@ -80,6 +85,8 @@ function buildPayload_() {
       channel:   channel,
       seniority: seniority,
       ratings:   cRate !== undefined ? toNum_(r[cRate]) : 0,
+      qa:        (qaMap[email] || {}).qa || '',
+      qaEmail:   (qaMap[email] || {}).qaEmail || '',
       csat:      weekCols.map(function (w) { return toPct_(r[w.col]); })   // cùng thứ tự với weeks[]
     });
   }
@@ -93,6 +100,22 @@ function buildPayload_() {
     counts:          { agents: agents.length },
     agents:          agents
   };
+}
+
+/** email agent -> {qa, qaEmail}. Lỗi tải -> {} (vẫn đẩy CSAT, chỉ thiếu cột QA). */
+function loadQaMap_() {
+  const map = {};
+  try {
+    const res = UrlFetchApp.fetch(QA_MAP_URL + '?t=' + Date.now(), { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) throw new Error('HTTP ' + res.getResponseCode());
+    (JSON.parse(res.getContentText()).agents || []).forEach(function (a) {
+      const em = String(a.email || '').trim().toLowerCase();
+      if (em && a.qaEmail) map[em] = { qa: String(a.qa || '').trim(), qaEmail: String(a.qaEmail).trim().toLowerCase() };
+    });
+  } catch (err) {
+    Logger.log('Không tải được QA map: ' + err);
+  }
+  return map;
 }
 
 /** Ngày đầu tuần: ô Date gần nhất phía trên dòng nhãn tuần, cùng cột. */
