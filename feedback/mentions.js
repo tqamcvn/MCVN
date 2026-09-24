@@ -3,12 +3,30 @@ async function setupFeedbackMentions(db){
  let directory=null,loading=null;
  const getDirectory=()=>directory?Promise.resolve(directory):(loading||(loading=db.rpc('feedback_mention_users').then(result=>{if(result.error)throw result.error;directory=result.data||[];return directory;}).finally(()=>loading=null)));
  try{await getDirectory();}catch{}
+ const profile=document.createElement('dialog');profile.className='mention-profile';profile.setAttribute('aria-label','Thông tin thành viên');document.body.append(profile);
+ let profileVersion=0;
+ profile.addEventListener('close',()=>profileVersion++);
+ profile.addEventListener('click',e=>{if(e.target===profile){const r=profile.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)profile.close();}});
+ async function showProfile(person){
+  const version=++profileVersion;profile.replaceChildren();
+  const close=document.createElement('button');close.type='button';close.className='profile-close';close.textContent='×';close.setAttribute('aria-label','Đóng thông tin thành viên');close.onclick=()=>profile.close();
+  const content=document.createElement('div');content.setAttribute('aria-live','polite');content.textContent='Đang tải thông tin…';profile.append(close,content);profile.showModal();
+  try{
+   const result=await db.rpc('feedback_user_profile',{target_id:person.id});if(version!==profileVersion)return;if(result.error)throw result.error;
+   const p=result.data?.[0];if(!p){content.textContent='Không còn thông tin thành viên này.';return;}
+   content.replaceChildren();const avatar=document.createElement('div');avatar.className='profile-avatar';avatar.textContent=p.display_name.trim().split(/\s+/).slice(-2).map(x=>x[0]).join('').toUpperCase();
+   if(/^https:\/\//i.test(p.avatar_url)||/^data:image\/(png|jpeg|webp);base64,/i.test(p.avatar_url)){const img=document.createElement('img');img.alt='Avatar '+p.display_name;img.src=p.avatar_url;img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();avatar.append(img);}
+   const title=document.createElement('h2');title.textContent=p.display_name;content.append(avatar,title);
+   const details=document.createElement('dl');for(const [label,value] of [['Biệt danh',p.nickname||'Chưa đặt'],['Role',p.role||'Chưa cập nhật'],['Team',p.team||'Chưa cập nhật']]){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;details.append(dt,dd);}content.append(details);
+  }catch{if(version===profileVersion)content.textContent='Chưa tải được thông tin. Đóng và bấm vào tên để thử lại.';}
+ }
  window.feedbackMentionText=text=>String(text).replace(/@([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g,(raw,email)=>'@'+((directory||[]).find(p=>p.email.toLowerCase()===email.toLowerCase())?.display_name||'Thành viên'));
  window.feedbackMentionContent=text=>{
   const fragment=document.createDocumentFragment();const source=String(text);let cursor=0;
   for(const match of source.matchAll(/@([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g)){
    fragment.append(document.createTextNode(source.slice(cursor,match.index)));
-   const tag=document.createElement('span');tag.className='mention-highlight';tag.textContent=feedbackMentionText(match[0]);fragment.append(tag);cursor=match.index+match[0].length;
+   const person=(directory||[]).find(p=>p.email.toLowerCase()===match[1].toLowerCase());
+   const tag=document.createElement(person?'button':'span');tag.className='mention-highlight';tag.textContent=feedbackMentionText(match[0]);if(person){tag.type='button';tag.setAttribute('aria-haspopup','dialog');tag.setAttribute('aria-label','Xem thông tin '+person.display_name);tag.onclick=e=>{e.stopPropagation();showProfile(person);};}fragment.append(tag);cursor=match.index+match[0].length;
   }
   fragment.append(document.createTextNode(source.slice(cursor)));return fragment;
  };
