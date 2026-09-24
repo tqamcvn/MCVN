@@ -1,0 +1,17 @@
+{
+  "name": "dashboard-avatar-group",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src.jsx --bundle --minify --format=iife --define:process.env.NODE_ENV=\"\\\"production\\\"\" --outfile=../../assets/dashboard-presence.js",
+    "test": "node --test test.mjs"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": { "esbuild": "^0.25.0", "@playwright/test": "^1.55.0" }
+}
