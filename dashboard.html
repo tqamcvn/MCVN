@@ -450,7 +450,6 @@ body.sb-collapsed .nav-group-head { justify-content: center; padding-left: 0; pa
 .gap-chip { justify-self: end; display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--gray-100); color: var(--gray-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gap-chip.up { background: var(--success-light); }
 .gap-chip.dn { background: var(--danger-light); }
-.my-empty { padding: 12px 18px; font-size: 12px; color: var(--gray-500); }
 /* Dropdown: agent thấp hơn baseline */
 .below-box { border-top: 1px solid var(--gray-200); background: var(--white); }
 .below-box[hidden] { display: none; }
@@ -981,7 +980,6 @@ const I18N = {
     myAgentsCsat:'CSAT agent bạn phụ trách', myAgents:'Agent của bạn', qaSub:'TB {n} agent · {d} có CSAT {w}',
     scopeMine:'Agent tôi phụ trách', scopeAll:'Tất cả agent', baseOwnTeam:'Team của từng agent',
     belowNoteOwn:'So CSAT tuần {w} của mỗi agent với team của agent đó',
-    myCsatNotFound:'Chưa tìm thấy CSAT của tài khoản này trong file CSAT Agent.',
     passwordShort:'Mật khẩu cần ít nhất 6 ký tự.', passwordMismatch:'Hai ô mật khẩu chưa khớp.', saving:'Đang lưu...',
     passwordSaved:'Đã đổi mật khẩu thành công!', enterName:'Nhập tên hiển thị.', profileSaved:'Đã lưu hồ sơ!',
     chooseImage:'Vui lòng chọn file ảnh.', processingImage:'Đang xử lý ảnh...', avatarSaved:'Đã cập nhật ảnh đại diện!', error:'Lỗi'
@@ -1012,7 +1010,6 @@ const I18N = {
     myAgentsCsat:'Your agents CSAT', myAgents:'Your agents', qaSub:'Avg of {n} agents · {d} with {w} CSAT',
     scopeMine:'My agents', scopeAll:'All agents', baseOwnTeam:'Each agent’s team',
     belowNoteOwn:'Week {w} CSAT of each agent vs that agent’s team',
-    myCsatNotFound:'No CSAT found for this account in the CSAT Agent file.',
     passwordShort:'Password must contain at least 6 characters.', passwordMismatch:'The passwords do not match.', saving:'Saving...',
     passwordSaved:'Password changed successfully!', enterName:'Enter a display name.', profileSaved:'Profile saved!',
     chooseImage:'Please choose an image file.', processingImage:'Processing image...', avatarSaved:'Avatar updated!', error:'Error'
@@ -1513,9 +1510,9 @@ function renderMyCsat() { renderMine(); renderBelow(); }
 function renderMine() {
   const box = document.getElementById('my-csat');
   if (!box || !MY_CSAT) return;
-  if (MY_CSAT.notFound) {
-    box.innerHTML = '<div class="my-empty">' + t('myCsatNotFound') + '</div>';
-    box.hidden = false;
+  if (MY_CSAT.notFound) {             // không handle CS (không có CSAT, không phụ trách agent) -> giữ giao diện cũ
+    box.innerHTML = '';
+    box.hidden = true;
     return;
   }
   // QA có agent phụ trách -> thẻ chính là CSAT agent của QA; nếu QA cũng có CSAT cá nhân thì hiện thêm.
@@ -1544,6 +1541,7 @@ function renderMine() {
 function renderBelow() {
   const box = document.getElementById('below-box');
   if (!box || !CSAT_AGENTS) return;
+  if (!MY_CSAT || MY_CSAT.notFound) { box.hidden = true; return; }   // không handle CS -> ẩn dropdown
   const all = (CSAT_AGENTS.agents || []).filter(function (a) { return !isSkipped(a); });
   const mine = all.filter(function (a) { return a.qaEmail === MY_EMAIL; });
   const scopeSel = document.getElementById('below-scope');
