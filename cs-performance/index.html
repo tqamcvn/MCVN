@@ -2111,7 +2111,7 @@ function commitRowMarkup(index=0){
  return `<div data-commit-row="${index}" class="notice" style="padding:12px;margin-top:10px"><div class="grid">
  <label>Chỉ số cam kết<select name="${name('journeyMetric')}"><option value="csat">CSAT (%)</option><option value="mistake">Số case mistake</option><option value="repeat">Số issue lặp</option></select></label>
  <label>Channel<select name="${name('commitChannel')}"><option value="">All channel</option>${COMMIT_CHANNELS.map(c=>'<option>'+esc(c)+'</option>').join('')}</select></label>
- <label>Nhóm rating<select name="${name('commitSegment')}"><option value="">Buyer + Seller</option><option>Buyer</option><option>Seller</option></select></label>
+ <label>Queue<select name="${name('commitSegment')}"><option value="">Buyer + Seller</option><option>Buyer</option><option>Seller</option></select></label>
  <label>Mục tiêu<input name="${name('journeyTarget')}" type="number" min="0" max="100" step="any" required></label></div>
  <p class="muted" data-row-baseline></p>${index?'<button type="button" data-remove-commit>Xóa cam kết này</button>':''}</div>`;
 }
