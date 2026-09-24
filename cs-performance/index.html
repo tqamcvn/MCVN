@@ -1175,7 +1175,17 @@ function mngOffToday(email){
 }
 // Lý do CS chưa được action trong ngày (ngoài OFF): ca NS chưa phản hồi, QA nghỉ/AL, chờ SUP...
 const MNG_REASONS=['CS ca NS chưa phản hồi','CS chưa phản hồi QA','QA nghỉ / AL','QA OFF','QA AL','QA TR','Chờ SUP / Escalate'];
+function mngQAAbsenceToday(qa){
+  const latest=(db.history||[]).filter(h=>h.type==='QA OFF / AL / TR'&&h.snapshot?.date===today()&&h.snapshot?.qa===qa).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
+  return ['QA OFF','QA AL','QA TR'].includes(latest?.snapshot?.reason)?latest.snapshot.reason:'';
+}
+function mngQAAbsenceControls(qa){
+  if(!qa||qa==='Chưa phân công QA')return '';
+  const current=mngQAAbsenceToday(qa);
+  return '<span style="display:inline-flex;gap:10px;align-items:center;margin-left:14px;font-size:12px;font-weight:400" onclick="event.stopPropagation()">Hôm nay: '+['OFF','AL','TR'].map(v=>'<label style="display:inline-flex;gap:4px;align-items:center"><input type="checkbox" data-mng-qa-absence-toggle="'+esc(qa)+'" value="QA '+v+'" '+(current==='QA '+v?'checked':'')+'> '+v+'</label>').join('')+'</span>';
+}
 function mngReasonToday(email){
+  const qaReason=mngQAAbsenceToday(agent(email)?.qa);if(qaReason)return qaReason;
   const latest=(db.history||[]).filter(h=>h.type==='Lý do chưa action'&&h.csEmail===email&&h.snapshot?.date===today()).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
   return latest?.snapshot?.reason||'';
 }
@@ -1205,7 +1215,7 @@ function renderMngRequests(){
   const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px">${chip(nTotal,'CS được request','#5b8de6')}${chip(nNoJourney,'Chưa có Journey','#e0483d')}${chip(nTouched,'Đã action hôm nay','#16a34a')}${chip(todayCounts.pending,'CS chưa action hôm nay (trừ OFF)','#e0483d')}${chip(todayCounts.off,'CS OFF hôm nay','#b7791f')}<div class="stat" data-mng-qa-absence style="flex:1;min-width:190px;min-height:auto;padding:9px 13px;border-top-color:#8b5cf6"><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8b9dbf">QA OFF / AL / TR hôm nay</span><strong style="font-size:22px;display:block;margin:3px 0 0;color:#8b5cf6">${qaAbsence.qa} QA · ${qaAbsence.cs} CS chưa action</strong><small>Theo lý do đã ghi nhận · CS không gồm OFF</small></div></div>`;
   const csBtn=(e,i)=>`<button class="link" data-mng-cs="${i}">${esc(agent(e.r.email)?.name||e.r.name||e.r.email)}</button><small>${esc(e.r.email)}</small>`;
   const offCell=(e,i)=>`<label class="check" style="white-space:nowrap"><input type="checkbox" data-mng-off="${i}" ${e.off?'checked':''} aria-label="CS OFF hôm nay: ${esc(e.r.email)}"> OFF</label>${e.off?'<small>CS OFF hôm nay · chưa thể action</small>':''}`;
-  const reasonCell=(e,i)=>{const cur=e.reason||'';const isOther=!!cur&&!MNG_REASONS.includes(cur);return `<select data-mng-reason="${i}" style="font-size:12px;max-width:160px" aria-label="Lý do chưa action: ${esc(e.r.email)}"><option value="">—</option>${MNG_REASONS.map(x=>`<option${x===cur?' selected':''}>${esc(x)}</option>`).join('')}<option value="__other"${isOther?' selected':''}>Khác…</option></select><input data-mng-reason-text="${i}" placeholder="Nhập lý do khác" value="${esc(isOther?cur:'')}" style="font-size:12px;margin-top:4px;width:160px;${isOther?'':'display:none'}">`;};
+  const reasonCell=(e,i)=>{const cur=e.reason||'';const isOther=!!cur&&!MNG_REASONS.includes(cur);return `<select data-mng-reason="${i}" ${mngQAAbsenceToday(agent(e.r.email)?.qa)?'disabled title="Đang áp dụng trạng thái nghỉ của QA hôm nay. Bỏ tick tại Theo QA để sửa riêng."':''} style="font-size:12px;max-width:160px" aria-label="Lý do chưa action: ${esc(e.r.email)}"><option value="">—</option>${MNG_REASONS.map(x=>`<option${x===cur?' selected':''}>${esc(x)}</option>`).join('')}<option value="__other"${isOther?' selected':''}>Khác…</option></select><input data-mng-reason-text="${i}" placeholder="Nhập lý do khác" value="${esc(isOther?cur:'')}" style="font-size:12px;margin-top:4px;width:160px;${isOther?'':'display:none'}">`;};
   const jCell=e=>e.hasJourney?badge('✅ Có ('+e.nRounds+' action)','green'):badge('⚠️ Chưa có','red');
   const targetCell=mngTargetCell;
   const actCell=(e,i)=>e.hasJourney?`<button type="button" data-mng-add="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Thêm action</button> <button type="button" data-mng-view="${i}" style="font-size:11px;padding:3px 9px">Xem/Cập nhật</button>`:`<button type="button" data-mng-create="${i}" class="primary" style="font-size:11px;padding:3px 9px">+ Tạo Journey</button>`;
@@ -1217,7 +1227,7 @@ function renderMngRequests(){
   else if(sub==='qa'){
     const openQA=window._mngOpenQA||(window._mngOpenQA=new Set());
     const byQA=new Map();withState.forEach((e,i)=>{const qa=agent(e.r.email)?.qa||'Chưa phân công QA';if(!byQA.has(qa))byQA.set(qa,[]);byQA.get(qa).push({e,i});});
-    body=[...byQA.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([qa,arr])=>{const qaCounts=mngTodayCounts(arr.map(x=>x.e)),noJ=qaCounts.noJourney;return `<details data-mng-qa="${esc(qa)}"${openQA.has(qa)?' open':''} class="notice" style="margin:0 0 10px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:10px 14px"><summary style="cursor:pointer;font-weight:700;font-size:15px">${esc(qa)} <span class="muted" style="font-weight:400;font-size:13px">· ${qaCounts.total} CS · ${noJ} chưa có Journey · <b style="color:#c43d32">${qaCounts.pending} chưa action hôm nay</b> · ${qaCounts.done} đã action · ${qaCounts.off} OFF</span></summary><div style="padding:10px 0 0">${table(['CS','Channel','Loại','Journey','Đạt target?','QA hôm nay','CS OFF hôm nay','Lý do chưa action','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),targetCell(e),tCell(e),offCell(e,i),reasonCell(e,i),actCell(e,i)]))}</div></details>`;}).join('');
+    body=[...byQA.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([qa,arr])=>{const qaCounts=mngTodayCounts(arr.map(x=>x.e)),noJ=qaCounts.noJourney;return `<details data-mng-qa="${esc(qa)}"${openQA.has(qa)?' open':''} class="notice" style="margin:0 0 10px;background:#f7faff;border:1px solid #dce6f2;border-radius:8px;padding:10px 14px"><summary style="cursor:pointer;font-weight:700;font-size:15px">${esc(qa)} <span class="muted" style="font-weight:400;font-size:13px">· ${qaCounts.total} CS · ${noJ} chưa có Journey · <b style="color:#c43d32">${qaCounts.pending} chưa action hôm nay</b> · ${qaCounts.done} đã action · ${qaCounts.off} OFF</span>${mngQAAbsenceControls(qa)}</summary><div style="padding:10px 0 0">${table(['CS','Channel','Loại','Journey','Đạt target?','QA hôm nay','CS OFF hôm nay','Lý do chưa action','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),targetCell(e),tCell(e),offCell(e,i),reasonCell(e,i),actCell(e,i)]))}</div></details>`;}).join('');
   } else if(sub==='week'){
     const byWeek=new Map();withState.forEach((e,i)=>{const w=e.r.date?weekOf(e.r.date):(e.r.week||'Không rõ');if(!byWeek.has(w))byWeek.set(w,[]);byWeek.get(w).push({e,i});});
     body=[...byWeek.entries()].sort((a,b)=>String(b[0]).localeCompare(String(a[0]))).map(([w,arr])=>`<div style="margin:0 0 14px"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="font-size:15px">${esc(w)}</b><span class="muted">${arr.length} CS · ${arr.filter(x=>!x.e.hasJourney).length} chưa có Journey</span></div>${table(['CS','Channel','Loại','Journey','Đạt target?','QA hôm nay','CS OFF hôm nay','Lý do chưa action','Hành động'],arr.map(({e,i})=>[csBtn(e,i),esc(e.r.channel||'—'),badge(e.r.type||'Coaching','blue'),jCell(e),targetCell(e),tCell(e),offCell(e,i),reasonCell(e,i),actCell(e,i)]))}</div>`).join('');
@@ -1229,6 +1239,14 @@ function renderMngRequests(){
   $('content').innerHTML=paste+summary+toggle+body;
   if($('mngLoad'))$('mngLoad').onclick=()=>{const txt=$('mngPaste').value;const type=$('mngType').value;const by=currentQASession?.()?.name||'MNG';const parsed=parseMngPaste(txt,type,by);if(!parsed.length){toast('Không đọc được dòng nào có email hợp lệ.');return;}if(typeof logHistory==='function')logHistory('Nạp MNG request ('+parsed.length+' CS)','','',type+' · '+parsed.length+' CS',{mngRequests:[...(db.mngRequests||[]),...parsed]});db.mngRequests=parsed;dirty=true;render();toast('Đã nạp '+parsed.length+' request.');};
   if($('mngClear'))$('mngClear').onclick=()=>{if(confirm('Xoá toàn bộ danh sách MNG request?')){logHistory('Lưu lịch sử trước khi xóa MNG request','','','',{mngRequests:[...(db.mngRequests||[])]});db.mngRequests=[];dirty=true;render();toast('Đã xoá danh sách MNG request.');}};
+  $('content').querySelectorAll('[data-mng-qa-absence-toggle]').forEach(b=>b.onchange=()=>{
+    const qa=b.dataset.mngQaAbsenceToggle,reason=b.checked?b.value:'';
+    logHistory('QA OFF / AL / TR','','',(reason||'Bỏ trạng thái nghỉ')+' · '+qa+' · '+today(),{date:today(),qa,reason});
+    const expanded=Array.from($('content').querySelectorAll('details'),d=>d.open),scroll={x:window.scrollX,y:window.scrollY};
+    dirty=true;render();
+    $('content').querySelectorAll('details').forEach((d,i)=>{d.open=expanded[i]||false;});window.scrollTo(scroll.x,scroll.y);
+    toast(reason?'Đã áp dụng '+reason+' cho toàn bộ CS của QA hôm nay.':'Đã gỡ trạng thái nghỉ hôm nay; khôi phục lý do riêng của từng CS.');
+  });
   $('content').querySelectorAll('[data-mng-off]').forEach(b=>b.onchange=()=>{
     const e=withState[+b.dataset.mngOff];
     logHistory('CS OFF',e.r.email,agent(e.r.email)?.name||e.r.name,(b.checked?'Đánh dấu CS OFF':'Bỏ dấu CS OFF')+' · '+today(),{date:today(),off:b.checked});
