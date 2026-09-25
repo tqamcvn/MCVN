@@ -91,14 +91,80 @@ html[data-theme="dark"] #followDialog .follow-commit,body.dark #followDialog .fo
 .journey-action-body{padding:0 12px 12px;border-top:1px solid #e4ebf7;white-space:normal}
 .journey-action-body p{white-space:pre-wrap;overflow-wrap:anywhere}
 </style></head><body>
-<div id="csp-startup" style="visibility:visible;position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:#f2f5f9;color:#172b45;font-family:Arial,sans-serif">
-  <div style="max-width:480px;margin:24px;padding:28px;background:#fff;border:1px solid #dfe6ef;border-radius:14px;line-height:1.6">
-    <strong style="font-size:20px">CS Performance</strong>
-    <p role="status">Đang tải dữ liệu và xác thực tài khoản…</p>
-    <p style="font-size:14px;color:#60718a">Nếu chờ lâu, bạn có thể tải lại trang hoặc mở ở tab mới.</p>
-    <a href="" style="margin-right:20px">Tải lại</a><a href="/cs-performance/" target="_blank" rel="noopener">Mở tab mới</a>
-  </div>
-</div><header><div><h1>CS Performance · Issue Tracker</h1></div><div class="cheer" aria-label="Một chút động lực cho QA"><span class="qa-cheer-icon" aria-hidden="true">☀</span><span class="qa-cheer-copy"><span class="qa-cheer-label">GỬI QA MỘT CHÚT NĂNG LƯỢNG</span><span id="qaCheerText">Một lần coaching rõ ràng, một CS tự tin hơn.</span></span><span class="qa-cheer-spark" aria-hidden="true">✦</span></div><div class="actions"><span id="dataStamp" class="muted"></span><button id="themeBtn">☾ Bật tối</button><button id="loadBtn">Upload data</button><button id="helpBtn" aria-label="Hướng dẫn sử dụng">?</button><button id="importBtn">Mở dữ liệu</button><button class="primary" id="addBtn" style="background:#111;color:#fff;border:1px solid #111;border-radius:4px;padding:6px 12px;min-height:32px;font-size:14px;font-weight:700">＋ Ghi nhận</button></div></header><main><input type="file" id="loadRawFile" accept=".csv,.json" hidden><div id="noteStore" hidden><details class="notice" id="sourceNote"><summary>Nguồn dữ liệu & cách tính</summary><div class="notice" id="notice">Danh sách CS đã được nạp từ file cung cấp. Chưa có log issue thực tế. Dữ liệu nhập ở phiên này cần được lưu bằng <b>Lưu bản HTML</b>; bản này chưa đồng bộ Google Form hoặc giữa các QA.</div></details><details class="notice" id="guideNote"><summary><b>Cách QA submit trực tiếp trên HTML</b></summary><ol><li>Chọn <b>QA submit</b>, chọn topic và email CS. Group, Queue, Batch, Seniority và QA Incharge được lấy theo hồ sơ.</li><li>Điền thông tin và chọn <b>Submit ghi nhận</b>. Update / Coaching phải chọn Issue ID đã có của CS.</li><li>Chọn <b>Lưu bản HTML</b> và mở file mới nhất ở lần tiếp theo. Hoặc dùng Sao lưu JSON → Mở dữ liệu.</li></ol><b>Nhiều QA cùng làm:</b> bản HTML này chưa gom dữ liệu chung. Nếu mỗi QA nhập trên một bản riêng, dữ liệu sẽ tách biệt; cần kết nối nguồn dữ liệu chung để thay Google Form.</details><div id="pendingPanel"></div></div><section class="performance-controls" id="performanceControls"></section><div id="segmentChips" style="display:flex;gap:6px;flex-wrap:wrap;padding:0 0 10px"></div><section class="filters" id="filters"></section><div class="overall-focus" id="overallFocus"><span id="overallLabel">✦ Overall focus</span><section class="stats" id="stats"></section></div><nav class="tabs" id="tabs" aria-label="Chế độ xem"></nav><section class="panel"><div class="panel-head"><div><h2 id="viewTitle"></h2><div class="muted" id="viewDesc"></div></div><button id="exportBtn">Xuất CSV</button></div><div id="tableSearchRow" class="table-search"><label for="tableSearch">Tìm CS / Issue ID</label><input id="tableSearch" type="search" placeholder="Tên, email hoặc mã issue" autocomplete="off"></div><div id="content"></div></section><div</main>
+<!-- csp-startup-screen:start -->
+<div id="csp-startup" style="visibility:visible">
+  <style>
+    #csp-startup{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;overflow:auto;padding:28px 20px;box-sizing:border-box;--csp-bg:#fff;--csp-card:#fff;--csp-text:#242424;--csp-muted:#686868;--csp-line:#e7e7e7;--csp-soft:#f5f5f5;--csp-hover:#ededed;background:var(--csp-bg);color:var(--csp-text);font:15px/1.6 "Segoe UI",Arial,sans-serif}
+    #csp-startup *{box-sizing:border-box}
+    #csp-startup .csp-card{width:100%;max-width:440px;text-align:center;padding:34px 34px 26px;border:1px solid var(--csp-line);border-radius:30px;background:var(--csp-card);box-shadow:0 18px 65px #00000008}
+    #csp-startup .csp-brand{font-size:11px;font-weight:700;letter-spacing:2.5px;color:var(--csp-muted);text-transform:uppercase}
+    #csp-startup .csp-art{position:relative;width:180px;height:156px;margin:22px auto 10px}
+    #csp-startup svg{width:180px;height:156px;overflow:visible}
+    #csp-startup .csp-robot{animation:csp-float 3.6s ease-in-out infinite;transform-origin:center}
+    #csp-startup h1{font-size:25px;letter-spacing:-.6px;line-height:1.3;margin:12px 0;color:var(--csp-text);font-weight:650}
+    #csp-startup .csp-intro{margin:0;color:var(--csp-muted);font-size:14px;line-height:1.8}
+    #csp-startup .csp-status{display:flex;justify-content:center;align-items:center;gap:9px;margin:24px 0 0;font-size:12px;color:var(--csp-muted)}
+    #csp-startup .csp-dots{display:flex;gap:4px}
+    #csp-startup .csp-dots i{width:5px;height:5px;background:#96aa86;border-radius:50%;animation:csp-pulse 1.8s ease-in-out infinite}
+    #csp-startup .csp-dots i:nth-child(2){animation-delay:.2s}#csp-startup .csp-dots i:nth-child(3){animation-delay:.4s}
+    #csp-startup .csp-note{margin:24px 0 22px;padding:15px 10px;border-radius:16px;background:var(--csp-soft);color:var(--csp-muted);font-size:13px}
+    #csp-startup .csp-note span{display:block;font-size:11px;color:var(--csp-muted);margin-top:3px}
+    #csp-startup .csp-help{margin:0 0 9px;font-size:11px;color:var(--csp-muted)}
+    #csp-startup .csp-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+    #csp-startup .csp-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 17px;border:1px solid var(--csp-line);border-radius:12px;color:var(--csp-muted);text-decoration:none;font-size:12px;font-weight:600;background:var(--csp-soft);transition:background .2s,transform .2s}
+    #csp-startup .csp-actions a:hover{background:var(--csp-hover);transform:translateY(-1px)}#csp-startup .csp-actions a:focus-visible{outline:3px solid #82936d;outline-offset:3px}
+    html.dark #csp-startup,html[data-theme="dark"] #csp-startup,#csp-startup[data-theme="dark"]{--csp-bg:#111;--csp-card:#1b1b1b;--csp-text:#f2f2f2;--csp-muted:#b5b5b5;--csp-line:#353535;--csp-soft:#272727;--csp-hover:#333;color-scheme:dark}
+    @media(prefers-color-scheme:dark){html:not(.dark):not([data-theme="light"]) #csp-startup:not([data-theme="light"]){--csp-bg:#111;--csp-card:#1b1b1b;--csp-text:#f2f2f2;--csp-muted:#b5b5b5;--csp-line:#353535;--csp-soft:#272727;--csp-hover:#333;color-scheme:dark}}
+    @keyframes csp-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    @keyframes csp-pulse{0%,80%,100%{opacity:.35}40%{opacity:1}}
+    @media(prefers-reduced-motion:reduce){#csp-startup .csp-robot,#csp-startup .csp-dots i{animation:none}#csp-startup .csp-actions a{transition:none}}
+    @media(max-width:480px){#csp-startup .csp-card{padding:28px 20px 22px}#csp-startup h1{font-size:23px}}
+    @media(max-height:620px){#csp-startup{place-items:start center}#csp-startup .csp-art{margin-top:10px;height:125px}#csp-startup svg{height:125px}}
+  </style>
+  <script>
+    (function(){
+      var screen=document.getElementById('csp-startup');
+      function apply(theme){if(theme==='dark'||theme==='light')screen.dataset.theme=theme;}
+      try{apply(new URLSearchParams(location.search).get('theme'));}catch(e){}
+      function onTheme(event){
+        if(!screen.isConnected){window.removeEventListener('message',onTheme);return;}
+        if(event.origin!==location.origin)return;
+        var data=event.data;
+        if(data&&data.type==='tqa-theme')apply(data.theme);
+      }
+      window.addEventListener('message',onTheme);
+    })();
+  </script>
+  <section class="csp-card" aria-labelledby="csp-welcome">
+    <div class="csp-brand">CS Performance</div>
+    <div class="csp-art" aria-hidden="true">
+      <svg viewBox="0 0 180 156" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="90" cy="76" r="64" fill="#F3F0E3"/>
+        <ellipse cx="90" cy="145" rx="39" ry="5" fill="#E7E8DC"/>
+        <path d="M29 44v12m-6-6h12M147 86v10m-5-5h10" stroke="#C9B784" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="145" cy="33" r="3" fill="#D8B8A4"/><circle cx="28" cy="109" r="3" fill="#BAC9AC"/>
+        <g class="csp-robot" stroke="#69755D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M90 38V26"/><path d="M89 26c-12 1-17-6-16-12 11-1 17 4 16 12Z" fill="#AFC397"/><path d="M91 28c0-10 7-15 15-13 0 9-6 14-15 13Z" fill="#CAD7B3"/>
+          <path d="M65 120v13q0 7 9 7h5v-18m22 0v18h5q9 0 9-7v-13" fill="#E3B8A0"/>
+          <rect x="57" y="103" width="66" height="25" rx="12" fill="#EED7BE"/>
+          <path d="M50 97q-17 4-13 17m93-18q16-2 18-18"/>
+          <rect x="45" y="39" width="90" height="72" rx="18" fill="#DAB397"/>
+          <rect x="52" y="48" width="76" height="54" rx="12" fill="#FFF9E9"/>
+          <path d="M66 72q5-8 10 0m28 0q5-8 10 0M83 82q7 9 14 0"/>
+          <ellipse cx="65" cy="82" rx="6" ry="3" fill="#EBC4B5" stroke="none"/><ellipse cx="115" cy="82" rx="6" ry="3" fill="#EBC4B5" stroke="none"/>
+          <path d="M84 117h12"/>
+        </g>
+      </svg>
+    </div>
+    <h1 id="csp-welcome">Một chút nữa là sẵn sàng!</h1>
+    <p class="csp-intro">Mình đang chuẩn bị dữ liệu cho bạn.<br>Cùng khởi đầu một ngày làm việc thật nhẹ nhàng nhé.</p>
+    <div class="csp-status" role="status"><span class="csp-dots" aria-hidden="true"><i></i><i></i><i></i></span>Đang tải dữ liệu và xác thực tài khoản…</div>
+    <div class="csp-note">Chậm một nhịp, hít thở một chút 🌿<span>Thả lỏng vai, để mình lo phần chuẩn bị.</span></div>
+    <p class="csp-help">Chờ hơi lâu? Bạn có thể thử</p>
+    <nav class="csp-actions" aria-label="Hỗ trợ tải trang"><a href="">↻&nbsp; Tải lại trang</a><a href="/cs-performance/" target="_blank" rel="noopener">Mở tab mới &nbsp;↗</a></nav>
+  </section>
+</div>
+<!-- csp-startup-screen:end --><header><div><h1>CS Performance · Issue Tracker</h1></div><div class="cheer" aria-label="Một chút động lực cho QA"><span class="qa-cheer-icon" aria-hidden="true">☀</span><span class="qa-cheer-copy"><span class="qa-cheer-label">GỬI QA MỘT CHÚT NĂNG LƯỢNG</span><span id="qaCheerText">Một lần coaching rõ ràng, một CS tự tin hơn.</span></span><span class="qa-cheer-spark" aria-hidden="true">✦</span></div><div class="actions"><span id="dataStamp" class="muted"></span><button id="themeBtn">☾ Bật tối</button><button id="loadBtn">Upload data</button><button id="helpBtn" aria-label="Hướng dẫn sử dụng">?</button><button id="importBtn">Mở dữ liệu</button><button class="primary" id="addBtn" style="background:#111;color:#fff;border:1px solid #111;border-radius:4px;padding:6px 12px;min-height:32px;font-size:14px;font-weight:700">＋ Ghi nhận</button></div></header><main><input type="file" id="loadRawFile" accept=".csv,.json" hidden><div id="noteStore" hidden><details class="notice" id="sourceNote"><summary>Nguồn dữ liệu & cách tính</summary><div class="notice" id="notice">Danh sách CS đã được nạp từ file cung cấp. Chưa có log issue thực tế. Dữ liệu nhập ở phiên này cần được lưu bằng <b>Lưu bản HTML</b>; bản này chưa đồng bộ Google Form hoặc giữa các QA.</div></details><details class="notice" id="guideNote"><summary><b>Cách QA submit trực tiếp trên HTML</b></summary><ol><li>Chọn <b>QA submit</b>, chọn topic và email CS. Group, Queue, Batch, Seniority và QA Incharge được lấy theo hồ sơ.</li><li>Điền thông tin và chọn <b>Submit ghi nhận</b>. Update / Coaching phải chọn Issue ID đã có của CS.</li><li>Chọn <b>Lưu bản HTML</b> và mở file mới nhất ở lần tiếp theo. Hoặc dùng Sao lưu JSON → Mở dữ liệu.</li></ol><b>Nhiều QA cùng làm:</b> bản HTML này chưa gom dữ liệu chung. Nếu mỗi QA nhập trên một bản riêng, dữ liệu sẽ tách biệt; cần kết nối nguồn dữ liệu chung để thay Google Form.</details><div id="pendingPanel"></div></div><section class="performance-controls" id="performanceControls"></section><div id="segmentChips" style="display:flex;gap:6px;flex-wrap:wrap;padding:0 0 10px"></div><section class="filters" id="filters"></section><div class="overall-focus" id="overallFocus"><span id="overallLabel">✦ Overall focus</span><section class="stats" id="stats"></section></div><nav class="tabs" id="tabs" aria-label="Chế độ xem"></nav><section class="panel"><div class="panel-head"><div><h2 id="viewTitle"></h2><div class="muted" id="viewDesc"></div></div><button id="exportBtn">Xuất CSV</button></div><div id="tableSearchRow" class="table-search"><label for="tableSearch">Tìm CS / Issue ID</label><input id="tableSearch" type="search" placeholder="Tên, email hoặc mã issue" autocomplete="off"></div><div id="content"></div></section><div</main>
 <dialog id="uploadModal" style="border:1px solid #e5e7eb;border-radius:8px;padding:0;width:520px;max-width:95vw;box-shadow:0 4px 20px #0000001a">
   <div style="padding:24px 24px 20px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
