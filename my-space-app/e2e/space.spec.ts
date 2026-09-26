@@ -37,20 +37,34 @@ test('Frame: local image, sizing, PNG export and mobile layout',async({page})=>{
  await page.screenshot({path:'test-results/frame.png'});
  await page.setViewportSize({width:390,height:844});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/frame-mobile.png',fullPage:true});
 });
-test('Work: local focus timer, tasks and discipline with no third-party requests',async({page})=>{
+test('Work: local focus timer and discipline with no third-party requests',async({page})=>{
  await page.clock.install();const remote:string[]=[];page.on('request',r=>{if(!/^(data:|(blob:)?http:\/\/127\.0\.0\.1:3000)/.test(r.url()))remote.push(r.url());});
- await page.goto('/work/');await expect(page.getByRole('timer')).toHaveText('45:00');
- await page.getByRole('button',{name:'Add task'}).click();await page.getByRole('textbox',{name:'Task',exact:true}).fill('Review test plan');await page.getByRole('button',{name:'Add',exact:true}).click();
- await page.getByRole('button',{name:'Focus on Review test plan'}).click();await expect(page.locator('.focus-task')).toContainText('Review test plan');
+ await page.goto('/work/');await expect(page.getByRole('timer')).toHaveText('45:00');await expect(page.getByRole('region',{name:'Tasks'})).toHaveCount(0);
  await page.getByRole('button',{name:'25 min'}).click();await expect(page.getByRole('timer')).toHaveText('25:00');
  await page.getByRole('button',{name:'Start timer'}).click();await page.clock.fastForward('10:00');await expect(page.getByRole('timer')).toHaveText('15:00');
  await page.getByRole('tab',{name:'Short break'}).click();await expect(page.getByRole('alertdialog')).toContainText('Abandon');await page.getByRole('button',{name:'Keep going'}).click();
  await page.clock.fastForward('15:01');await expect(page.locator('.focus-notice')).toContainText('Focus session complete');
  await expect(page.getByRole('region',{name:'Discipline'}).getByText('1/4')).toBeVisible();await expect(page.getByRole('region',{name:'Discipline'})).toContainText('25minutes today');
- await page.reload();await expect(page.getByRole('region',{name:'Discipline'}).getByText('1/4')).toBeVisible();await expect(page.getByRole('region',{name:'Tasks'}).getByText('Review test plan')).toBeVisible();await expect(page.locator('.focus-task')).toContainText('Review test plan');
- await page.getByRole('button',{name:'Mark done: Review test plan'}).click();await expect(page.getByRole('button',{name:'Mark not done: Review test plan'})).toBeVisible();
+ await page.reload();await expect(page.getByRole('region',{name:'Discipline'}).getByText('1/4')).toBeVisible();
  expect(remote).toEqual([]);await page.screenshot({path:'test-results/work.png'});
  await page.setViewportSize({width:390,height:844});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/work-mobile.png',fullPage:true});
+});
+test('Work: background presets, suggested fit, custom size and upload persist locally',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});await page.goto('/work/');
+ await page.getByRole('button',{name:'Background',exact:true}).click();const panel=page.getByRole('dialog',{name:'Background'});
+ await panel.getByRole('button',{name:'Ocean'}).click();await expect(panel.locator('.bg-suggest')).toContainText('Suggested');
+ const bg=page.locator('.focus-bg');await expect(bg).toHaveAttribute('style',/bg-ocean\.jpg/);
+ await panel.getByRole('button',{name:'Custom size'}).click();await panel.getByRole('slider',{name:'Picture size'}).fill('150');await panel.getByRole('button',{name:'Bottom right'}).click();
+ await expect(bg).toHaveAttribute('style',/background-size: 150% auto/);await expect(bg).toHaveAttribute('style',/background-position: 100% 100%/);
+ await page.reload();await expect(page.locator('.focus-bg')).toHaveAttribute('style',/150% auto/);
+ await page.getByRole('button',{name:'Background',exact:true}).click();
+ const tiny=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGNgYGD4z8DAwMDAAAAN/wH/1ZzZ1QAAAABJRU5ErkJggg==','base64');
+ await panel.locator('input[type=file]').setInputFiles({name:'pattern.png',mimeType:'image/png',buffer:tiny});
+ await expect(panel.getByRole('button',{name:'Your image',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('.focus-bg')).toHaveAttribute('style',/data:image/);await expect(panel.getByRole('button',{name:/^Tile/})).toHaveAttribute('aria-pressed','true');
+ await page.screenshot({path:'test-results/work-background.png'});
+ await page.reload();await expect(page.locator('.focus-bg')).toHaveAttribute('style',/data:image/);
+ await page.getByRole('button',{name:'Background',exact:true}).click();await panel.getByRole('button',{name:'None'}).click();await expect(page.locator('.focus-bg')).toHaveCount(0);
 });
 test('Work: abandoning a session is recorded and music loads only after play',async({page})=>{
  let youtube=0;await page.route('https://www.youtube-nocookie.com/**',route=>{youtube++;return route.fulfill({contentType:'text/html',body:'<p>music</p>'});});

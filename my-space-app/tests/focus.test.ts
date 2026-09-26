@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
-import {type Task,defaultDiscipline,completeSession,abandonSession,currentStreak,todayStats,recommendedMinutes,cleanTasks,cleanDiscipline,cleanDurations,visibleToday,doneToday,overdue,toggleTask,todayTasks,youtubeId} from '../src/lib/focus';
+import {defaultDiscipline,completeSession,abandonSession,currentStreak,todayStats,recommendedMinutes,cleanDiscipline,cleanDurations,youtubeId} from '../src/lib/focus';
+import {defaultBackground,suggestFit,backgroundStyle,cleanBackground,scaledSize} from '../src/lib/focus-background';
 const at=(d:number,h=10)=>new Date(2026,8,d,h);
-const task=(v:Partial<Task>={}):Task=>({id:'t',text:'Task',done:false,tag:'work',checklist:[],recurrence:'none',createdAt:'2026-09-01',completedDates:[],...v});
 describe('focus discipline',()=>{
  it('counts streaks by local day and keeps it through an unfinished today',()=>{
   let d=completeSession(defaultDiscipline,25,at(24));d=completeSession(d,25,at(24,23));d=completeSession(d,45,at(25));
@@ -18,24 +18,8 @@ describe('focus discipline',()=>{
   expect(recommendedMinutes(d)).toBe(25);expect(recommendedMinutes(defaultDiscipline)).toBe(45);
  });
 });
-describe('focus tasks',()=>{
- it('shows weekly and monthly tasks only on their days, overdue first',()=>{
-  const sat=at(26);expect(sat.getDay()).toBe(6);
-  expect(visibleToday(task({recurrence:'weekly',recurrenceDays:[6]}),sat)).toBe(true);
-  expect(visibleToday(task({recurrence:'weekly',recurrenceDays:[1]}),sat)).toBe(false);
-  expect(visibleToday(task({recurrence:'monthly',recurrenceDays:[26]}),sat)).toBe(true);
-  const list=todayTasks([task({id:'a',done:true}),task({id:'b'}),task({id:'c',deadline:'2026-09-25'})],sat);
-  expect(list.map(t=>t.id)).toEqual(['c','b','a']);
- });
- it('uses local deadline times and toggles recurring completion per day',()=>{
-  expect(overdue(task({deadline:'2026-09-26',deadlineTime:'09:00'}),at(26))).toBe(true);
-  expect(overdue(task({deadline:'2026-09-26'}),at(26,23))).toBe(false);
-  const daily=toggleTask(task({recurrence:'daily'}),at(26));
-  expect(doneToday(daily,at(26))).toBe(true);expect(doneToday(daily,at(27))).toBe(false);
- });
+describe('focus storage and music',()=>{
  it('drops malformed stored data instead of crashing',()=>{
-  expect(cleanTasks('nope')).toEqual([]);
-  expect(cleanTasks([{id:'x',text:'ok',tag:'evil',recurrence:'hourly',deadline:'tomorrow'},{text:'no id'}])).toMatchObject([{id:'x',tag:'work',recurrence:'none',deadline:null}]);
   expect(cleanDiscipline({dailyGoal:999,streak:-3,history:[{date:'bad'}]})).toMatchObject({dailyGoal:12,streak:0,history:[]});
   expect(cleanDurations({focus:500,shortBreak:'x'})).toMatchObject({focus:120,shortBreak:5});
  });
@@ -43,5 +27,20 @@ describe('focus tasks',()=>{
   expect(youtubeId('https://www.youtube.com/watch?v=jfKfPfyJRdk&t=3')).toBe('jfKfPfyJRdk');
   expect(youtubeId('https://youtu.be/jfKfPfyJRdk')).toBe('jfKfPfyJRdk');
   expect(youtubeId('https://evil.example/jfKfPfyJRdk1')).toBeNull();
+ });
+});
+describe('focus background',()=>{
+ it('suggests tile for small images, whole image for very different shapes, fill otherwise',()=>{
+  expect(suggestFit(200,200,1200,800)).toBe('tile');
+  expect(suggestFit(1000,3000,1200,800)).toBe('contain');
+  expect(suggestFit(1920,1080,1200,800)).toBe('cover');
+ });
+ it('builds CSS for each fit and sanitises stored settings',()=>{
+  const b={...defaultBackground,picture:'ocean'};
+  expect(backgroundStyle({...b,fit:'custom',size:150,x:0,y:100},'u')).toMatchObject({backgroundSize:'150% auto',backgroundPosition:'0% 100%',backgroundRepeat:'no-repeat'});
+  expect(backgroundStyle({...b,fit:'tile'},'u').backgroundRepeat).toBe('repeat');
+  expect(backgroundStyle({...b,fit:'fill'},'u').backgroundSize).toBe('100% 100%');
+  expect(cleanBackground({picture:'javascript:x',fit:'weird',size:9999,dim:-5})).toMatchObject({picture:'',fit:'cover',size:300,dim:0});
+  expect(scaledSize(5120,2880)).toEqual({width:2560,height:1440});
  });
 });

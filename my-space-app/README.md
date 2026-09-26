@@ -25,7 +25,7 @@ npm run build
 
 - `/write`: Tiptap, document library, title/body search, autosave, formatting, TXT/Markdown import, HTML/text/JSON export, focus, statistics, browser print/PDF.
 - `/create`: official tldraw SDK, local boards, 500 ms debounced snapshots, embedded local raster images, validated JSON import/export, native image/PNG tools.
-- `/work`: focus timer adapted from the team's qamcvnfocus app, rewritten without login or Supabase sync: focus/short break/long break/meditation modes, 25/45/60/90-minute presets plus a suggestion from the last 7 days, abandon warning, today's tasks (tags, checklist, daily/weekly/monthly repeat, deadlines), discipline streak and daily goal, health reminders, and opt-in YouTube music. Timer state uses end timestamps, so background tabs stay accurate. Tasks and history are stored in localStorage (`my-space:focus-*`).
+- `/work`: focus timer adapted from the team's qamcvnfocus app, rewritten without login or Supabase sync: focus/short break/long break/meditation modes, 25/45/60/90-minute presets plus a suggestion from the last 7 days, abandon warning, discipline streak and daily goal, health reminders, opt-in YouTube music, and a background picker (10 preset pictures or an upload resized to 2560px; suggested fit, fill/whole/stretch/tile/custom size, 9-point position, soften). Timer state uses end timestamps, so background tabs stay accurate. Settings and history are stored in localStorage (`my-space:focus-*`).
 - `/frame`: local file/drop/paste screenshots, 14 backgrounds, ratios, chrome, padding, roundness, shadow, scale, watermark, PNG download and clipboard copy.
 - `/challenge`: daily prompts, completion history, local-calendar streak and progress export.
 - `/`: redirect to last visited mode, or Write.

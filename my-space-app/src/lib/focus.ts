@@ -1,12 +1,8 @@
-// Focus timer, tasks and discipline logic, adapted from qamcvnfocus without login or cloud sync.
+// Focus timer and discipline logic, adapted from qamcvnfocus without login or cloud sync.
 import {dayKey} from './challenges';
 import {pref} from './preferences';
 
 export type TimerMode='focus'|'shortBreak'|'longBreak'|'meditation';
-export type Tag='work'|'learning'|'admin';
-export type Recurrence='none'|'daily'|'weekly'|'monthly';
-export type CheckItem={id:string;text:string;done:boolean};
-export type Task={id:string;text:string;done:boolean;tag:Tag;checklist:CheckItem[];recurrence:Recurrence;recurrenceDays?:number[];deadline?:string|null;deadlineTime?:string|null;createdAt:string;completedDates?:string[]};
 export type DayHistory={date:string;completed:number;abandoned:number;totalMinutes:number};
 export type Discipline={streak:number;lastActiveDate:string;dailyGoal:number;history:DayHistory[]};
 export type Durations=Record<TimerMode,number>;
@@ -16,29 +12,13 @@ export const modeLabels:Record<TimerMode,string>={focus:'Focus',shortBreak:'Shor
 export const maxMinutes:Durations={focus:120,shortBreak:30,longBreak:30,meditation:60};
 export const defaultDurations:Durations={focus:45,shortBreak:5,longBreak:15,meditation:10};
 export const defaultDiscipline:Discipline={streak:0,lastActiveDate:'',dailyGoal:4,history:[]};
-export const tagLabels:Record<Tag,string>={work:'Work',learning:'Learning',admin:'Admin'};
-export const recurrenceLabels:Record<Recurrence,string>={none:'No repeat',daily:'Daily',weekly:'Weekly',monthly:'Monthly'};
 
-const tags=Object.keys(tagLabels) as Tag[],recurrences=Object.keys(recurrenceLabels) as Recurrence[];
 const isDay=(v:unknown):v is string=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v);
-const isTime=(v:unknown):v is string=>typeof v==='string'&&/^\d{2}:\d{2}$/.test(v);
 const count=(v:unknown,min=0,max=1e6)=>typeof v==='number'&&Number.isFinite(v)?Math.round(Math.max(min,Math.min(max,v))):min;
-const text=(v:unknown)=>typeof v==='string'?v.slice(0,500):'';
 
 function read<T>(key:string,fallback:T,clean:(v:unknown)=>T):T{try{const raw=pref.get(key,'');return raw?clean(JSON.parse(raw)):fallback;}catch{return fallback;}}
 export const save=(key:string,value:unknown)=>pref.set(key,JSON.stringify(value));
 
-export function cleanTasks(value:unknown):Task[]{
- if(!Array.isArray(value))return [];
- return value.filter(t=>t&&typeof t==='object'&&typeof t.id==='string'&&text(t.text)).map((t):Task=>({
-  id:t.id,text:text(t.text),done:t.done===true,tag:tags.includes(t.tag)?t.tag:'work',
-  checklist:Array.isArray(t.checklist)?t.checklist.filter((c:CheckItem)=>c&&typeof c.id==='string'&&text(c.text)).map((c:CheckItem)=>({id:c.id,text:text(c.text),done:c.done===true})):[],
-  recurrence:recurrences.includes(t.recurrence)?t.recurrence:'none',
-  recurrenceDays:Array.isArray(t.recurrenceDays)?t.recurrenceDays.filter((d:unknown)=>Number.isInteger(d)&&(d as number)>=0&&(d as number)<=31):undefined,
-  deadline:isDay(t.deadline)?t.deadline:null,deadlineTime:isTime(t.deadlineTime)?t.deadlineTime:null,
-  createdAt:isDay(t.createdAt)?t.createdAt:dayKey(),completedDates:Array.isArray(t.completedDates)?t.completedDates.filter(isDay):[],
- }));
-}
 export function cleanDiscipline(value:unknown):Discipline{
  if(!value||typeof value!=='object')return defaultDiscipline;
  const d=value as Partial<Discipline>;
@@ -50,7 +30,6 @@ export function cleanDurations(value:unknown):Durations{
  if(value&&typeof value==='object')for(const m of modes){const v=(value as Durations)[m];if(typeof v==='number'&&Number.isFinite(v))d[m]=count(v,1,maxMinutes[m]);}
  return d;
 }
-export const loadTasks=()=>read('focus-tasks',[],cleanTasks);
 export const loadDiscipline=()=>read('focus-discipline',defaultDiscipline,cleanDiscipline);
 export const loadDurations=()=>read('focus-durations',defaultDurations,cleanDurations);
 
@@ -75,23 +54,4 @@ export function recommendedMinutes(d:Discipline){
  return failRate>.4?25:failRate<.1&&done>10?60:45;
 }
 
-export function visibleToday(t:Task,now=new Date()){
- if(t.recurrence==='none'||t.recurrence==='daily'||t.completedDates?.includes(dayKey(now)))return true;
- return t.recurrenceDays?.includes(t.recurrence==='weekly'?now.getDay():now.getDate())??false;
-}
-export function doneToday(t:Task,now=new Date()){return t.recurrence==='none'?t.done:t.completedDates?.includes(dayKey(now))??false;}
-export function overdue(t:Task,now=new Date()){
- if(!t.deadline||doneToday(t,now))return false;
- const [y,m,d]=t.deadline.split('-').map(Number),[h,min]=(t.deadlineTime??'23:59').split(':').map(Number);
- return now>new Date(y,m-1,d,h,min,59,999);
-}
-export function toggleTask(t:Task,now=new Date()):Task{
- if(t.recurrence==='none')return {...t,done:!t.done};
- const today=dayKey(now),dates=t.completedDates??[];
- return {...t,completedDates:dates.includes(today)?dates.filter(d=>d!==today):[...dates,today]};
-}
-export function todayTasks(tasks:Task[],now=new Date()){
- const rank=(t:Task)=>overdue(t,now)?0:doneToday(t,now)?2:1;
- return tasks.filter(t=>visibleToday(t,now)).sort((a,b)=>rank(a)-rank(b));
-}
 export function youtubeId(value:string){return value.trim().match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/)?.[1]??(/^[\w-]{11}$/.test(value.trim())?value.trim():null);}
