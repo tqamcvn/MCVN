@@ -2,10 +2,11 @@
 // Focus workspace adapted from qamcvnfocus. The timer, reminders and music run in lib/focus-store so they keep
 // going while you use other modes; everything stays in this browser, with no login or cloud sync.
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Play,Pause,RotateCcw,SkipForward,Settings2,AlertTriangle,Flame,Target,Lightbulb,Bell,Music,X,Timer,Image as ImageIcon,Upload,Sparkles,Ban,Search} from 'lucide-react';
+import {Play,Pause,RotateCcw,SkipForward,Settings2,AlertTriangle,Flame,Target,Lightbulb,Bell,Music,X,Timer,Image as ImageIcon,Upload,Sparkles,Ban,Search,Heart,Shuffle,History} from 'lucide-react';
 import {pref} from '@/lib/preferences';
 import {type TimerMode,modes,modeLabels,maxMinutes,recommendedMinutes,currentStreak,todayStats} from '@/lib/focus';
 import {type Track,parseYouTube,searchYouTube,searchKey} from '@/lib/music';
+import {useHistory,forYou,myMix,toggleLike,forget,clearHistory} from '@/lib/music-history';
 import {useFocus,startTimer,pauseTimer,resetTimer,isFocusInProgress,abandonFocus,setMinutes,setGoal,toggleReminder,restartReminders,playMusic,stopMusic,reminderList,genres,clock} from '@/lib/focus-store';
 import {type Background,type Fit,pictures,fits,defaultBackground,loadBackground,pictureURL,suggestFit,backgroundStyle,scaledSize,MAX_SIDE} from '@/lib/focus-background';
 
@@ -86,7 +87,7 @@ function HealthReminders(){
 
 function MusicPanel(){
  const {music}=useFocus(),[draft,setDraft]=useState(''),[error,setError]=useState(''),[results,setResults]=useState<Track[]>([]),[searching,setSearching]=useState(false),canSearch=!!searchKey();
- const search=useRef<AbortController|null>(null);
+ const search=useRef<AbortController|null>(null),history=useHistory(),picks=forYou(history).slice(0,8);
  async function submit(e:React.FormEvent){
   e.preventDefault();const text=draft.trim();if(!text)return;setError('');
   const link=parseYouTube(text);
@@ -97,14 +98,23 @@ function MusicPanel(){
   catch(err){if(!ctrl.signal.aborted)setError(err instanceof Error?err.message:'Search failed.');}
   finally{if(search.current===ctrl)setSearching(false);}
  }
+ function playMix(){const mix=myMix(history);if(mix.length)playMusic(mix[0].id,{queue:mix.slice(1).map(l=>l.id),titles:Object.fromEntries(mix.map(l=>[l.id,l.title]))});}
+ function playPick(i:number){playMusic(picks[i].id,{queue:[...picks.slice(i+1),...picks.slice(0,i)].map(l=>l.id),titles:Object.fromEntries(picks.map(l=>[l.id,l.title]))});}
  function play(i:number){const t=results[i];playMusic(t.id,{queue:results.slice(i+1).map(r=>r.id),titles:Object.fromEntries(results.map(r=>[r.id,r.title]))});}
  return <Panel title="Music" icon={<Music size={16}/>}>
   <div className="chips">{genres.map(([label,id])=><button key={id} aria-pressed={music.video===id} className={music.video===id?'active':''} onClick={()=>playMusic(id)}>{label}</button>)}</div>
   {music.playing?<button className="music-play" onClick={stopMusic}><X size={14}/>Stop music</button>:<button className="primary music-play" onClick={()=>playMusic()}><Play size={14}/>Play music</button>}
   <form className="music-form" onSubmit={e=>void submit(e)}><input aria-label={canSearch?'Search YouTube or paste a link':'YouTube link'} placeholder={canSearch?'Search YouTube or paste a link…':'Paste a YouTube or playlist link…'} value={draft} onChange={e=>setDraft(e.target.value)}/><button disabled={searching}>{canSearch?<Search size={14}/>:null}{searching?'…':canSearch?'Search':'Play'}</button></form>
   {error&&<p className="focus-small" role="alert">{error}</p>}
+  {picks.length>0&&<section className="for-you" aria-label="For you">
+   <header><h3><History size={13}/>For you</h3><button className="soft" onClick={playMix}><Shuffle size={13}/>Play my mix</button></header>
+   <ul className="music-results">{picks.map((l,i)=><li key={l.id}><button className={music.video===l.id?'active':''} onClick={()=>playPick(i)} title={l.title}><i className="thumb" aria-hidden="true" style={{backgroundImage:`url("https://i.ytimg.com/vi/${l.id}/default.jpg")`}}/><span><strong>{l.title}</strong><small>{l.liked?'♥ Favourite · ':''}Played {l.plays}×</small></span></button>
+    <button className={'pick-like'+(l.liked?' liked':'')} aria-label={l.liked?'Remove from favourites':'Add to favourites'} aria-pressed={l.liked} onClick={()=>toggleLike(l.id,l.title)}><Heart size={13}/></button>
+    <button className="pick-like" aria-label={'Forget '+l.title} title="Remove from history" onClick={()=>forget(l.id)}><X size={13}/></button></li>)}</ul>
+   <button className="text-button" onClick={()=>{if(confirm('Clear your listening history and favourites?'))clearHistory();}}>Clear history</button>
+  </section>}
   {results.length>0&&<ul className="music-results" aria-label="Search results">{results.map((r,i)=><li key={r.id}><button className={music.video===r.id?'active':''} onClick={()=>play(i)} title={r.title}><i className="thumb" aria-hidden="true" style={r.thumb?{backgroundImage:`url("${r.thumb}")`}:undefined}/><span><strong>{r.title}</strong><small>{r.channel}</small></span></button></li>)}</ul>}
-  <p className="subtle focus-small">Use ⏮ ⏭ on the player to change videos; it moves on by itself when one ends, and YouTube’s suggestions appear when you pause. Music keeps going in other modes and MCVN dashboards. {canSearch?'Searches are sent to YouTube (Google).':''} YouTube never receives your documents or boards.</p>
+  <p className="subtle focus-small">Use ⏮ ⏭ on the player to change videos; it moves on by itself when one ends, and YouTube’s suggestions appear when you pause. Music keeps going in other modes and MCVN dashboards. {canSearch?'Searches are sent to YouTube (Google).':''} Your listening history stays in this browser. YouTube never receives your documents or boards.</p>
  </Panel>;
 }
 

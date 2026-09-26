@@ -3,7 +3,8 @@
 // Inside the MCVN dashboard the same frame shrinks to a floating music player on other dashboards ("mini" mode).
 import {useEffect,useRef,useState} from 'react';
 import {usePathname} from 'next/navigation';
-import {Bell,X,Minus,Music,Maximize2,GripHorizontal,SkipBack,SkipForward} from 'lucide-react';
+import {Bell,X,Minus,Music,Maximize2,GripHorizontal,SkipBack,SkipForward,Heart} from 'lucide-react';
+import {useHistory,recordListen,toggleLike} from '@/lib/music-history';
 import {embedURL,playerCommand} from '@/lib/music';
 import {useFocus,initFocus,notify,stopMusic,genres,clock} from '@/lib/focus-store';
 import {modeLabels} from '@/lib/focus';
@@ -20,9 +21,12 @@ function savedPos():Point|null{try{const p=JSON.parse(pref.get('music-dock-pos',
 export function FocusDock(){
  const {ready,timer,notice,music}=useFocus(),[small,setSmall]=useState(false),[mini,setMini]=useState(false),onWork=/\/work\/?$/.test(usePathname());
  const dock=useRef<HTMLElement>(null),drag=useRef<{sx:number;sy:number;left:number;top:number}|null>(null),[dragging,setDragging]=useState(false),[pos,setPos]=useState<Point|null>(null);
- const [outdated,setOutdated]=useState(false),[nowPlaying,setNowPlaying]=useState(''),player=useRef<HTMLIFrameElement>(null);
+ const [outdated,setOutdated]=useState(false),[nowPlaying,setNowPlaying]=useState(''),[nowId,setNowId]=useState(''),player=useRef<HTMLIFrameElement>(null),history=useHistory();
  useEffect(()=>{const onMessage=(e:MessageEvent)=>{if(e.origin!=='https://www.youtube-nocookie.com'||e.source!==player.current?.contentWindow||typeof e.data!=='string')return;
-  try{const d=JSON.parse(e.data);const title=d?.info?.videoData?.title;if(typeof title==='string'&&title)setNowPlaying(title.slice(0,120));}catch{}};
+  try{const d=JSON.parse(e.data),data=d?.info?.videoData,title=typeof data?.title==='string'?data.title.slice(0,120):'',id=typeof data?.video_id==='string'?data.video_id:'';
+   if(title)setNowPlaying(title);
+   // Remember what was actually played (including next/previous and YouTube's suggestions) for "For you".
+   if(id&&title){setNowId(id);recordListen(id,title);}}catch{}};
   addEventListener('message',onMessage);return()=>removeEventListener('message',onMessage);},[]);
  useEffect(()=>{initFocus();setPos(savedPos());setOutdated(dashboardOutdated());},[]);
  useEffect(()=>{const onMessage=(e:MessageEvent)=>{if(e.origin===location.origin&&e.source===window.parent&&e.data?.type==='mcvn-mini')setMini(e.data.on===true);};window.addEventListener('message',onMessage);return()=>window.removeEventListener('message',onMessage);},[]);
@@ -64,12 +68,13 @@ export function FocusDock(){
   {music.playing&&<aside ref={dock} style={style} className={'music-dock'+(small&&!mini?' small':'')+(onWork?' on-work':'')+(dragging?' dragging':'')} aria-label="Music player">
    <header title="Drag to move · double-click to put back" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={e=>{if(!(e.target as HTMLElement).closest('button'))resetPosition();}}>
     <GripHorizontal size={14} className="grip" aria-hidden="true"/><Music size={14}/><span title={label}>{label}</span>
+    {(nowId||music.video)&&(()=>{const id=nowId||music.video,liked=history.some(l=>l.id===id&&l.liked);return <button aria-label={liked?'Remove from favourites':'Add to favourites'} aria-pressed={liked} title={liked?'In your favourites':'Add to favourites'} className={liked?'liked':''} onClick={()=>toggleLike(id,label)}><Heart size={14}/></button>;})()}
     {hasQueue&&<><button aria-label="Previous video" title="Previous" onClick={()=>playerCommand(player.current,'previousVideo')}><SkipBack size={14}/></button><button aria-label="Next video" title="Next" onClick={()=>playerCommand(player.current,'nextVideo')}><SkipForward size={14}/></button></>}
     {mini?<button aria-label="Open My Space" title="Open My Space" onClick={()=>toParent({type:'my-space-open'})}><Maximize2 size={14}/></button>
      :<button aria-label={small?'Expand music player':'Shrink music player'} title={small?'Expand':'Shrink'} onClick={()=>setSmall(!small)}><Minus size={14}/></button>}
     <button aria-label="Stop music" title="Stop music" onClick={stopMusic}><X size={14}/></button></header>
    {outdated&&mini&&<p className="dock-update">MCVN has an update. <button onClick={()=>window.parent.location.reload()}>Refresh</button> to move this player.</p>}
-   <iframe ref={player} key={music.list+music.video+music.queue.join()} title="Focus music" src={embedURL(music,location.origin)} onLoad={e=>{setNowPlaying('');e.currentTarget.contentWindow?.postMessage(JSON.stringify({event:'listening',id:'my-space',channel:'widget'}),'https://www.youtube-nocookie.com');}} referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox" allow="autoplay; encrypted-media; picture-in-picture"/>
+   <iframe ref={player} key={music.list+music.video+music.queue.join()} title="Focus music" src={embedURL(music,location.origin)} onLoad={e=>{setNowPlaying('');setNowId('');e.currentTarget.contentWindow?.postMessage(JSON.stringify({event:'listening',id:'my-space',channel:'widget'}),'https://www.youtube-nocookie.com');}} referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox" allow="autoplay; encrypted-media; picture-in-picture"/>
   </aside>}
  </>;
 }
