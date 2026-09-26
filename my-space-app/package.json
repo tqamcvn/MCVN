@@ -1,0 +1,47 @@
+{
+  "name": "mcvn-my-space",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/assets.mjs && next dev",
+    "build": "node scripts/assets.mjs && next build",
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "build:pages": "node scripts/assets.mjs && node scripts/pages.mjs",
+    "package:site": "npm run build:pages && node scripts/package-site.mjs"
+  },
+  "dependencies": {
+    "@tiptap/extension-highlight": "3.31.3",
+    "@tiptap/extension-placeholder": "3.31.3",
+    "@tiptap/extension-text-style": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "@tldraw/assets": "^5.4.2",
+    "@tldraw/tlschema": "^5.4.2",
+    "dexie": "4.4.6",
+    "lucide-react": "^0.577.0",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tldraw": "5.4.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^24.12.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "16.3.6",
+    "fake-indexeddb": "^6.2.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

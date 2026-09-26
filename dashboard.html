@@ -7,8 +7,6 @@
 <link rel="stylesheet" href="/assets/loading-snake.css?v=20260922-1">
 <script defer src="/assets/loading-snake.js?v=20260922-5"></script>
 <script defer src="/assets/dashboard-presence.js?v=20260924-2"></script>
-<link rel="stylesheet" href="/assets/my-space.css?v=20260926-1">
-<script defer src="/assets/my-space.js?v=20260926-1"></script>
 
 <!-- Ẩn toàn bộ nội dung cho tới khi xác thực xong (chống lộ dữ liệu). -->
 <style id="gate">body { visibility: hidden; }.mascot-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-top:16px}
@@ -640,7 +638,7 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <span class="nav-text" data-i18n="home">Trang chủ</span>
   </a>
-  <a class="nav-item" id="my-space-nav" href="#my-space" data-view="my-space" title="My Space">
+  <a class="nav-item" id="my-space-nav" href="/my-space/" data-tool="my-space" data-src="/my-space/" data-title="My Space" title="My Space">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M14 17h7m-3.5-3.5v7"/></svg>
     <span class="nav-text">My Space</span>
   </a>
@@ -874,8 +872,6 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
   </section>
 
   <!-- Cài đặt tài khoản -->
-  <section id="my-space-view" class="my-space-view" hidden aria-label="My Space"></section>
-
   <section class="settings-view" id="settings-view">
     <div class="section-label" data-i18n="accountSettings">Cài đặt tài khoản</div>
 
@@ -1172,7 +1168,6 @@ const toolNewtab = document.getElementById('tool-newtab');
 const settingsView = document.getElementById('settings-view');
 
 function showHome() {
-  document.getElementById('my-space-view').hidden = true;
   window.TQAPresence?.stop();
   window.TQALoading?.home(false);
   toolView.classList.remove('visible');
@@ -1183,7 +1178,6 @@ function showHome() {
 }
 
 function showSettings() {
-  document.getElementById('my-space-view').hidden = true;
   window.TQAPresence?.stop();
   window.TQALoading?.stop();
   toolView.classList.remove('visible');
@@ -1191,18 +1185,6 @@ function showSettings() {
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   settingsView.classList.add('visible');
-}
-
-function showMySpace() {
-  window.TQAPresence?.stop();
-  window.TQALoading?.stop();
-  toolView.classList.remove('visible');
-  settingsView.classList.remove('visible');
-  toolFrame.src = 'about:blank';
-  heroEl.style.display = 'none';
-  contentEl.style.display = 'none';
-  document.getElementById('my-space-view').hidden = false;
-  window.TQAMySpace?.show(CUR, currentLang());
 }
 
 function currentTheme() {
@@ -1214,7 +1196,6 @@ function withTheme(src) {
 }
 
 function showTool(src, title) {
-  document.getElementById('my-space-view').hidden = true;
   const presenceKey = document.querySelector('.nav-item.active')?.dataset.tool;
   if (src && presenceKey) window.TQAPresence?.show(sb, CUR, presenceKey, document.getElementById('tool-viewers'));
   else window.TQAPresence?.stop();
@@ -1262,7 +1243,6 @@ function activateNav(el){
     showTool(el.dataset.src, el.dataset.title || 'Tool');
     if (el.dataset.tool === 'feedback') setTimeout(showFeedbackNotifs, 200);
   }
-  else if (el.dataset.view === 'my-space') showMySpace();
   else if (el.dataset.view === 'settings') showSettings();
   else showHome();
 }
@@ -1310,7 +1290,6 @@ document.getElementById('tool-reload').addEventListener('click', () => {
 /* ---- Ngôn ngữ VN / ENG (nhớ lựa chọn) ---- */
 function applyLanguage() {
   const lang = currentLang();
-  window.TQAMySpace?.language(lang);
   if (window.TQAI18N) window.TQAI18N.apply(lang);
   document.documentElement.lang = lang === 'en' ? 'en' : 'vi';
   document.title = lang === 'en' ? 'TQA MCVN — Dashboard' : 'TQA MCVN — Bảng điều khiển';

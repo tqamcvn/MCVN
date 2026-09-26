@@ -1,0 +1,8 @@
+.next/
+out/
+node_modules/
+.env.local
+*.tsbuildinfo
+public/tldraw/
+playwright-report/
+test-results/

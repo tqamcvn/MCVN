@@ -1,0 +1,7 @@
+import {spawnSync} from 'node:child_process';
+import {cp,mkdir} from 'node:fs/promises';
+const result=spawnSync(process.execPath,['node_modules/next/dist/bin/next','build'],{stdio:'inherit',env:{...process.env,NEXT_PUBLIC_BASE_PATH:'/my-space',NEXT_TELEMETRY_DISABLED:'1'}});
+if(result.status!==0)process.exit(result.status??1);
+await mkdir('../my-space',{recursive:true});
+await cp('out','../my-space',{recursive:true});
+console.log('Static app copied to ../my-space');
