@@ -541,8 +541,8 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
 #my-space-slot { flex: 1; }
 #my-space-frame { position: fixed; z-index: 5; border: 0; background: var(--white); border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
 /* đặt bên trái linh vật (lantern companion ~140px ở góc phải dưới) */
-#my-space-frame.mini { left: auto !important; top: auto !important; right: 170px; bottom: 20px; width: 300px !important; height: 206px !important; z-index: 9000; border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,.25); }
-@media (max-width: 540px) { #my-space-frame.mini { right: 10px; bottom: 160px; width: 240px !important; height: 172px !important; } }
+#my-space-frame.mini { width: 300px !important; height: 206px !important; z-index: 9000; border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,.25); }
+@media (max-width: 540px) { #my-space-frame.mini { width: 240px !important; height: 172px !important; } }
 .tool-empty {
   flex: 1; display: none; align-items: center; justify-content: center;
   flex-direction: column; gap: 10px; color: var(--gray-500);
@@ -1497,9 +1497,30 @@ window.addEventListener('message', function (e) {
   }
   if (d.type === 'my-space-focus') { showMySpaceFocus(d); if (!!d.music !== mySpaceMusic) { mySpaceMusic = !!d.music; layoutMySpace(); } }
   if (d.type === 'my-space-open') location.hash = 'my-space';
+  if (d.type === 'my-space-drag' && mySpaceFrame.classList.contains('mini')) {
+    if (d.reset) { localStorage.removeItem(MINI_POS_KEY); mySpaceMiniPos = null; }
+    else {
+      var cur = miniPos();
+      mySpaceMiniPos = clampMini(cur.x + (+d.dx || 0), cur.y + (+d.dy || 0));
+      if (d.end) localStorage.setItem(MINI_POS_KEY, JSON.stringify(mySpaceMiniPos));
+    }
+    var np = miniPos();
+    mySpaceFrame.style.left = np.x + 'px'; mySpaceFrame.style.top = np.y + 'px';
+  }
 });
 /* Khung My Space: phủ đúng vùng tool khi đang mở My Space; ở dashboard khác thì thu thành trình phát nhạc nổi (nếu đang phát). */
 var mySpaceMusic = false, mySpaceMini = null;
+/* Vị trí trình phát nhạc nổi: người dùng kéo ở thanh tiêu đề (nhấp đúp để về chỗ cũ); mặc định bên trái linh vật. */
+var MINI_POS_KEY = 'tqa_myspace_mini_pos', mySpaceMiniPos = null;
+function miniSize() { return innerWidth <= 540 ? { w: 240, h: 172 } : { w: 300, h: 206 }; }
+function clampMini(x, y) { var s = miniSize(); return { x: Math.max(8, Math.min(innerWidth - s.w - 8, x)), y: Math.max(8, Math.min(innerHeight - s.h - 8, y)) }; }
+function miniPos() {
+  if (!mySpaceMiniPos) { try { mySpaceMiniPos = JSON.parse(localStorage.getItem(MINI_POS_KEY) || 'null'); } catch (e) { mySpaceMiniPos = null; } }
+  var s = miniSize();
+  var p = mySpaceMiniPos && isFinite(mySpaceMiniPos.x) && isFinite(mySpaceMiniPos.y) ? mySpaceMiniPos
+    : { x: innerWidth - s.w - (innerWidth <= 540 ? 10 : 170), y: innerHeight - s.h - (innerWidth <= 540 ? 160 : 20) };
+  return clampMini(p.x, p.y);
+}
 function layoutMySpace() {
   if (typeof mySpaceFrame === 'undefined' || !mySpaceFrame) return;
   var open = inMySpace() && toolView.classList.contains('visible');
@@ -1511,7 +1532,8 @@ function layoutMySpace() {
     mySpaceFrame.style.cssText = 'display:block;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px';
   } else if (mini) {
     mySpaceFrame.classList.add('mini');
-    mySpaceFrame.style.cssText = 'display:block';
+    var mp = miniPos();
+    mySpaceFrame.style.cssText = 'display:block;left:' + mp.x + 'px;top:' + mp.y + 'px';
   } else {
     mySpaceFrame.classList.remove('mini');
     mySpaceFrame.style.cssText = 'display:none';

@@ -50,3 +50,5 @@
 /* Mini mode: inside the dashboard on another page, the frame shows only the music player */
 html.mini body{background:transparent}html.mini .workspace{padding:0;min-height:0;height:100dvh}html.mini .rail,html.mini .surface>:not(.music-dock){display:none}html.mini .surface{border:0;border-radius:0;background:transparent}
 html.mini .music-dock,html.mini .music-dock.on-work{position:fixed;inset:0;width:auto;border:0;border-radius:0;box-shadow:none;display:flex;flex-direction:column}html.mini .music-dock iframe{flex:1;aspect-ratio:auto;height:auto}
+/* Draggable music player */
+.music-dock header{cursor:grab;user-select:none;touch-action:none}.music-dock header button{cursor:pointer}.music-dock .grip{color:var(--gray-500)}.music-dock.dragging header{cursor:grabbing}.music-dock.dragging iframe{pointer-events:none}
