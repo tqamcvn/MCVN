@@ -728,6 +728,10 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <span class="nav-text" data-i18n="home">Trang chủ</span>
   </a>
+  <a class="nav-item" id="my-space-nav" href="/my-space/" data-tool="my-space" data-src="/my-space/" data-title="My Space" title="My Space">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M14 17h7m-3.5-3.5v7"/></svg>
+    <span class="nav-text">My Space</span>
+  </a>
   <a class="nav-item qa-only" href="#" data-tool="csat" data-src="" data-title="CSAT reports" title="CSAT reports">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span class="nav-text" data-i18n="csatReports">CSAT reports</span>
@@ -1267,6 +1271,7 @@ function showHome() {
   toolFrame.src = 'about:blank';
   heroEl.style.display = 'flex';
   contentEl.style.display = 'block';
+  syncMySpaceSidebar();
 }
 
 // Cài đặt = popup nổi trên trang hiện tại (không đổi view/tool bên dưới)
@@ -1321,6 +1326,7 @@ function showTool(src, title) {
     toolEmpty.classList.add('visible');
   }
   toolView.classList.add('visible');
+  syncMySpaceSidebar();
 }
 
 // Mỗi mục có "key" cho URL: tool -> data-tool, còn lại -> data-view (home/settings)
@@ -1431,8 +1437,41 @@ sbToggle.addEventListener('click', () => {
   document.body.classList.toggle('sb-collapsed');
   localStorage.setItem(SB_KEY, document.body.classList.contains('sb-collapsed') ? '1' : '0');
   syncSbTitle();
+  if (inMySpace()) {
+    mySpaceSbPrev = null;  // người dùng tự chọn -> giữ nguyên khi rời My Space
+    if (!document.body.classList.contains('sb-collapsed')) {
+      try { toolFrame.contentWindow.postMessage({ type:'mcvn-sidebar', collapsed:false }, location.origin); } catch(e) {}
+    }
+  }
 });
 syncSbTitle();
+
+/* ---- My Space: thu gọn sidebar MCVN khi mở My Space (không lưu), trả lại khi rời ----
+   Thanh của My Space và sidebar MCVN luân phiên: mở thanh này thì thanh kia đóng. */
+var mySpaceSbPrev = null;
+function inMySpace() {
+  var active = document.querySelector('.nav-item.active');
+  return !!active && active.dataset.tool === 'my-space';
+}
+function syncMySpaceSidebar() {
+  if (inMySpace() && mySpaceSbPrev == null) {
+    mySpaceSbPrev = document.body.classList.contains('sb-collapsed');
+    document.body.classList.add('sb-collapsed');
+  } else if (!inMySpace() && mySpaceSbPrev != null) {
+    document.body.classList.toggle('sb-collapsed', mySpaceSbPrev);
+    mySpaceSbPrev = null;
+  } else return;
+  try { syncSbTitle(); } catch(e) {}
+}
+window.addEventListener('message', function (e) {
+  if (e.origin !== location.origin || e.source !== toolFrame.contentWindow) return;
+  var d = e.data || {};
+  if (d.type === 'my-space-rail' && d.expanded && !document.body.classList.contains('sb-collapsed')) {
+    document.body.classList.add('sb-collapsed');
+    syncSbTitle();
+  }
+});
+syncMySpaceSidebar();
 
 /* ---- Giao diện sáng / tối (nhớ lựa chọn) ---- */
 const THEME_KEY = 'tqa_theme';

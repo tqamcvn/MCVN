@@ -1,0 +1,15 @@
+'use client';
+import Link from 'next/link';
+import {useEffect,useState} from 'react';
+import {Sparkles,Check,ArrowUpRight,Flame,Trophy,Clock} from 'lucide-react';
+import {dayKey,promptFor,streak} from '@/lib/challenges';
+import {pref} from '@/lib/preferences';
+import {jsonDownload} from '@/lib/download';
+export default function ChallengeMode(){
+ const [now,setNow]=useState<Date|null>(null),[days,setDays]=useState<string[]>([]),[error,setError]=useState('');
+ useEffect(()=>{setNow(new Date());try{const data=JSON.parse(pref.get('challenge-days','[]'));if(!Array.isArray(data)||!data.every(v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)))throw new Error();setDays([...new Set<string>(data)]);}catch{setError('Could not read progress. Export any new progress before closing.');}const timer=setInterval(()=>setNow(new Date()),60000);return()=>clearInterval(timer);},[]);
+ if(!now)return <div className="empty">Finding today’s spark…</div>;
+ const today=dayKey(now),prompt=promptFor(now),done=days.includes(today);
+ function toggle(){const next=done?days.filter(d=>d!==today):[...days,today];setDays(next);if(!pref.set('challenge-days',JSON.stringify(next)))setError('Progress is in memory only. Export it before closing.');}
+ return <div className="challenge-mode"><header className="toolbar"><h1>Daily challenge</h1><span className="subtle">Small steps. New possibilities.</span></header><div className="challenge-content"><span className="eyebrow"><Sparkles size={15}/>A LITTLE CREATIVE PRACTICE</span><h2>A spark for today.</h2><p className="subtle">No scores, no pressure. Just a few minutes to make something yours.</p><section className="prompt-card"><div className="prompt-meta"><span>{now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</span><span><Clock size={14}/>{prompt.minutes} min</span></div><Sparkles className="prompt-art" size={46}/><h3>{prompt.title}</h3><p>{prompt.detail}</p><div className="prompt-actions"><Link prefetch={false} className="button primary" href={'/'+prompt.mode}>Open {prompt.mode}<ArrowUpRight size={17}/></Link><button className={done?'soft':''} aria-pressed={done} onClick={toggle}><Check size={17}/>{done?'Completed today':'Mark complete'}</button></div></section><div className="progress-cards"><div><Flame size={22}/><strong>{streak(days,now)}</strong><span>day streak</span></div><div><Trophy size={22}/><strong>{days.length}</strong><span>prompts completed</span></div></div><h3 className="week-title">Your last seven days</h3><div className="week">{Array.from({length:7},(_,i)=>{const d=new Date(now);d.setDate(d.getDate()-6+i);const completed=days.includes(dayKey(d));return <div key={dayKey(d)} className={completed?'done':''} title={dayKey(d)+(completed?' · complete':' · not completed')}><span>{d.toLocaleDateString('en',{weekday:'short'})}</span><b>{completed?<Check size={20}/>:d.getDate()}</b></div>;})}</div>{error&&<p role="alert">{error}</p>}<button className="text-button" onClick={()=>jsonDownload({format:'my-space-progress',version:1,days},'my-space-progress.json')}>Export progress</button></div></div>;
+}

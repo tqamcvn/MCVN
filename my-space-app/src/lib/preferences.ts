@@ -1,0 +1,1 @@
+export const pref={get(key:string,fallback=''){try{return localStorage.getItem('my-space:'+key)??fallback;}catch{return fallback;}},set(key:string,value:string){try{localStorage.setItem('my-space:'+key,value);return true;}catch{return false;}}};
