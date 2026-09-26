@@ -3,6 +3,6 @@ out/
 node_modules/
 .env.local
 *.tsbuildinfo
-public/tldraw/
+public/excalidraw/
 playwright-report/
 test-results/

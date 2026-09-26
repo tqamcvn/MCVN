@@ -12,20 +12,18 @@
     "build:pages": "node scripts/assets.mjs && node scripts/pages.mjs"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
     "@tiptap/extension-highlight": "3.31.3",
     "@tiptap/extension-placeholder": "3.31.3",
     "@tiptap/extension-text-style": "3.31.3",
     "@tiptap/pm": "3.31.3",
     "@tiptap/react": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
-    "@tldraw/assets": "^5.4.2",
-    "@tldraw/tlschema": "^5.4.2",
     "dexie": "4.4.6",
     "lucide-react": "^0.577.0",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "tldraw": "5.4.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {

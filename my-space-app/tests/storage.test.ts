@@ -2,7 +2,7 @@ import {describe,it,expect,vi,beforeAll} from 'vitest';
 import {db} from '../src/lib/db';
 import {blankDoc,plainText,textDocument} from '../src/lib/models';
 import {initialize,saveDocument,saveBoard,stageBoard,persistStagedBoard,removeBoard,backup,flush,parseBackup,importBackup,importBoard,validateBoardSnapshot} from '../src/lib/library';
-import {createTLSchema,DocumentRecordType,PageRecordType} from '@tldraw/tlschema';
+import {toSnapshot,isLegacyBoard} from '../src/lib/board';
 const envelope=(documents:unknown[]=[],boards:unknown[]=[])=>JSON.stringify({format:'my-space-backup',version:1,documents,boards});
 beforeAll(async()=>{await initialize();});
 describe('local data boundaries',()=>{
@@ -13,6 +13,14 @@ describe('local data boundaries',()=>{
  it('imports valid backups as copies and never replaces existing documents',async()=>{const d=textDocument('keep me','Original');saveDocument(d);await flush();await importBackup(envelope([{...d,title:'Imported'}]));expect((await db.documents.get(d.id))?.title).toBe('Original');expect((await db.documents.toArray()).some(v=>v.id!==d.id&&v.title==='Imported')).toBe(true);});
  it('rolls back a whole import when the board write fails',async()=>{const before=await db.documents.count();const spy=vi.spyOn(db.boards,'bulkAdd').mockRejectedValueOnce(new Error('quota'));await expect(importBackup(envelope([blankDoc()],[{id:'valid',title:'Empty',snapshot:null,updatedAt:0}]))).rejects.toThrow();expect(await db.documents.count()).toBe(before);spy.mockRestore();});
  it('does not recreate a deleted board when a debounce cleanup fires',async()=>{const board={id:'delete-me',title:'Board',snapshot:null,updatedAt:0};saveBoard(board);stageBoard({...board,title:'Pending edit'});removeBoard(board.id);persistStagedBoard(board.id);await flush();expect(await db.boards.get(board.id)).toBeUndefined();expect(backup().boards.some(b=>b.id===board.id)).toBe(false);});
- it('validates native snapshots and rejects corrupt session state and record IDs',async()=>{const schema=createTLSchema();const doc=DocumentRecordType.create({id:DocumentRecordType.createId('document')});const page=PageRecordType.create({name:'Page',index:'a1' as never});const snapshot={document:{store:{[doc.id]:doc,[page.id]:page},schema:schema.serialize()}};await expect(validateBoardSnapshot(snapshot)).resolves.toBeUndefined();await expect(validateBoardSnapshot({...snapshot,session:{version:999}})).rejects.toThrow();await expect(validateBoardSnapshot({document:{...snapshot.document,store:{wrong:doc,[page.id]:page}}})).rejects.toThrow();const imported=await importBoard(JSON.stringify({format:'my-space-board',version:1,board:{id:'old',title:'Native',snapshot,updatedAt:0}}));expect(imported.id).not.toBe('old');await flush();});
+ it('validates Excalidraw snapshots and rejects embeds, unsafe links and remote images',async()=>{
+  const png='data:image/png;base64,iVBORw0KGgo=';
+  const snapshot=toSnapshot([{id:'a',type:'rectangle'},{id:'b',type:'image',fileId:'f1'},{id:'gone',type:'ellipse',isDeleted:true}],{viewBackgroundColor:'#ffffff'},{f1:{id:'f1',mimeType:'image/png',dataURL:png,created:1} as never,unused:{id:'unused'}});
+  expect(snapshot.elements.map(e=>e.id)).toEqual(['a','b']);expect(Object.keys(snapshot.files)).toEqual(['f1']);
+  expect(()=>validateBoardSnapshot(snapshot as never)).not.toThrow();
+  for(const bad of [{...snapshot,elements:[{id:'e',type:'embeddable'}]},{...snapshot,elements:[{id:'l',type:'rectangle',link:'javascript:alert(1)'}]},{...snapshot,files:{f1:{id:'f1',mimeType:'image/png',dataURL:'https://evil.example/x.png',created:1}}},{...snapshot,files:{f1:{id:'f1',mimeType:'image/svg+xml',dataURL:'data:image/svg+xml;base64,AA==',created:1}}},{...snapshot,elements:[{id:'d',type:'text'},{id:'d',type:'text'}]},{document:{store:{}}}])expect(()=>validateBoardSnapshot(bad as never)).toThrow();
+  expect(isLegacyBoard({document:{}})).toBe(true);expect(isLegacyBoard(snapshot as never)).toBe(false);expect(isLegacyBoard(null)).toBe(false);
+  const imported=await importBoard(JSON.stringify({format:'my-space-board',version:1,board:{id:'old',title:'Drawn',snapshot,updatedAt:0}}));expect(imported.id).not.toBe('old');await flush();
+ });
  it('safely treats Markdown and HTML-like text as literal content',async()=>{const doc=textDocument('<img src=x onerror=alert(1)>\n# Heading','Safe import');expect((await parseBackup(envelope([doc]))).documents[0].text).toBe(doc.text);});
 });

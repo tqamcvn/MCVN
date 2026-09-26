@@ -1,4 +1,4 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
 import next from 'eslint-config-next/core-web-vitals';
 import ts from 'eslint-config-next/typescript';
-export default defineConfig([...next,...ts,globalIgnores(['.next/**','out/**','public/tldraw/**']),{rules:{'react-hooks/set-state-in-effect':'off'}}]);
+export default defineConfig([...next,...ts,globalIgnores(['.next/**','out/**','public/excalidraw/**']),{rules:{'react-hooks/set-state-in-effect':'off'}}]);
