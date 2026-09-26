@@ -2,9 +2,10 @@
 // Focus workspace adapted from qamcvnfocus. The timer, reminders and music run in lib/focus-store so they keep
 // going while you use other modes; everything stays in this browser, with no login or cloud sync.
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Play,Pause,RotateCcw,SkipForward,Settings2,AlertTriangle,Flame,Target,Lightbulb,Bell,Music,X,Timer,Image as ImageIcon,Upload,Sparkles,Ban} from 'lucide-react';
+import {Play,Pause,RotateCcw,SkipForward,Settings2,AlertTriangle,Flame,Target,Lightbulb,Bell,Music,X,Timer,Image as ImageIcon,Upload,Sparkles,Ban,Search} from 'lucide-react';
 import {pref} from '@/lib/preferences';
-import {type TimerMode,modes,modeLabels,maxMinutes,recommendedMinutes,currentStreak,todayStats,youtubeId} from '@/lib/focus';
+import {type TimerMode,modes,modeLabels,maxMinutes,recommendedMinutes,currentStreak,todayStats} from '@/lib/focus';
+import {type Track,parseYouTube,searchYouTube,searchKey} from '@/lib/music';
 import {useFocus,startTimer,pauseTimer,resetTimer,isFocusInProgress,abandonFocus,setMinutes,setGoal,toggleReminder,restartReminders,playMusic,stopMusic,reminderList,genres,clock} from '@/lib/focus-store';
 import {type Background,type Fit,pictures,fits,defaultBackground,loadBackground,pictureURL,suggestFit,backgroundStyle,scaledSize,MAX_SIDE} from '@/lib/focus-background';
 
@@ -84,13 +85,26 @@ function HealthReminders(){
 }
 
 function MusicPanel(){
- const {music}=useFocus(),[draft,setDraft]=useState(''),[error,setError]=useState('');
+ const {music}=useFocus(),[draft,setDraft]=useState(''),[error,setError]=useState(''),[results,setResults]=useState<Track[]>([]),[searching,setSearching]=useState(false),canSearch=!!searchKey();
+ const search=useRef<AbortController|null>(null);
+ async function submit(e:React.FormEvent){
+  e.preventDefault();const text=draft.trim();if(!text)return;setError('');
+  const link=parseYouTube(text);
+  if(link){playMusic(link.video,{list:link.list,queue:[]});setDraft('');return;}
+  if(!canSearch){setError('Paste a YouTube video or playlist link.');return;}
+  search.current?.abort();const ctrl=new AbortController();search.current=ctrl;setSearching(true);
+  try{const found=await searchYouTube(text,undefined,ctrl.signal);setResults(found);if(!found.length)setError('No videos found. Try other words.');}
+  catch(err){if(!ctrl.signal.aborted)setError(err instanceof Error?err.message:'Search failed.');}
+  finally{if(search.current===ctrl)setSearching(false);}
+ }
+ function play(i:number){const t=results[i];playMusic(t.id,{queue:results.slice(i+1).map(r=>r.id),titles:Object.fromEntries(results.map(r=>[r.id,r.title]))});}
  return <Panel title="Music" icon={<Music size={16}/>}>
   <div className="chips">{genres.map(([label,id])=><button key={id} aria-pressed={music.video===id} className={music.video===id?'active':''} onClick={()=>playMusic(id)}>{label}</button>)}</div>
   {music.playing?<button className="music-play" onClick={stopMusic}><X size={14}/>Stop music</button>:<button className="primary music-play" onClick={()=>playMusic()}><Play size={14}/>Play music</button>}
-  <form className="music-form" onSubmit={e=>{e.preventDefault();const id=youtubeId(draft);if(!id){setError('Paste a YouTube video link.');return;}setError('');playMusic(id);setDraft('');}}><input aria-label="YouTube link" placeholder="Paste a YouTube link…" value={draft} onChange={e=>setDraft(e.target.value)}/><button>Play</button></form>
+  <form className="music-form" onSubmit={e=>void submit(e)}><input aria-label={canSearch?'Search YouTube or paste a link':'YouTube link'} placeholder={canSearch?'Search YouTube or paste a link…':'Paste a YouTube or playlist link…'} value={draft} onChange={e=>setDraft(e.target.value)}/><button disabled={searching}>{canSearch?<Search size={14}/>:null}{searching?'…':canSearch?'Search':'Play'}</button></form>
   {error&&<p className="focus-small" role="alert">{error}</p>}
-  <p className="subtle focus-small">Music plays in the mini player at the bottom right and keeps going in other modes and other MCVN dashboards. If a station won’t play, pick another or paste a YouTube link. It streams from YouTube only after you press play; YouTube never receives your documents or boards.</p>
+  {results.length>0&&<ul className="music-results" aria-label="Search results">{results.map((r,i)=><li key={r.id}><button className={music.video===r.id?'active':''} onClick={()=>play(i)} title={r.title}><i className="thumb" aria-hidden="true" style={r.thumb?{backgroundImage:`url("${r.thumb}")`}:undefined}/><span><strong>{r.title}</strong><small>{r.channel}</small></span></button></li>)}</ul>}
+  <p className="subtle focus-small">Use ⏮ ⏭ on the player to change videos; it moves on by itself when one ends, and YouTube’s suggestions appear when you pause. Music keeps going in other modes and MCVN dashboards. {canSearch?'Searches are sent to YouTube (Google).':''} YouTube never receives your documents or boards.</p>
  </Panel>;
 }
 

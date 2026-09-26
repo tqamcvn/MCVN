@@ -53,3 +53,6 @@ html.mini .music-dock,html.mini .music-dock.on-work{position:fixed;inset:0;width
 /* Draggable music player */
 .music-dock header{cursor:grab;user-select:none;touch-action:none}.music-dock header button{cursor:pointer}.music-dock .grip{color:var(--gray-500)}.music-dock.dragging header{cursor:grabbing}.music-dock.dragging iframe{pointer-events:none}
 .dock-update{margin:0;padding:5px 10px;font-size:11px;background:var(--warning-light);color:var(--gray-900)}.dock-update button{padding:0 4px;font-size:11px;color:var(--accent);text-decoration:underline}
+/* Music search results */
+.music-form button{display:inline-flex;gap:5px}.music-results{list-style:none;margin:8px 0 0;padding:0;max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:2px}.music-results button{width:100%;display:flex;align-items:flex-start;gap:8px;padding:5px;text-align:left;white-space:normal;font-weight:400}.music-results button.active{background:var(--accent-light)}.music-results .thumb{width:64px;height:36px;border-radius:5px;flex-shrink:0;background:var(--gray-200) center/cover}.music-results span{display:flex;flex-direction:column;min-width:0}.music-results strong{font-size:12px;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.music-results small{font-size:10px;color:var(--muted)}
+.music-dock header span{min-width:0}

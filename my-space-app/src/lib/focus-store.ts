@@ -4,6 +4,7 @@
 // timestamps saved in localStorage, so a reload continues where it left off.
 import {useSyncExternalStore} from 'react';
 import {pref} from './preferences';
+import type {Music} from './music';
 import {type TimerMode,type Discipline,type Durations,modes,modeLabels,defaultDurations,defaultDiscipline,loadDiscipline,loadDurations,save,completeSession,abandonSession} from './focus';
 
 export type Timer={mode:TimerMode;endAt:number|null;remaining:number;started:boolean};
@@ -11,11 +12,11 @@ export type Reminder={id:string;label:string;icon:string;minutes:number};
 export const reminderList:Reminder[]=[{id:'eyes',label:'Rest your eyes',icon:'👀',minutes:20},{id:'water',label:'Drink water',icon:'💧',minutes:30},{id:'stretch',label:'Stretch',icon:'🙆',minutes:45},{id:'walk',label:'Take a walk',icon:'🚶',minutes:60}];
 // Checked 2026-09-26: each plays when embedded from teamqamcvn.com. Streams can end, so the panel also accepts any YouTube link.
 export const genres=[['Lofi','7NOSDKb0HlU'],['Jazz','VMAPTo7RVCo'],['Piano','77ZozI0rw7w'],['Nature','xNN7iTA57jM'],['Ambient','S_MOd40zlYU'],['Classical','jgpJVI3tDbY'],['Chill','lTRiuFIWV54'],['Synthwave','4xDzrJKXOOY']] as const;
-export type FocusState={ready:boolean;now:number;durations:Durations;discipline:Discipline;timer:Timer;enabled:Record<string,boolean>;due:Record<string,number>;music:{video:string;playing:boolean};notice:string;storageError:boolean};
+export type FocusState={ready:boolean;now:number;durations:Durations;discipline:Discipline;timer:Timer;enabled:Record<string,boolean>;due:Record<string,number>;music:Music;notice:string;storageError:boolean};
 
 export const clock=(ms:number)=>{const s=Math.ceil(ms/1000);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;};
 const fresh=(mode:TimerMode,d:Durations):Timer=>({mode,endAt:null,remaining:d[mode]*60000,started:false});
-let state:FocusState={ready:false,now:0,durations:defaultDurations,discipline:defaultDiscipline,timer:fresh('focus',defaultDurations),enabled:{},due:{},music:{video:genres[0][1],playing:false},notice:'',storageError:false};
+let state:FocusState={ready:false,now:0,durations:defaultDurations,discipline:defaultDiscipline,timer:fresh('focus',defaultDurations),enabled:{},due:{},music:{video:genres[0][1],queue:[],list:'',titles:{},playing:false},notice:'',storageError:false};
 const serverState=state,listeners=new Set<()=>void>();
 function publish(change:Partial<FocusState>){state={...state,...change};listeners.forEach(fn=>fn());}
 export function useFocus(){return useSyncExternalStore(fn=>{listeners.add(fn);return()=>{listeners.delete(fn);};},()=>state,()=>serverState);}
@@ -46,7 +47,7 @@ export function initFocus(){
  const due=Object.fromEntries(reminderList.map(r=>[r.id,typeof stored[r.id]==='number'&&stored[r.id]>now?stored[r.id]:now+r.minutes*60000]));
  // Stations that stopped working are swapped for the current default.
  const retired=['jfKfPfyJRdk','BfkzVBRt1J0','mIYzp5rcTvU','9fh0qPef_ao'],saved=pref.get('focus-music',''),video=retired.includes(saved)?'':saved;
- publish({ready:true,now,durations,discipline:loadDiscipline(),timer:cleanTimer(readJSON('focus-timer',null),durations),enabled,due,music:{video:genres.some(g=>g[1]===video)||/^[\w-]{11}$/.test(video)?video:genres[0][1],playing:false}});
+ publish({ready:true,now,durations,discipline:loadDiscipline(),timer:cleanTimer(readJSON('focus-timer',null),durations),enabled,due,music:{video:genres.some(g=>g[1]===video)||/^[\w-]{11}$/.test(video)?video:genres[0][1],queue:[],list:'',titles:{},playing:false}});
  saveDue(due);
  tick();
  ticker=setInterval(tick,250);
@@ -92,5 +93,12 @@ export function toggleReminder(id:string){
  const r=reminderList.find(x=>x.id===id)!,due={...state.due,[id]:Date.now()+r.minutes*60000};saveDue(due);publish({enabled,due});
 }
 export function restartReminders(){const now=Date.now(),due=Object.fromEntries(reminderList.map(r=>[r.id,now+r.minutes*60000]));saveDue(due);publish({due});}
-export function playMusic(video=state.music.video){pref.set('focus-music',video);publish({music:{video,playing:true}});}
+/** Plays one video followed by a queue (next/previous and auto-advance come from the player's playlist), or a YouTube playlist. */
+export function playMusic(video=state.music.video,options:{queue?:string[];list?:string;titles?:Record<string,string>}={}){
+ if(video)pref.set('focus-music',video);
+ // A preset station continues with the other stations, so "next" always has somewhere to go.
+ const station=genres.findIndex(g=>g[1]===video);
+ const queue=options.queue??(station>=0?[...genres.slice(station+1),...genres.slice(0,station)].map(g=>g[1] as string):[]);
+ publish({music:{video,queue,list:options.list??'',titles:{...Object.fromEntries(genres.map(g=>[g[1],g[0]])),...options.titles},playing:true}});
+}
 export function stopMusic(){publish({music:{...state.music,playing:false}});}
