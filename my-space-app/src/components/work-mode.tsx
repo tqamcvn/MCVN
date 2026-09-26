@@ -90,7 +90,7 @@ function MusicPanel(){
   {music.playing?<button className="music-play" onClick={stopMusic}><X size={14}/>Stop music</button>:<button className="primary music-play" onClick={()=>playMusic()}><Play size={14}/>Play music</button>}
   <form className="music-form" onSubmit={e=>{e.preventDefault();const id=youtubeId(draft);if(!id){setError('Paste a YouTube video link.');return;}setError('');playMusic(id);setDraft('');}}><input aria-label="YouTube link" placeholder="Paste a YouTube link…" value={draft} onChange={e=>setDraft(e.target.value)}/><button>Play</button></form>
   {error&&<p className="focus-small" role="alert">{error}</p>}
-  <p className="subtle focus-small">Music plays in the mini player at the bottom right and keeps going in other modes. It streams from YouTube only after you press play; YouTube never receives your documents or boards.</p>
+  <p className="subtle focus-small">Music plays in the mini player at the bottom right and keeps going in other modes and other MCVN dashboards. If a station won’t play, pick another or paste a YouTube link. It streams from YouTube only after you press play; YouTube never receives your documents or boards.</p>
  </Panel>;
 }
 

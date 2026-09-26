@@ -9,7 +9,8 @@ import {type TimerMode,type Discipline,type Durations,modes,modeLabels,defaultDu
 export type Timer={mode:TimerMode;endAt:number|null;remaining:number;started:boolean};
 export type Reminder={id:string;label:string;icon:string;minutes:number};
 export const reminderList:Reminder[]=[{id:'eyes',label:'Rest your eyes',icon:'👀',minutes:20},{id:'water',label:'Drink water',icon:'💧',minutes:30},{id:'stretch',label:'Stretch',icon:'🙆',minutes:45},{id:'walk',label:'Take a walk',icon:'🚶',minutes:60}];
-export const genres=[['Lofi','jfKfPfyJRdk'],['Jazz','VMAPTo7RVCo'],['Piano','BfkzVBRt1J0'],['Nature','xNN7iTA57jM'],['Ambient','S_MOd40zlYU'],['Classical','mIYzp5rcTvU'],['Chill','lTRiuFIWV54'],['Rock','9fh0qPef_ao']] as const;
+// Checked 2026-09-26: each plays when embedded from teamqamcvn.com. Streams can end, so the panel also accepts any YouTube link.
+export const genres=[['Lofi','7NOSDKb0HlU'],['Jazz','VMAPTo7RVCo'],['Piano','77ZozI0rw7w'],['Nature','xNN7iTA57jM'],['Ambient','S_MOd40zlYU'],['Classical','jgpJVI3tDbY'],['Chill','lTRiuFIWV54'],['Synthwave','4xDzrJKXOOY']] as const;
 export type FocusState={ready:boolean;now:number;durations:Durations;discipline:Discipline;timer:Timer;enabled:Record<string,boolean>;due:Record<string,number>;music:{video:string;playing:boolean};notice:string;storageError:boolean};
 
 export const clock=(ms:number)=>{const s=Math.ceil(ms/1000);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;};
@@ -43,7 +44,8 @@ export function initFocus(){
  const stored=readJSON<Record<string,number>>('focus-reminder-due',{});
  // Deadlines missed while the page was closed are simply rescheduled rather than all firing at once.
  const due=Object.fromEntries(reminderList.map(r=>[r.id,typeof stored[r.id]==='number'&&stored[r.id]>now?stored[r.id]:now+r.minutes*60000]));
- const video=pref.get('focus-music','');
+ // Stations that stopped working are swapped for the current default.
+ const retired=['jfKfPfyJRdk','BfkzVBRt1J0','mIYzp5rcTvU','9fh0qPef_ao'],saved=pref.get('focus-music',''),video=retired.includes(saved)?'':saved;
  publish({ready:true,now,durations,discipline:loadDiscipline(),timer:cleanTimer(readJSON('focus-timer',null),durations),enabled,due,music:{video:genres.some(g=>g[1]===video)||/^[\w-]{11}$/.test(video)?video:genres[0][1],playing:false}});
  saveDue(due);
  tick();
