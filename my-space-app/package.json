@@ -9,8 +9,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "build:pages": "node scripts/assets.mjs && node scripts/pages.mjs",
-    "package:site": "npm run build:pages && node scripts/package-site.mjs"
+    "build:pages": "node scripts/assets.mjs && node scripts/pages.mjs"
   },
   "dependencies": {
     "@tiptap/extension-highlight": "3.31.3",

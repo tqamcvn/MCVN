@@ -52,9 +52,9 @@ The repository root remains the existing MCVN website. Its My Space menu opens `
 npm run build:pages
 ```
 
-This exports Next.js and copies `out/` to the ignored repository `my-space/` directory. No Next.js server is required. `npm run package:site` packages the full MCVN site into `.site/`, combining existing tracked static pages with the app.
+This exports Next.js to `out/` and replaces the repository's `my-space/` directory with it. The built `my-space/` folder is committed, because teamqamcvn.com is served by GitHub Pages straight from the `Workspace` branch; no Next.js server or Actions workflow is needed. Rebuild and commit `my-space/` whenever the app changes.
 
-The manual **Build MCVN with My Space** workflow publishes that complete artifact through GitHub Pages after merge. Configure Pages to use GitHub Actions and set the repository secret `TLDRAW_LICENSE_KEY` to your valid production license before publishing Create. No deployment is automatically triggered by this change.
+Inside the dashboard, My Space and the MCVN sidebar take turns: opening My Space collapses the MCVN sidebar (restored when you leave, without changing the saved preference), expanding the My Space rail collapses the MCVN sidebar, and expanding the MCVN sidebar collapses the rail. The two frames talk through same-origin `postMessage` (`my-space-rail`, `mcvn-sidebar`). The Back to MCVN link is hidden when embedded.
 
 A separate host can build the `my-space-app` directory with `npm run build`, output `out`, and an empty `NEXT_PUBLIC_BASE_PATH`. The Back to MCVN link assumes MCVN is on the same origin; adjust it for a separate domain.
 

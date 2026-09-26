@@ -1175,6 +1175,7 @@ function showHome() {
   toolFrame.src = 'about:blank';
   heroEl.style.display = 'flex';
   contentEl.style.display = 'block';
+  syncMySpaceSidebar();
 }
 
 function showSettings() {
@@ -1185,6 +1186,7 @@ function showSettings() {
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   settingsView.classList.add('visible');
+  syncMySpaceSidebar();
 }
 
 function currentTheme() {
@@ -1220,6 +1222,7 @@ function showTool(src, title) {
     toolEmpty.classList.add('visible');
   }
   toolView.classList.add('visible');
+  syncMySpaceSidebar();
 }
 
 // Mỗi mục có "key" cho URL: tool -> data-tool, còn lại -> data-view (home/settings)
@@ -1329,8 +1332,41 @@ sbToggle.addEventListener('click', () => {
   document.body.classList.toggle('sb-collapsed');
   localStorage.setItem(SB_KEY, document.body.classList.contains('sb-collapsed') ? '1' : '0');
   syncSbTitle();
+  if (inMySpace()) {
+    mySpaceSbPrev = null;  // người dùng tự chọn -> giữ nguyên khi rời My Space
+    if (!document.body.classList.contains('sb-collapsed')) {
+      try { toolFrame.contentWindow.postMessage({ type:'mcvn-sidebar', collapsed:false }, location.origin); } catch(e) {}
+    }
+  }
 });
 syncSbTitle();
+
+/* ---- My Space: thu gọn sidebar MCVN khi mở My Space (không lưu), trả lại khi rời ----
+   Thanh của My Space và sidebar MCVN luân phiên: mở thanh này thì thanh kia đóng. */
+var mySpaceSbPrev = null;
+function inMySpace() {
+  var active = document.querySelector('.nav-item.active');
+  return !!active && active.dataset.tool === 'my-space';
+}
+function syncMySpaceSidebar() {
+  if (inMySpace() && mySpaceSbPrev == null) {
+    mySpaceSbPrev = document.body.classList.contains('sb-collapsed');
+    document.body.classList.add('sb-collapsed');
+  } else if (!inMySpace() && mySpaceSbPrev != null) {
+    document.body.classList.toggle('sb-collapsed', mySpaceSbPrev);
+    mySpaceSbPrev = null;
+  } else return;
+  try { syncSbTitle(); } catch(e) {}
+}
+window.addEventListener('message', function (e) {
+  if (e.origin !== location.origin || e.source !== toolFrame.contentWindow) return;
+  var d = e.data || {};
+  if (d.type === 'my-space-rail' && d.expanded && !document.body.classList.contains('sb-collapsed')) {
+    document.body.classList.add('sb-collapsed');
+    syncSbTitle();
+  }
+});
+syncMySpaceSidebar();
 
 /* ---- Giao diện sáng / tối (nhớ lựa chọn) ---- */
 const THEME_KEY = 'tqa_theme';
