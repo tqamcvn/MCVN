@@ -537,7 +537,12 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
 }
 .tool-btn:hover { background: var(--gray-50); border-color: var(--gray-500); }
 .tool-btn svg { width: 14px; height: 14px; }
-#tool-frame, #my-space-frame { flex: 1; width: 100%; border: 0; background: var(--white); }
+#tool-frame { flex: 1; width: 100%; border: 0; background: var(--white); }
+#my-space-slot { flex: 1; }
+#my-space-frame { position: fixed; z-index: 5; border: 0; background: var(--white); border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
+/* đặt bên trái linh vật (lantern companion ~140px ở góc phải dưới) */
+#my-space-frame.mini { left: auto !important; top: auto !important; right: 170px; bottom: 20px; width: 300px !important; height: 206px !important; z-index: 9000; border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,.25); }
+@media (max-width: 540px) { #my-space-frame.mini { right: 10px; bottom: 160px; width: 240px !important; height: 172px !important; } }
 .tool-empty {
   flex: 1; display: none; align-items: center; justify-content: center;
   flex-direction: column; gap: 10px; color: var(--gray-500);
@@ -699,7 +704,7 @@ body { background: var(--canvas); }
 .hero { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
 .tool-view { height: calc(100vh - var(--gap) * 2 - 2px); background: transparent; }
 .tool-bar { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
-#tool-frame, #my-space-frame { border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
+#tool-frame { border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
 
 /* Thu gọn: khối sidebar hẹp, icon căn giữa trong ô bo tròn */
 body.sb-collapsed .sidebar { width: 68px; }
@@ -960,6 +965,7 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
     </div>
     <iframe id="tool-frame" title="Tool" referrerpolicy="no-referrer"></iframe>
     <!-- My Space có khung riêng: chỉ ẩn khi mở mục khác, không tải lại -> nhạc/đồng hồ Focus chạy tiếp -->
+    <div id="my-space-slot" style="display:none"></div>
     <iframe id="my-space-frame" title="My Space" referrerpolicy="no-referrer" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write" style="display:none"></iframe>
     <div class="tool-empty" id="tool-empty">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -1265,6 +1271,8 @@ const contentEl = document.querySelector('.content');
 const toolView = document.getElementById('tool-view');
 const toolFrame = document.getElementById('tool-frame');
 const mySpaceFrame = document.getElementById('my-space-frame');
+const mySpaceSlot = document.getElementById('my-space-slot');
+document.body.appendChild(mySpaceFrame); // thẳng dưới body (trước khi tải) để khung nổi không bị view cha ẩn theo
 const toolEmpty = document.getElementById('tool-empty');
 const toolTitle = document.getElementById('tool-title');
 const toolNewtab = document.getElementById('tool-newtab');
@@ -1316,14 +1324,12 @@ function showTool(src, title) {
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   toolTitle.textContent = title;
-  mySpaceFrame.style.display = 'none';
   if (presenceKey === 'my-space') {
     window.TQALoading?.stop();
     toolEmpty.classList.remove('visible');
     toolFrame.style.display = 'none';
     toolFrame.src = 'about:blank';
     if (!mySpaceFrame.getAttribute('src')) mySpaceFrame.src = withTheme(src);
-    mySpaceFrame.style.display = 'block';
     toolNewtab.href = src;
     toolNewtab.style.display = 'inline-flex';
   } else if (src) {
@@ -1472,6 +1478,7 @@ function inMySpace() {
   return !!active && active.dataset.tool === 'my-space';
 }
 function syncMySpaceSidebar() {
+  layoutMySpace();
   if (inMySpace() && mySpaceSbPrev == null) {
     mySpaceSbPrev = document.body.classList.contains('sb-collapsed');
     document.body.classList.add('sb-collapsed');
@@ -1488,8 +1495,36 @@ window.addEventListener('message', function (e) {
     document.body.classList.add('sb-collapsed');
     syncSbTitle();
   }
-  if (d.type === 'my-space-focus') showMySpaceFocus(d);
+  if (d.type === 'my-space-focus') { showMySpaceFocus(d); if (!!d.music !== mySpaceMusic) { mySpaceMusic = !!d.music; layoutMySpace(); } }
+  if (d.type === 'my-space-open') location.hash = 'my-space';
 });
+/* Khung My Space: phủ đúng vùng tool khi đang mở My Space; ở dashboard khác thì thu thành trình phát nhạc nổi (nếu đang phát). */
+var mySpaceMusic = false, mySpaceMini = null;
+function layoutMySpace() {
+  if (typeof mySpaceFrame === 'undefined' || !mySpaceFrame) return;
+  var open = inMySpace() && toolView.classList.contains('visible');
+  mySpaceSlot.style.display = open ? 'block' : 'none';
+  var mini = !open && mySpaceMusic && !!mySpaceFrame.getAttribute('src');
+  if (open) {
+    var r = mySpaceSlot.getBoundingClientRect();
+    mySpaceFrame.classList.remove('mini');
+    mySpaceFrame.style.cssText = 'display:block;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px';
+  } else if (mini) {
+    mySpaceFrame.classList.add('mini');
+    mySpaceFrame.style.cssText = 'display:block';
+  } else {
+    mySpaceFrame.classList.remove('mini');
+    mySpaceFrame.style.cssText = 'display:none';
+  }
+  if (mini !== mySpaceMini && mySpaceFrame.contentWindow) {
+    mySpaceMini = mini;
+    try { mySpaceFrame.contentWindow.postMessage({ type:'mcvn-mini', on: mini }, location.origin); } catch(e) {}
+  }
+}
+if (window.ResizeObserver) new ResizeObserver(layoutMySpace).observe(mySpaceSlot);
+window.addEventListener('resize', layoutMySpace);
+document.addEventListener('transitionend', layoutMySpace);
+mySpaceFrame.addEventListener('load', function(){ mySpaceMini = null; layoutMySpace(); });
 /* Đồng hồ Focus của My Space vẫn chạy khi xem dashboard khác: hiện giờ còn lại trên menu + báo khi hết giờ. */
 function showMySpaceFocus(d) {
   var nav = document.getElementById('my-space-nav');
