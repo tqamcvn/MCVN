@@ -52,3 +52,4 @@ html.mini body{background:transparent}html.mini .workspace{padding:0;min-height:
 html.mini .music-dock,html.mini .music-dock.on-work{position:fixed;inset:0;width:auto;border:0;border-radius:0;box-shadow:none;display:flex;flex-direction:column}html.mini .music-dock iframe{flex:1;aspect-ratio:auto;height:auto}
 /* Draggable music player */
 .music-dock header{cursor:grab;user-select:none;touch-action:none}.music-dock header button{cursor:pointer}.music-dock .grip{color:var(--gray-500)}.music-dock.dragging header{cursor:grabbing}.music-dock.dragging iframe{pointer-events:none}
+.dock-update{margin:0;padding:5px 10px;font-size:11px;background:var(--warning-light);color:var(--gray-900)}.dock-update button{padding:0 4px;font-size:11px;color:var(--accent);text-decoration:underline}

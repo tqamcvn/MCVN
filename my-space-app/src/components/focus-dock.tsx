@@ -11,12 +11,16 @@ import {pref} from '@/lib/preferences';
 type Point={x:number;y:number};
 const toParent=(data:Record<string,unknown>)=>{if(window.parent!==window)window.parent.postMessage(data,location.origin);};
 const clamp=(v:number,min:number,max:number)=>Math.max(min,Math.min(Math.max(min,max),v));
+/** The dashboard page can be served from browser cache for hours; this frame is always fresh, so it checks the dashboard's version. */
+const DASHBOARD_API=3;
+function dashboardOutdated(){try{return window.parent!==window&&((window.parent as unknown as {MCVN_MY_SPACE_API?:number}).MCVN_MY_SPACE_API??0)<DASHBOARD_API;}catch{return false;}}
 function savedPos():Point|null{try{const p=JSON.parse(pref.get('music-dock-pos','null'));return p&&Number.isFinite(p.x)&&Number.isFinite(p.y)?p:null;}catch{return null;}}
 
 export function FocusDock(){
  const {ready,timer,notice,music}=useFocus(),[small,setSmall]=useState(false),[mini,setMini]=useState(false),onWork=/\/work\/?$/.test(usePathname());
  const dock=useRef<HTMLElement>(null),drag=useRef<{sx:number;sy:number;left:number;top:number}|null>(null),[dragging,setDragging]=useState(false),[pos,setPos]=useState<Point|null>(null);
- useEffect(()=>{initFocus();setPos(savedPos());},[]);
+ const [outdated,setOutdated]=useState(false);
+ useEffect(()=>{initFocus();setPos(savedPos());setOutdated(dashboardOutdated());},[]);
  useEffect(()=>{const onMessage=(e:MessageEvent)=>{if(e.origin===location.origin&&e.source===window.parent&&e.data?.type==='mcvn-mini')setMini(e.data.on===true);};window.addEventListener('message',onMessage);return()=>window.removeEventListener('message',onMessage);},[]);
  useEffect(()=>{document.documentElement.classList.toggle('mini',mini);},[mini]);
  // Keep a moved player on screen when the window gets smaller.
@@ -58,6 +62,7 @@ export function FocusDock(){
     {mini?<button aria-label="Open My Space" title="Open My Space" onClick={()=>toParent({type:'my-space-open'})}><Maximize2 size={14}/></button>
      :<button aria-label={small?'Expand music player':'Shrink music player'} title={small?'Expand':'Shrink'} onClick={()=>setSmall(!small)}><Minus size={14}/></button>}
     <button aria-label="Stop music" title="Stop music" onClick={stopMusic}><X size={14}/></button></header>
+   {outdated&&mini&&<p className="dock-update">MCVN has an update. <button onClick={()=>window.parent.location.reload()}>Refresh</button> to move this player.</p>}
    <iframe key={music.video} title="Focus music" src={`https://www.youtube-nocookie.com/embed/${music.video}?autoplay=1&rel=0`} referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="autoplay; encrypted-media; picture-in-picture"/>
   </aside>}
  </>;

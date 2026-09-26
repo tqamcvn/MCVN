@@ -1509,6 +1509,8 @@ window.addEventListener('message', function (e) {
   }
 });
 /* Khung My Space: phủ đúng vùng tool khi đang mở My Space; ở dashboard khác thì thu thành trình phát nhạc nổi (nếu đang phát). */
+// Phiên bản giao tiếp với My Space: khung My Space (luôn tải mới) so số này để phát hiện dashboard cũ còn trong bộ nhớ đệm.
+window.MCVN_MY_SPACE_API = 3;
 var mySpaceMusic = false, mySpaceMini = null;
 /* Vị trí trình phát nhạc nổi: người dùng kéo ở thanh tiêu đề (nhấp đúp để về chỗ cũ); mặc định bên trái linh vật. */
 var MINI_POS_KEY = 'tqa_myspace_mini_pos', mySpaceMiniPos = null;
