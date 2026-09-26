@@ -576,8 +576,38 @@ body.sb-collapsed .sb-toggle svg { transform: rotate(180deg); }
 }
 
 /* ---- Cài đặt / đổi mật khẩu ---- */
-.settings-view { display: none; flex: 1; padding: 28px 40px; }
-.settings-view.visible { display: block; }
+.settings-view {
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  padding: 24px 16px; overflow-y: auto;
+  background: rgba(15, 18, 22, 0.45);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.settings-view.visible { display: flex; justify-content: center; align-items: flex-start; }
+body.modal-open { overflow: hidden; }
+.stg-dialog {
+  width: 100%; max-width: 580px; margin: auto 0;
+  background: var(--white); color: var(--gray-900);
+  border-radius: 26px; padding: 26px 28px 28px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.25);
+  animation: stgIn 0.18s ease;
+}
+@keyframes stgIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+.stg-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.stg-dialog-title { font-size: 22px; font-weight: 700; letter-spacing: -0.2px; }
+.stg-close { width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; color: var(--gray-600); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.stg-close:hover { background: var(--gray-100); color: var(--gray-900); }
+.stg-close svg { width: 20px; height: 20px; }
+.settings-view .stg-card { max-width: none; box-shadow: none; border-radius: 18px; padding: 18px; margin-bottom: 14px !important; }
+.settings-view .stg-card:last-child { margin-bottom: 0 !important; }
+.settings-view .stg-btn, .settings-view .stg-input { border-radius: 12px; }
+.settings-view .stg-btn { padding: 11px 20px; }
+.settings-view .pref-row { flex-direction: column; align-items: stretch; gap: 10px; border-bottom: none; padding: 10px 0 4px; }
+.settings-view .seg-switch { width: 100%; padding: 4px; border: none; background: var(--gray-100); border-radius: 14px; }
+.settings-view .seg-option { flex: 1; padding: 10px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+.settings-view .seg-option.active { box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+.theme-dark .settings-view .seg-option.active { background: var(--gray-300); }
+.settings-view .mascot-tile { border-radius: 16px; }
+@media (max-width: 540px) { .stg-dialog { padding: 20px 16px; border-radius: 22px; } }
 
 /* Team vận hành (role không có "QA") -> ẩn các mục chỉ dành cho QA */
 body.ops-view .qa-only { display: none !important; }
@@ -617,6 +647,66 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
 .seg-option { min-width: 58px; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--gray-600); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .seg-option.active { background: var(--white); color: var(--accent-dark); box-shadow: var(--shadow-sm); }
 @media (max-width: 540px) { .pref-row { align-items: flex-start; flex-direction: column; } .seg-switch { width: 100%; } .seg-option { flex: 1; } }
+
+/* =========================================================
+   GIAO DIỆN BO TRÒN — sidebar + nội dung là các khối nổi trên nền
+   ========================================================= */
+:root { --canvas: #eceff3; --gap: 14px; --radius-panel: 22px; --sb-w: 220px; }
+.theme-dark { --canvas: #0c0d0f; }
+body { background: var(--canvas); }
+
+.sidebar {
+  top: var(--gap); left: var(--gap); bottom: var(--gap);
+  min-height: 0;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-sm);
+  overflow-y: auto; overflow-x: hidden;
+  scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+.sidebar-logo { border-bottom: none; padding: 0 12px 14px 16px; }
+.brand-block { min-width: 0; }
+.brand-name, .brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logo-mark { border-radius: 50%; }
+
+/* Mục menu dạng viên thuốc bo tròn */
+.nav-item, .nav-group-head {
+  margin: 2px 10px;
+  padding: 9px 12px;
+  border-left: none;
+  border-radius: 12px;
+}
+.nav-item.nav-sub { padding-left: 33px; }
+.nav-item:hover, .nav-group-head:hover { background: var(--gray-100); }
+.nav-item.active { background: var(--accent-light); color: var(--accent-dark); }
+.nav-label { padding-left: 22px; }
+.sidebar-footer { border-top: none; }
+.user-chip { border-radius: 12px; }
+
+.main {
+  margin: var(--gap) var(--gap) var(--gap) calc(var(--sb-w) + var(--gap) * 2);
+  min-height: calc(100vh - var(--gap) * 2);
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-sm);
+}
+.hero { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
+.tool-view { height: calc(100vh - var(--gap) * 2 - 2px); background: transparent; }
+.tool-bar { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
+#tool-frame { border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
+
+/* Thu gọn: khối sidebar hẹp, icon căn giữa trong ô bo tròn */
+body.sb-collapsed .sidebar { width: 68px; }
+body.sb-collapsed .main { margin-left: calc(68px + var(--gap) * 2); }
+body.sb-collapsed .nav-item,
+body.sb-collapsed .nav-group-head { margin: 3px 10px; padding: 10px 0; }
+body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
+
+@media (max-width: 700px) {
+  :root { --gap: 8px; --radius-panel: 16px; }
+}
 </style>
 <script src="/assets/tqa-i18n.js" defer></script>
 </head>
@@ -868,8 +958,14 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
   </section>
 
   <!-- Cài đặt tài khoản -->
-  <section class="settings-view" id="settings-view">
-    <div class="section-label" data-i18n="accountSettings">Cài đặt tài khoản</div>
+  <section class="settings-view" id="settings-view" role="dialog" aria-modal="true" aria-labelledby="stg-dialog-title">
+   <div class="stg-dialog">
+    <div class="stg-dialog-head">
+      <h2 class="stg-dialog-title" id="stg-dialog-title" data-i18n="accountSettings">Cài đặt tài khoản</h2>
+      <button class="stg-close" id="stg-close" type="button" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
 
     <div class="stg-card prefs-card">
       <div class="stg-title" data-i18n="interface">Giao diện</div>
@@ -939,7 +1035,7 @@ body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin:
       <button class="stg-btn" id="set-savepw" data-i18n="savePassword">Lưu mật khẩu</button>
       <div class="stg-msg" id="set-msg"></div>
     </div>
-
+   </div>
   </section>
 </main>
 
@@ -1167,21 +1263,30 @@ function showHome() {
   window.TQAPresence?.stop();
   window.TQALoading?.home(false);
   toolView.classList.remove('visible');
-  settingsView.classList.remove('visible');
+  settingsView.classList.remove('visible'); document.body.classList.remove('modal-open');
   toolFrame.src = 'about:blank';
   heroEl.style.display = 'flex';
   contentEl.style.display = 'block';
 }
 
+// Cài đặt = popup nổi trên trang hiện tại (không đổi view/tool bên dưới)
+let settingsReturnFocus = null;
 function showSettings() {
-  window.TQAPresence?.stop();
-  window.TQALoading?.stop();
-  toolView.classList.remove('visible');
-  toolFrame.src = 'about:blank';
-  heroEl.style.display = 'none';
-  contentEl.style.display = 'none';
+  if (settingsView.classList.contains('visible')) return;
+  settingsReturnFocus = document.activeElement;
   settingsView.classList.add('visible');
+  document.body.classList.add('modal-open');
+  setTimeout(function(){ document.getElementById('stg-close').focus(); }, 0);
 }
+function closeSettings() {
+  if (!settingsView.classList.contains('visible')) return;
+  settingsView.classList.remove('visible'); document.body.classList.remove('modal-open');
+  document.body.classList.remove('modal-open');
+  if (settingsReturnFocus && settingsReturnFocus.focus) settingsReturnFocus.focus();
+}
+document.getElementById('stg-close').addEventListener('click', closeSettings);
+settingsView.addEventListener('mousedown', function(e){ if (e.target === settingsView) closeSettings(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSettings(); });
 
 function currentTheme() {
   return document.body.classList.contains('theme-dark') ? 'dark' : 'light';
@@ -1195,7 +1300,7 @@ function showTool(src, title) {
   const presenceKey = document.querySelector('.nav-item.active')?.dataset.tool;
   if (src && presenceKey) window.TQAPresence?.show(sb, CUR, presenceKey, document.getElementById('tool-viewers'));
   else window.TQAPresence?.stop();
-  settingsView.classList.remove('visible');
+  settingsView.classList.remove('visible'); document.body.classList.remove('modal-open');
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   toolTitle.textContent = title;
@@ -1245,8 +1350,9 @@ function activateNav(el){
 // Điều hướng theo hash (vd #cqm). Không có hash -> Home.
 function routeFromHash(){
   var key = decodeURIComponent((location.hash || '').replace(/^#/, '')) || 'home';
-  if (key === 'settings') {
-    clearActive();
+  if (key === 'settings') {   // link cũ #settings -> về Home rồi mở popup
+    history.replaceState(null, '', location.pathname + location.search);
+    routeFromHash();
     showSettings();
     return;
   }
@@ -1352,7 +1458,7 @@ document.getElementById('logout-btn').addEventListener('click', function (e) {
   logout();
 });
 const userChip = document.querySelector('.user-chip');
-function openAccountSettings() { location.hash = 'settings'; }
+function openAccountSettings() { showSettings(); }
 userChip.addEventListener('click', openAccountSettings);
 userChip.addEventListener('keydown', function (e) {
   if (e.key === 'Enter' || e.key === ' ') {
