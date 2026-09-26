@@ -11,6 +11,9 @@ export function FocusDock(){
  useEffect(()=>{initFocus();},[]);
  const running=timer.endAt!==null;
  useEffect(()=>{if(!running)return;const title=document.title;document.title=`${clock(timer.remaining)} · ${modeLabels[timer.mode]}`;return()=>{document.title=title;};},[running,timer.remaining,timer.mode]);
+ // Inside the MCVN dashboard, report the countdown and alerts so they show while another dashboard is open.
+ useEffect(()=>{if(ready&&window.parent!==window)window.parent.postMessage({type:'my-space-focus',running,time:clock(timer.remaining),mode:modeLabels[timer.mode]},location.origin);},[ready,running,timer.remaining,timer.mode]);
+ useEffect(()=>{if(notice&&window.parent!==window)window.parent.postMessage({type:'my-space-focus',running,time:clock(timer.remaining),mode:modeLabels[timer.mode],notice},location.origin);},[notice]);// eslint-disable-line react-hooks/exhaustive-deps
  if(!ready)return null;
  const label=genres.find(g=>g[1]===music.video)?.[0]??'Your video';
  return <>

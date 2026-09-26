@@ -537,7 +537,7 @@ body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
 }
 .tool-btn:hover { background: var(--gray-50); border-color: var(--gray-500); }
 .tool-btn svg { width: 14px; height: 14px; }
-#tool-frame { flex: 1; width: 100%; border: 0; background: var(--white); }
+#tool-frame, #my-space-frame { flex: 1; width: 100%; border: 0; background: var(--white); }
 .tool-empty {
   flex: 1; display: none; align-items: center; justify-content: center;
   flex-direction: column; gap: 10px; color: var(--gray-500);
@@ -610,6 +610,10 @@ body.modal-open { overflow: hidden; }
 @media (max-width: 540px) { .stg-dialog { padding: 20px 16px; border-radius: 22px; } }
 
 /* Team vận hành (role không có "QA") -> ẩn các mục chỉ dành cho QA */
+/* My Space: giờ Focus còn lại + thông báo khi đang xem mục khác */
+.my-space-timer { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--accent-dark); background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: 9px; padding: 0 6px; line-height: 17px; font-variant-numeric: tabular-nums; }
+body.sb-collapsed .my-space-timer { position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%); font-size: 9px; padding: 0 4px; line-height: 14px; }
+.my-space-toast { position: fixed; right: 20px; bottom: 20px; z-index: 9999; max-width: min(380px, calc(100vw - 40px)); background: var(--white); color: var(--gray-900); border: 1px solid var(--accent-border); border-left: 4px solid var(--accent); border-radius: 12px; box-shadow: 0 14px 44px rgba(0,0,0,.18); padding: 12px 16px; font-size: 13px; font-weight: 500; cursor: pointer; }
 body.ops-view .qa-only { display: none !important; }
 body.ih-view .hide-ih { display: none !important; }
 /* qa-ih: chỉ QA + IH thấy; các role vận hành/quản lý khác thì ẩn */
@@ -695,7 +699,7 @@ body { background: var(--canvas); }
 .hero { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
 .tool-view { height: calc(100vh - var(--gap) * 2 - 2px); background: transparent; }
 .tool-bar { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
-#tool-frame { border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
+#tool-frame, #my-space-frame { border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
 
 /* Thu gọn: khối sidebar hẹp, icon căn giữa trong ô bo tròn */
 body.sb-collapsed .sidebar { width: 68px; }
@@ -955,6 +959,8 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
       </div>
     </div>
     <iframe id="tool-frame" title="Tool" referrerpolicy="no-referrer"></iframe>
+    <!-- My Space có khung riêng: chỉ ẩn khi mở mục khác, không tải lại -> nhạc/đồng hồ Focus chạy tiếp -->
+    <iframe id="my-space-frame" title="My Space" referrerpolicy="no-referrer" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write" style="display:none"></iframe>
     <div class="tool-empty" id="tool-empty">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       <div><span data-i18n="featurePrefix">Tính năng</span> <strong id="tool-empty-name">này</strong> <span data-i18n="featureSuffix">đang được phát triển.</span></div>
@@ -1258,6 +1264,7 @@ const heroEl = document.querySelector('.hero');
 const contentEl = document.querySelector('.content');
 const toolView = document.getElementById('tool-view');
 const toolFrame = document.getElementById('tool-frame');
+const mySpaceFrame = document.getElementById('my-space-frame');
 const toolEmpty = document.getElementById('tool-empty');
 const toolTitle = document.getElementById('tool-title');
 const toolNewtab = document.getElementById('tool-newtab');
@@ -1309,7 +1316,17 @@ function showTool(src, title) {
   heroEl.style.display = 'none';
   contentEl.style.display = 'none';
   toolTitle.textContent = title;
-  if (src) {
+  mySpaceFrame.style.display = 'none';
+  if (presenceKey === 'my-space') {
+    window.TQALoading?.stop();
+    toolEmpty.classList.remove('visible');
+    toolFrame.style.display = 'none';
+    toolFrame.src = 'about:blank';
+    if (!mySpaceFrame.getAttribute('src')) mySpaceFrame.src = withTheme(src);
+    mySpaceFrame.style.display = 'block';
+    toolNewtab.href = src;
+    toolNewtab.style.display = 'inline-flex';
+  } else if (src) {
     const url = withTheme(src);
     window.TQALoading?.start(url);
     toolEmpty.classList.remove('visible');
@@ -1388,6 +1405,7 @@ document.querySelectorAll('.nav-item').forEach(function(el){
 window.addEventListener('hashchange', routeFromHash);
 
 document.getElementById('tool-reload').addEventListener('click', () => {
+  if (inMySpace()) { mySpaceFrame.src = withTheme('/my-space/'); return; }
   if (toolFrame.src && toolFrame.src !== 'about:blank') {
     window.TQALoading?.start(toolFrame.src);
     // eslint-disable-next-line no-self-assign
@@ -1440,7 +1458,7 @@ sbToggle.addEventListener('click', () => {
   if (inMySpace()) {
     mySpaceSbPrev = null;  // người dùng tự chọn -> giữ nguyên khi rời My Space
     if (!document.body.classList.contains('sb-collapsed')) {
-      try { toolFrame.contentWindow.postMessage({ type:'mcvn-sidebar', collapsed:false }, location.origin); } catch(e) {}
+      try { mySpaceFrame.contentWindow.postMessage({ type:'mcvn-sidebar', collapsed:false }, location.origin); } catch(e) {}
     }
   }
 });
@@ -1464,13 +1482,29 @@ function syncMySpaceSidebar() {
   try { syncSbTitle(); } catch(e) {}
 }
 window.addEventListener('message', function (e) {
-  if (e.origin !== location.origin || e.source !== toolFrame.contentWindow) return;
+  if (e.origin !== location.origin || e.source !== mySpaceFrame.contentWindow) return;
   var d = e.data || {};
   if (d.type === 'my-space-rail' && d.expanded && !document.body.classList.contains('sb-collapsed')) {
     document.body.classList.add('sb-collapsed');
     syncSbTitle();
   }
+  if (d.type === 'my-space-focus') showMySpaceFocus(d);
 });
+/* Đồng hồ Focus của My Space vẫn chạy khi xem dashboard khác: hiện giờ còn lại trên menu + báo khi hết giờ. */
+function showMySpaceFocus(d) {
+  var nav = document.getElementById('my-space-nav');
+  var badge = document.getElementById('my-space-timer');
+  if (d.running && typeof d.time === 'string') {
+    if (!badge) { badge = document.createElement('span'); badge.id = 'my-space-timer'; badge.className = 'my-space-timer'; nav.appendChild(badge); }
+    badge.textContent = d.time; badge.title = d.mode || '';
+  } else if (badge) badge.remove();
+  if (d.notice && !inMySpace()) {
+    var toast = document.getElementById('my-space-toast');
+    if (!toast) { toast = document.createElement('div'); toast.id = 'my-space-toast'; toast.className = 'my-space-toast'; toast.setAttribute('role', 'status'); toast.addEventListener('click', function(){ location.hash = 'my-space'; toast.remove(); }); document.body.appendChild(toast); }
+    toast.textContent = 'My Space · ' + d.notice;
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ toast.remove(); }, 8000);
+  }
+}
 syncMySpaceSidebar();
 
 /* ---- Giao diện sáng / tối (nhớ lựa chọn) ---- */
@@ -1485,6 +1519,9 @@ function applyTheme() {
   try {
     if (toolFrame && toolFrame.src && toolFrame.src !== 'about:blank' && toolFrame.contentWindow) {
       toolFrame.contentWindow.postMessage({ type: 'tqa-theme', theme: dark ? 'dark' : 'light' }, '*');
+    }
+    if (mySpaceFrame && mySpaceFrame.getAttribute('src') && mySpaceFrame.contentWindow) {
+      mySpaceFrame.contentWindow.postMessage({ type: 'tqa-theme', theme: dark ? 'dark' : 'light' }, location.origin);
     }
   } catch (e) { /* iframe khác origin hoặc chưa sẵn sàng */ }
 }
