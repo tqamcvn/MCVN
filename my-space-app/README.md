@@ -24,13 +24,13 @@ npm run build
 ## Modes
 
 - `/write`: Tiptap, document library, title/body search, autosave, formatting, TXT/Markdown import, HTML/text/JSON export, focus, statistics, browser print/PDF.
-- `/create`: official tldraw SDK, local boards, 500 ms debounced snapshots, embedded local raster images, validated JSON import/export, native image/PNG tools.
+- `/create`: Excalidraw (MIT, no licence key), local boards, 500 ms debounced snapshots, embedded PNG/JPEG/WebP/GIF images, validated JSON import/export, PNG/SVG export from the canvas menu. Web embeds are disabled. Boards saved by the earlier tldraw version show a notice instead of opening.
 - `/work`: focus timer adapted from the team's qamcvnfocus app, rewritten without login or Supabase sync: focus/short break/long break/meditation modes, 25/45/60/90-minute presets plus a suggestion from the last 7 days, abandon warning, discipline streak and daily goal, health reminders, opt-in YouTube music, and a background picker (10 preset pictures or an upload resized to 2560px; suggested fit, fill/whole/stretch/tile/custom size, 9-point position, soften). Timer state uses end timestamps, so background tabs stay accurate. Settings and history are stored in localStorage (`my-space:focus-*`).
 - `/frame`: local file/drop/paste screenshots, 14 backgrounds, ratios, chrome, padding, roundness, shadow, scale, watermark, PNG download and clipboard copy.
 - `/challenge`: daily prompts, completion history, local-calendar streak and progress export.
 - `/`: redirect to last visited mode, or Write.
 
-Tiptap and tldraw are dynamically loaded client-only on their routes. Navigation prefetch is disabled.
+Tiptap and Excalidraw are dynamically loaded client-only on their routes. The Work timer, health reminders and music live in `lib/focus-store` and the Shell's `FocusDock`, so they keep running across modes (music moves to a mini player; the rail shows the remaining time) and resume after reload. Navigation prefetch is disabled.
 
 ## Storage and privacy
 
@@ -38,7 +38,7 @@ Dexie database **my-space**, schema version **1**, tables **documents** and **bo
 
 This is a browser-profile library, not an authenticated/cloud account library. People sharing a browser profile share its library. Clearing site data deletes it. Private browsing may be ephemeral. Export backups regularly.
 
-No document/board contents are posted to this deployment, analytics or AI. Work data is also local; its music panel loads youtube-nocookie.com only after the user presses play. The app has no content API or analytics SDK. tldraw UI assets are self-hosted; external URL previews and embeds are disabled, and uploaded raster assets are embedded in snapshots. SDK license behavior applies: trial licenses may contact tldraw for license analytics without canvas contents.
+No document/board contents are posted to this deployment, analytics or AI. Work data is also local; its music panel loads youtube-nocookie.com only after the user presses play. The app has no content API or analytics SDK. Excalidraw fonts are self-hosted under `/excalidraw/fonts` (copied by `scripts/assets.mjs`); web embeds are disabled and images are embedded in snapshots.
 
 Persistence failures retain current state in memory across mode changes and offer an immediate export button. Closing/reloading without export can lose unsaved content. Multiple editing tabs are not a collaborative editor; use one editing tab per library.
 
@@ -58,8 +58,8 @@ Inside the dashboard, My Space and the MCVN sidebar take turns: opening My Space
 
 A separate host can build the `my-space-app` directory with `npm run build`, output `out`, and an empty `NEXT_PUBLIC_BASE_PATH`. The Back to MCVN link assumes MCVN is on the same origin; adjust it for a separate domain.
 
-See `.env.example` for configuration. A tldraw production license is required for production canvas use. Without it, build succeeds but Create displays the missing configuration and the SDK's license notice. See https://tldraw.dev/community/license. This is not a license workaround.
+See `.env.example` for configuration. Colours, font and icons follow the MCVN dashboard tokens, and the app follows the dashboard's light/dark theme (`?theme=` in the frame URL and `tqa-theme` messages).
 
 ## Limits
 
-No cloud sync, collaboration, AI or Word/Google Docs compatibility. Markdown import preserves safe text instead of reconstructing formatting. PDF uses browser print. Frame accepts local images, not remote URLs. Image clipboard requires browser support and a secure context; PNG download is the fallback. Production canvas testing needs the owner's valid license key.
+No cloud sync, collaboration, AI or Word/Google Docs compatibility. Markdown import preserves safe text instead of reconstructing formatting. PDF uses browser print. Frame accepts local images, not remote URLs. Image clipboard requires browser support and a secure context; PNG download is the fallback.

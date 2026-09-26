@@ -1,3 +1,5 @@
-import { cp,mkdir } from 'node:fs/promises';
-await mkdir('public/tldraw',{recursive:true});
-for(const folder of ['fonts','icons','translations','embed-icons']) await cp('node_modules/@tldraw/assets/'+folder,'public/tldraw/'+folder,{recursive:true});
+import { cp,mkdir,rm } from 'node:fs/promises';
+// Self-host Excalidraw's fonts so the canvas never falls back to a CDN.
+await rm('public/excalidraw',{recursive:true,force:true});
+await mkdir('public/excalidraw',{recursive:true});
+await cp('node_modules/@excalidraw/excalidraw/dist/prod/fonts','public/excalidraw/fonts',{recursive:true});

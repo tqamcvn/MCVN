@@ -17,18 +17,22 @@ test('write: autosave, search, safe import, backup, focus and reload',async({pag
  await page.locator('input[type=file]').setInputFiles({name:'safe.md',mimeType:'text/plain',buffer:Buffer.from('<script>alert(1)</script>\n# Literal heading')});await expect(page.getByRole('textbox',{name:'Document body'})).toContainText('<script>');expect(errors).toEqual([]);
  await page.screenshot({path:'test-results/write.png'});
 });
-test('Create: draw, native snapshot persistence, export and validated reimport',async({page})=>{
+test('Create: Excalidraw drawing persists, exports and reimports with no third-party requests',async({page})=>{
  const remote:string[]=[];page.on('request',r=>{if(!/^(data:|(blob:)?http:\/\/127\.0\.0\.1:3000)/.test(r.url()))remote.push(r.url());});
- await page.goto('/create/');await page.getByRole('button',{name:'New board',exact:true}).click();await page.locator('.tlui-toolbar').first().waitFor();
+ const exportBoard=async()=>{const promise=page.waitForEvent('download');await page.getByRole('button',{name:'Export JSON'}).click();const raw=await downloaded(await promise);return {raw,data:JSON.parse(raw.toString())};};
+ await page.goto('/create/');await page.getByRole('button',{name:'New board',exact:true}).click();await page.locator('.excalidraw .App-toolbar').first().waitFor();
+ await expect(page.getByText(/license/i)).toHaveCount(0);
  await page.getByRole('textbox',{name:'Board title'}).fill('Ideas Board');
- const canvas=page.locator('.tl-canvas');await canvas.click({position:{x:350,y:240}});await page.keyboard.press('d');await page.mouse.move(680,320);await page.mouse.down();await page.mouse.move(850,450,{steps:15});await page.mouse.move(1030,330,{steps:15});await page.mouse.up();
- await expect.poll(()=>page.locator('.tl-shape').count()).toBeGreaterThan(0);
- const promise=page.waitForEvent('download');await page.getByRole('button',{name:'Export JSON'}).click();const raw=await downloaded(await promise);const exported=JSON.parse(raw.toString());expect(exported.format).toBe('my-space-board');expect(Object.values(exported.board.snapshot.document.store).some((r:unknown)=>(r as {typeName:string}).typeName==='shape')).toBe(true);
- // Route change flushes the debounce immediately.
- await page.getByRole('link',{name:'Write',exact:true}).click();await page.getByRole('link',{name:'Create',exact:true}).click();await expect(page.locator('.tl-shape')).not.toHaveCount(0);
- await page.reload();await expect(page.locator('.tl-shape')).not.toHaveCount(0);
- await page.locator('input[type=file]').setInputFiles({name:'board.json',mimeType:'application/json',buffer:raw});await expect(page.locator('.library-item')).toHaveCount(2);await expect(page.locator('.tl-shape')).not.toHaveCount(0);
- expect(remote).toEqual([]);await page.screenshot({path:'test-results/create.png'});
+ await page.locator('.excalidraw canvas.interactive').click({position:{x:300,y:300}});await page.keyboard.press('r');
+ await page.mouse.move(600,300);await page.mouse.down();await page.mouse.move(800,450,{steps:10});await page.mouse.up();
+ await page.keyboard.press('o');await page.mouse.move(900,300);await page.mouse.down();await page.mouse.move(1000,420,{steps:10});await page.mouse.up();
+ await expect.poll(async()=>(await exportBoard()).data.board.snapshot?.elements?.length??0).toBe(2);
+ const {raw,data}=await exportBoard();expect(data.format).toBe('my-space-board');expect(data.board.title).toBe('Ideas Board');expect(data.board.snapshot.kind).toBe('excalidraw');expect(data.board.snapshot.elements.map((e:{type:string})=>e.type)).toEqual(['rectangle','ellipse']);
+ await page.getByRole('link',{name:'Write',exact:true}).click();await page.getByRole('link',{name:'Create',exact:true}).click();await page.locator('.excalidraw .App-toolbar').first().waitFor();
+ await page.reload();await page.locator('.excalidraw .App-toolbar').first().waitFor();expect((await exportBoard()).data.board.snapshot.elements).toHaveLength(2);
+ await page.locator('input[type=file][accept=".json"]').setInputFiles({name:'board.json',mimeType:'application/json',buffer:raw});await expect(page.locator('.library-item')).toHaveCount(2);
+ expect((await exportBoard()).data.board.snapshot.elements).toHaveLength(2);
+ await page.waitForTimeout(1000);expect(remote).toEqual([]);await page.screenshot({path:'test-results/create.png'});
 });
 test('Frame: local image, sizing, PNG export and mobile layout',async({page})=>{
  await page.goto('/frame/');const image=await page.screenshot();await page.locator('input[type=file]').setInputFiles({name:'screenshot.png',mimeType:'image/png',buffer:image});await expect(page.locator('canvas')).toBeVisible();
@@ -72,6 +76,21 @@ test('Work: abandoning a session is recorded and music loads only after play',as
  await expect(page.getByRole('region',{name:'Discipline'})).toContainText('0 completed · 1 abandoned');await expect(page.getByRole('timer')).toHaveText('45:00');
  expect(youtube).toBe(0);await page.getByRole('button',{name:'Play music'}).click();await expect(page.frameLocator('iframe[title="Focus music"]').getByText('music')).toBeVisible();expect(youtube).toBe(1);
  await page.getByRole('textbox',{name:'YouTube link'}).fill('https://evil.example/x');await page.getByRole('button',{name:'Play',exact:true}).click();await expect(page.getByRole('region',{name:'Music'}).getByRole('alert')).toContainText('YouTube');
+});
+test('Work: timer, reminders and music keep running while using other modes and after reload',async({page})=>{
+ await page.clock.install();let youtube=0;await page.route('https://www.youtube-nocookie.com/**',route=>{youtube++;return route.fulfill({contentType:'text/html',body:'<p>music</p>'});});
+ await page.goto('/work/');await page.getByRole('button',{name:'25 min'}).click();await page.getByRole('button',{name:'Start timer'}).click();
+ await page.getByRole('button',{name:'Play music'}).click();await expect(page.frameLocator('iframe[title="Focus music"]').getByText('music')).toBeVisible();
+ await page.getByRole('link',{name:'Write',exact:true}).click();await expect(page).toHaveURL(/\/write\//);
+ await page.clock.fastForward('05:00');
+ await expect(page.locator('.rail-timer')).toHaveText(/^(20:00|19:\d\d)$/);await expect(page.getByRole('complementary',{name:'Music player'})).toBeVisible();
+ await page.getByRole('link',{name:'Create',exact:true}).click();await page.clock.fastForward('02:00');
+ await page.getByRole('link',{name:'Work',exact:true}).click();await expect(page.getByRole('timer')).toHaveText(/^1[78]:\d\d$/);await expect(page.getByRole('button',{name:'Pause timer'})).toBeVisible();
+ expect(youtube).toBe(1);
+ await page.reload();await expect(page.getByRole('timer')).toHaveText(/^1[78]:\d\d$/);await expect(page.getByRole('button',{name:'Pause timer'})).toBeVisible();
+ await page.getByRole('link',{name:'Challenge',exact:true}).click();await page.clock.fastForward('18:30');
+ await expect(page.locator('.focus-notice')).toContainText('Focus session complete');await expect(page.locator('.rail-timer')).toHaveCount(0);
+ await page.getByRole('link',{name:'Work',exact:true}).click();await expect(page.getByRole('region',{name:'Discipline'}).getByText('1/4')).toBeVisible();await expect(page.getByRole('timer')).toHaveText('25:00');
 });
 test('Challenge and last mode persist without content requests',async({page})=>{
  await page.goto('/challenge/');await page.getByRole('button',{name:'Mark complete'}).click();await page.reload();await expect(page.getByRole('button',{name:'Completed today'})).toHaveAttribute('aria-pressed','true');await page.goto('/');await expect(page).toHaveURL(/\/challenge\//);await page.screenshot({path:'test-results/challenge.png'});

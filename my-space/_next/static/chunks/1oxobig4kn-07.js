@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,74163,t=>{"use strict";var e=t.i(10552),o=t.i(56378),c=t.i(34236),i=t.i(3819);t.s(["validateDocuments",0,function(t){let l=(0,e.getSchema)([o.default,c.TextStyle,c.Color,i.default.configure({multicolor:!0})]);for(let e of t)l.nodeFromJSON(e.content).check()}])}]);
