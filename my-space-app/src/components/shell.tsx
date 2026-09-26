@@ -14,6 +14,11 @@ export function Shell({children}:{children:React.ReactNode}){
  useEffect(()=>{const inFrame=window.parent!==window,open=pref.get('rail-expanded')==='1';setEmbedded(inFrame);setExpanded(open);if(open)tellParent(true);
   const onMessage=(e:MessageEvent)=>{if(e.origin===location.origin&&e.source===window.parent&&e.data?.type==='mcvn-sidebar'&&e.data.collapsed===false)setExpanded(false);};
   window.addEventListener('message',onMessage);return()=>window.removeEventListener('message',onMessage);},[]);
+ // Match the MCVN dashboard theme: it passes ?theme= in the frame URL and posts 'tqa-theme' when the user switches.
+ useEffect(()=>{const apply=(theme:string)=>{document.documentElement.classList.toggle('theme-dark',theme==='dark');pref.set('theme',theme);};
+  apply(new URLSearchParams(location.search).get('theme')??pref.get('theme','light'));
+  const onMessage=(e:MessageEvent)=>{if(e.origin===location.origin&&e.source===window.parent&&e.data?.type==='tqa-theme')apply(e.data.theme==='dark'?'dark':'light');};
+  window.addEventListener('message',onMessage);return()=>window.removeEventListener('message',onMessage);},[]);
  function toggleRail(){const open=!expanded;setExpanded(open);pref.set('rail-expanded',open?'1':'0');tellParent(open);}
  useEffect(()=>{void initialize();},[]);
  useEffect(()=>{const mode=pathname.split('/').filter(Boolean).at(-1);if(modes.some(m=>m[0]===mode))pref.set('mode',mode!);},[pathname]);
