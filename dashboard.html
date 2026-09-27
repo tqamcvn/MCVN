@@ -1557,6 +1557,10 @@ function showMySpaceFocus(d) {
     if (!badge) { badge = document.createElement('span'); badge.id = 'my-space-timer'; badge.className = 'my-space-timer'; nav.appendChild(badge); }
     badge.textContent = d.time; badge.title = d.mode || '';
   } else if (badge) badge.remove();
+  if (typeof d.notice === 'string' && window.LanternCompanion?.remind?.(d.notice)) {
+    document.getElementById('my-space-toast')?.remove();
+    return; // The companion's live speech bubble is the notification, next to the selected mascot.
+  }
   if (d.notice && !inMySpace()) {
     var toast = document.getElementById('my-space-toast');
     if (!toast) { toast = document.createElement('div'); toast.id = 'my-space-toast'; toast.className = 'my-space-toast'; toast.setAttribute('role', 'status'); toast.addEventListener('click', function(){ location.hash = 'my-space'; toast.remove(); }); document.body.appendChild(toast); }
@@ -2047,7 +2051,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<script src="/lantern-companion/lantern.js?v=20260918-1" defer></script>
+<script src="/lantern-companion/lantern.js?v=20260928-focus-reminders" defer></script>
 <script src="/feedback/sidebar-notifications.js?v=20260921" defer></script>
 </body>
 </html>

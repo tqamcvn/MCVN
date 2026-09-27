@@ -19,7 +19,7 @@
     :host{position:fixed;bottom:16px;right:16px;z-index:9999;font:14px/1.5 system-ui,sans-serif;color:#473524}
     *{box-sizing:border-box}button,input{font:inherit}button{cursor:pointer;border:1px solid #e7d5b6;background:#fffaf0;color:#473524;border-radius:12px;padding:7px 11px}button:hover{background-color:#ffedc6}button:focus-visible,input:focus-visible{outline:3px solid #b76d18;outline-offset:3px}
     .bubble{width:min(310px,calc(100vw - 32px));background:#fffdf6;border:1px solid #eddab8;border-radius:20px;padding:17px;box-shadow:0 8px 32px #49300920;margin-bottom:-14px}header{display:flex;align-items:center;justify-content:space-between}strong{font-size:16px}p{margin:10px 0}.actions{display:flex;gap:7px;flex-wrap:wrap}.primary{background:#ffe1a0}small{display:block;color:#806e59;margin-top:9px}details{margin-top:13px;border-top:1px solid #eddfc8;padding-top:10px}summary{cursor:pointer}label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:9px 0}input[type=number]{width:66px;padding:4px;border:1px solid #dcc7a4;border-radius:7px}input[type=time]{max-width:112px} .pet{display:block;width:140px;height:140px;margin-left:auto;border:0;background-color:transparent;background-size:300% 300%;background-position:50% 50%;padding:0;filter:drop-shadow(0 6px 7px #8e5a1820);animation:breathe 4s ease-in-out infinite}.pet:hover{background-color:transparent}.pet.sleep{animation:none}[hidden]{display:none!important}@keyframes breathe{50%{transform:translateY(-4px)}}@media(prefers-reduced-motion:reduce){.pet{animation:none}}
-  </style><section class="bubble" hidden><header><strong>Đèn nhỏ ở đây 🏮</strong></header><p role="status" aria-live="polite"></p></section><button class="pet" aria-label="Mở bạn đồng hành đèn lồng" aria-expanded="false"></button>`;
+  </style><section class="bubble" hidden><header><strong>Đèn nhỏ ở đây 🏮</strong><button class="dismiss" aria-label="Đóng lời nhắc">×</button></header><p role="status" aria-live="polite"></p></section><button class="pet" aria-label="Mở bạn đồng hành đèn lồng" aria-expanded="false"></button>`;
   const pet=root.querySelector('.pet'), bubble=root.querySelector('.bubble'), message=root.querySelector('p');
   // Keep the pet's anchor stable when its message opens or grows.
   const moveStyle=document.createElement('style');
@@ -126,6 +126,29 @@
   function close(){bubble.hidden=true;hideAt=0;pet.setAttribute('aria-expanded','false');}
   function home(){let i=Math.floor(Math.random()*(encouragements.length-1));if(i>=lastEncouragement)i++;i%=encouragements.length;lastEncouragement=i;expression([0,1,2,5][i%4]);show(encouragements[i]);}
   function celebrate(text='Bạn làm được rồi! Một việc đã xong — mình vui cùng bạn! ✨'){expression(4,12);show(text);}
+  // Accept the notices emitted by My Space, including several reminders due together.
+  // Return false for unknown notices so the dashboard can retain its normal notification.
+  const focusMessages=[
+    ['Rest your eyes','Cho đôi mắt nghỉ một xíu nha 👀 Rời màn hình, nhìn ra xa và chớp mắt nhẹ nhàng. Công việc chờ được, đôi mắt của bạn cũng cần được thương!',6],
+    ['Drink water','Tiếp nước cho bạn nhỏ chăm chỉ nào 💧 Uống vài ngụm nước, thả lỏng một chút rồi mình cùng làm tiếp nhé.',1],
+    ['Stretch','Thả lỏng đôi vai đang gánh nhiều việc nha 🌿 Duỗi tay, vươn vai nhẹ nhàng trong mức thoải mái. Không cần cố quá đâu!',2],
+    ['Take a walk','Đi vài bước cùng mình nhé 🐾 Nếu thuận tiện, đứng dậy và đi lại một chút. Một khoảng nghỉ nhỏ để quay lại nhẹ nhõm hơn.',2],
+    ['Focus session complete','Bạn vừa hoàn thành một phiên tập trung rồi! ✨ Từng chút cố gắng đều đáng ghi nhận. Nghỉ một lát và tự khen mình nhé.',4],
+    ['Short break is over','Hết giờ nghỉ ngắn rồi nè 🌱 Mình bắt đầu lại bằng một việc nhỏ thôi nhé. Khi bạn sẵn sàng, mình ở đây!',0],
+    ['Long break is over','Đã đến lúc quay lại rồi ☀️ Chọn một việc quan trọng nhất và làm theo nhịp của bạn nhé.',0],
+    ['Meditate is over','Khoảng lặng vừa khép lại rồi 🌿 Hít thở tự nhiên, cảm nhận mình đang ở đây và trở lại thật nhẹ nhàng nhé.',5]
+  ];
+  function remind(notice){
+    if(typeof notice!=='string')return false;
+    const matches=focusMessages.filter(([key])=>notice.includes(key));
+    if(!matches.length)return false;
+    expression(matches[0][2],30);show(matches.map(([,text])=>text).join('\n\n'));
+    message.style.whiteSpace='pre-line';
+    // Avoid an unrelated scheduled reminder immediately after this one.
+    schedule.nextAt=Date.now()+INTERVAL;saveSchedule();
+    return true;
+  }
+  root.querySelector('.dismiss').addEventListener('click',close);
   function tick(){
     const now=Date.now();if(document.hidden)return;
     if(expressionUntil&&now>=expressionUntil){expressionUntil=0;pet.classList.remove('sleep');sprite(4);}
@@ -146,7 +169,7 @@
   setInterval(tick,1000);
   document.addEventListener('visibilitychange',tick);
   window.addEventListener('lantern:complete',e=>celebrate(typeof e.detail?.message==='string'?e.detail.message:undefined));
-  window.LanternCompanion={celebrate,show:home,dismiss:close,selectMascot,getMascot:()=>selectedMascot};
+  window.LanternCompanion={celebrate,remind,show:home,dismiss:close,selectMascot,getMascot:()=>selectedMascot};
   let savedMascot='lantern';try{savedMascot=localStorage.getItem(mascotKey)||'lantern';}catch{}
   if(!selectMascot(savedMascot,false))selectMascot('lantern',false);
   document.querySelectorAll('[data-mascot-choice]').forEach(input=>{
