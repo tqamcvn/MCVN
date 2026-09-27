@@ -1655,6 +1655,13 @@ function trtLO(mk,g,seg){
 }
 function trtCsat(mk,g,seg){var x=trtLO(mk,g,seg);return x.O?(x.L/x.O*100):null;}
 function trtCsatCell(v){return v==null?'—':v.toFixed(1)+'%';}
+function trtCsatMom(cv,pv){
+  if(cv==null||pv==null)return '<span style="color:var(--t3)">—</span>';
+  var d=cv-pv;
+  if(Math.abs(d)<0.05)return '<span style="color:var(--t3)">0</span>';
+  return d>0?('<span style="color:var(--green);font-weight:700">+'+d.toFixed(1)+' ▲</span>')
+            :('<span style="color:var(--red);font-weight:700">'+d.toFixed(1)+' ▼</span>');
+}
 function trtGroupTotal(mk,g){return TRT_SEGS.reduce(function(s,seg){return s+trtGv(mk,g,seg);},0);}
 function trtGrand(mk){return trtGroupTotal(mk,'Overall');}
 function trtMom(cur,prev){
@@ -1702,16 +1709,16 @@ function renderTreatment(){
   TRT_GROUPS.forEach(function(g){
     var gc=trtGroupTotal(cur,g.key), gp=prev?trtGroupTotal(prev,g.key):0;
     var ghcCell = g.key==='Treat' ? trtHcCell(trtHc(cur,g.key,'all')) : '';
-    var gcsC=trtCsatCell(trtCsat(cur,g.key,'all')), gcsP=prev?trtCsatCell(trtCsat(prev,g.key,'all')):'—';
-    rows+='<tr class="grp0"><td>'+g.label+'</td><td>'+gc+'</td><td>'+ghcCell+'</td><td>'+gcsC+'</td><td>'+(prev?gp:'—')+'</td><td>'+gcsP+'</td><td>'+(prev?trtMom(gc,gp):'—')+'</td><td>'+trtContrib(gc,gTot)+'</td></tr>';
+    var gCsC=trtCsat(cur,g.key,'all'), gCsP=prev?trtCsat(prev,g.key,'all'):null;
+    rows+='<tr class="grp0"><td>'+g.label+'</td><td>'+ghcCell+'</td><td>'+trtCsatCell(gCsC)+'</td><td>'+(prev?trtCsatCell(gCsP):'—')+'</td><td>'+(prev?trtCsatMom(gCsC,gCsP):'—')+'</td><td>'+trtContrib(gc,gTot)+'</td></tr>';
     TRT_SEGS.forEach(function(seg){
-      var c=trtGv(cur,g.key,seg), p=prev?trtGv(prev,g.key,seg):0;
+      var c=trtGv(cur,g.key,seg);
       var shcCell = g.key==='Treat' ? trtHcCell(trtHc(cur,g.key,seg)) : '';
-      var scsC=trtCsatCell(trtCsat(cur,g.key,seg)), scsP=prev?trtCsatCell(trtCsat(prev,g.key,seg)):'—';
-      rows+='<tr class="grp1"><td>'+seg+'</td><td>'+c+'</td><td>'+shcCell+'</td><td>'+scsC+'</td><td>'+(prev?p:'—')+'</td><td>'+scsP+'</td><td>'+(prev?trtMom(c,p):'—')+'</td><td>'+trtContrib(c,gTot)+'</td></tr>';
+      var sCsC=trtCsat(cur,g.key,seg), sCsP=prev?trtCsat(prev,g.key,seg):null;
+      rows+='<tr class="grp1"><td>'+seg+'</td><td>'+shcCell+'</td><td>'+trtCsatCell(sCsC)+'</td><td>'+(prev?trtCsatCell(sCsP):'—')+'</td><td>'+(prev?trtCsatMom(sCsC,sCsP):'—')+'</td><td>'+trtContrib(c,gTot)+'</td></tr>';
     });
   });
-  document.getElementById('trt-tbl').innerHTML='<thead><tr><th>Nhóm</th><th>Record '+trtMonthLabel(cur)+'</th><th>HC '+trtMonthLabel(cur)+'</th><th>CSAT '+trtMonthLabel(cur)+'</th><th>Record '+(prev?trtMonthLabel(prev):'—')+'</th><th>CSAT '+(prev?trtMonthLabel(prev):'—')+'</th><th>MoM Δ</th><th>% đóng góp</th></tr></thead><tbody>'+rows+'</tbody>';
+  document.getElementById('trt-tbl').innerHTML='<thead><tr><th>Nhóm</th><th>HC '+trtMonthLabel(cur)+'</th><th>CSAT '+trtMonthLabel(cur)+'</th><th>CSAT '+(prev?trtMonthLabel(prev):'—')+'</th><th>CSAT MoM</th><th>% đóng góp</th></tr></thead><tbody>'+rows+'</tbody>';
   var alm=TRT_DATA.agentListMonths||[], unc=months.filter(function(m){return alm.indexOf(m)<0;});
   document.getElementById('trt-coverage').textContent = unc.length?('⚠️ Agent List không có data các tháng: '+unc.map(trtMonthLabel).join(', ')+' → các tháng này 100% "Không action".'):'';
 }
