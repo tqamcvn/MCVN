@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Treatment vs Non-Treatment theo tháng — MCVN QA</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#0a0e17; --s1:#111725; --s2:#161d2e; --bdr:#252c40;
+    --text:#e6edf7; --t2:#9fb0cc; --t3:#5c6a86;
+    --acc:#e07d45; --green:#3ec989; --red:#e05252; --blue:#5b9cf6; --yellow:#f0c94a;
+    --gap:16px;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:13px;padding:18px;min-height:100vh}
+  .wrap{max-width:1200px;margin:0 auto}
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .sub{color:var(--t2);font-size:12px;margin-top:3px}
+  .hdr-right{display:flex;align-items:center;gap:10px}
+  .status{font-size:11px;color:var(--t2);text-align:right;max-width:230px}
+  .btn{background:var(--s2);border:1px solid var(--bdr);color:var(--text);padding:7px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+  .btn:hover{border-color:var(--acc);color:var(--acc)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .seg{display:flex;gap:6px;background:var(--s1);border:1px solid var(--bdr);border-radius:9px;padding:4px}
+  .seg button{background:transparent;border:none;color:var(--t2);padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+  .seg button.active{background:var(--acc);color:#fff}
+  .lbl{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-right:2px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+  .card{background:var(--s1);border:1px solid var(--bdr);border-radius:12px;padding:16px}
+  .kpi .k-lbl{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
+  .kpi .k-val{font-size:26px;font-weight:700;margin-top:6px;line-height:1}
+  .kpi .k-sub{font-size:11px;color:var(--t3);margin-top:5px}
+  .chart-card{margin-bottom:var(--gap)}
+  .card-t{font-size:13px;font-weight:600;margin-bottom:2px}
+  .card-s{font-size:11px;color:var(--t3);margin-bottom:12px}
+  canvas{max-height:340px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--bdr);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--t2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;background:var(--s1)}
+  .grp{border-left:1px solid var(--bdr)}
+  .tbl-wrap{overflow-x:auto}
+  .pos{color:var(--green)} .neg{color:var(--t3)}
+  .pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700}
+  .pill-t{background:rgba(62,201,137,.15);color:var(--green)}
+  .pill-n{background:rgba(92,106,134,.2);color:var(--t2)}
+  .warn{color:var(--yellow);font-size:11px;margin-top:10px}
+  .empty{text-align:center;color:var(--t2);padding:50px 20px}
+  .foot{color:var(--t3);font-size:11px;text-align:center;margin-top:20px}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div>
+      <h1>Treatment vs Non-Treatment theo tháng</h1>
+      <div class="sub">MCVN QA · Có action = agent nằm trong Agent List tháng đó · Không action = ngoài list</div>
+    </div>
+    <div class="hdr-right">
+      <div class="status" id="status">Đang tải…</div>
+      <button class="btn" id="reload" onclick="loadData(true)">⟳ Cập nhật ngay</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div><span class="lbl">Nhóm</span>
+      <span class="seg" id="segSel">
+        <button data-seg="all" class="active" onclick="setSeg('all',this)">Tất cả</button>
+        <button data-seg="Buyer" onclick="setSeg('Buyer',this)">Buyer</button>
+        <button data-seg="Seller" onclick="setSeg('Seller',this)">Seller</button>
+        <button data-seg="Multi" onclick="setSeg('Multi',this)">Multi</button>
+      </span>
+    </div>
+    <div><span class="lbl">Hiển thị</span>
+      <span class="seg" id="metricSel">
+        <button data-m="count" class="active" onclick="setMetric('count',this)">Số lượng</button>
+        <button data-m="pct" onclick="setMetric('pct',this)">% Có action</button>
+      </span>
+    </div>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="card chart-card">
+      <div class="card-t" id="chart-title">Số record theo tháng</div>
+      <div class="card-s" id="chart-sub"></div>
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-t">Chi tiết theo tháng · 3 nhóm</div>
+      <div class="card-s">Có action / Không action / % có action cho từng nhóm</div>
+      <div class="tbl-wrap"><table id="tbl"></table></div>
+      <div class="warn" id="coverage"></div>
+    </div>
+  </div>
+
+  <div id="empty" class="empty" style="display:none"></div>
+  <div class="foot">MCVN · Quality Assurance · Data tự cập nhật mỗi 30 phút</div>
+</div>
+
+<script>
+const DATA_URL = "data.json";
+let DATA = null, seg = 'all', metric = 'count', chart = null;
+const SEGS = ['Buyer','Seller','Multi'];
+const monthLabel = mk => { const m=/^(\d{4})-(\d{2})$/.exec(mk); return m ? ('T'+(+m[2])+'/'+m[1].slice(2)) : mk; };
+
+function setSeg(s,btn){ seg=s; document.querySelectorAll('#segSel button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); render(); }
+function setMetric(m,btn){ metric=m; document.querySelectorAll('#metricSel button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); render(); }
+
+// Lấy {treatment, non} cho 1 tháng theo nhóm đang chọn (all = cộng 3 nhóm)
+function cell(mk, s){
+  const d = DATA.data[mk] || {};
+  if(s !== 'all'){ const x=d[s]||{treatment:0,non:0}; return {t:x.treatment||0, n:x.non||0}; }
+  let t=0,n=0; SEGS.forEach(g=>{ const x=d[g]||{}; t+=x.treatment||0; n+=x.non||0; }); return {t,n};
+}
+const pct = c => { const tot=c.t+c.n; return tot? (c.t/tot*100):0; };
+
+function render(){
+  if(!DATA || !DATA.months || !DATA.months.length) return;
+  const months = DATA.months;
+
+  // KPIs: tháng mới nhất
+  const last = months[months.length-1];
+  const cl = cell(last, seg);
+  const totLast = cl.t+cl.n;
+  const kpiEl = document.getElementById('kpis');
+  kpiEl.innerHTML = `
+    <div class="card kpi"><div class="k-lbl">Tháng mới nhất</div><div class="k-val">${monthLabel(last)}</div><div class="k-sub">${seg==='all'?'Tất cả nhóm':seg}</div></div>
+    <div class="card kpi"><div class="k-lbl">Có action</div><div class="k-val pos">${cl.t.toLocaleString()}</div><div class="k-sub">${totLast?Math.round(cl.t/totLast*100):0}% tổng</div></div>
+    <div class="card kpi"><div class="k-lbl">Không action</div><div class="k-val">${cl.n.toLocaleString()}</div><div class="k-sub">${totLast?Math.round(cl.n/totLast*100):0}% tổng</div></div>
+    <div class="card kpi"><div class="k-lbl">Tổng record</div><div class="k-val">${totLast.toLocaleString()}</div><div class="k-sub">tháng ${monthLabel(last)}</div></div>`;
+
+  // Chart
+  const labels = months.map(monthLabel);
+  const cells = months.map(mk=>cell(mk,seg));
+  document.getElementById('chart-title').textContent = (metric==='pct'?'% Có action theo tháng':'Số record theo tháng') + ' — ' + (seg==='all'?'Tất cả nhóm':seg);
+  document.getElementById('chart-sub').textContent = 'Nguồn: sheet tháng × Agent List';
+
+  let datasets;
+  if(metric==='pct'){
+    datasets = [{ label:'% Có action', data:cells.map(c=>+pct(c).toFixed(1)), backgroundColor:'#3ec989cc', borderRadius:4 }];
+  } else {
+    datasets = [
+      { label:'Có action', data:cells.map(c=>c.t), backgroundColor:'#3ec989cc', borderRadius:4 },
+      { label:'Không action', data:cells.map(c=>c.n), backgroundColor:'#5c6a86aa', borderRadius:4 }
+    ];
+  }
+  const gc='rgba(37,44,64,.6)', tc='#9fb0cc';
+  if(chart) chart.destroy();
+  chart = new Chart(document.getElementById('chart'), {
+    type:'bar',
+    data:{labels, datasets},
+    options:{responsive:true,
+      plugins:{legend:{labels:{color:tc,font:{size:11}}},
+        tooltip:{callbacks:{label:c=> ' '+c.dataset.label+': '+c.raw + (metric==='pct'?'%':'')}}},
+      scales:{x:{grid:{color:gc},ticks:{color:tc}},
+        y:{grid:{color:gc},ticks:{color:tc,callback:v=>metric==='pct'?v+'%':v},beginAtZero:true,max:metric==='pct'?100:undefined}}}
+  });
+
+  // Table: mọi tháng × 3 nhóm
+  const th = `<thead><tr><th rowspan="2">Tháng</th>${SEGS.map(s=>`<th colspan="3" class="grp">${s}</th>`).join('')}<th colspan="2" class="grp">Tổng</th></tr>
+    <tr>${SEGS.map(()=>`<th class="grp">Có</th><th>Không</th><th>%</th>`).join('')}<th class="grp">Record</th><th>%Có</th></tr></thead>`;
+  const body = months.map(mk=>{
+    let allT=0,allN=0;
+    const segCells = SEGS.map(s=>{ const c=cell(mk,s); allT+=c.t; allN+=c.n; const p=pct(c);
+      return `<td class="grp pos">${c.t}</td><td class="neg">${c.n}</td><td>${(c.t+c.n)?p.toFixed(0)+'%':'—'}</td>`; }).join('');
+    const tot=allT+allN;
+    return `<tr><td>${monthLabel(mk)}</td>${segCells}<td class="grp">${tot}</td><td>${tot?Math.round(allT/tot*100)+'%':'—'}</td></tr>`;
+  }).join('');
+  document.getElementById('tbl').innerHTML = th + '<tbody>'+body+'</tbody>';
+
+  // Cảnh báo tháng nằm ngoài Agent List (không thể xác định treatment)
+  const alm = DATA.agentListMonths||[];
+  const uncovered = months.filter(m=>alm.indexOf(m)<0);
+  document.getElementById('coverage').textContent = uncovered.length
+    ? '⚠️ Agent List không có data các tháng: '+uncovered.map(monthLabel).join(', ')+' → các tháng này hiện 100% "Không action" (chưa đối chiếu được).'
+    : '';
+}
+
+async function loadData(force){
+  const btn=document.getElementById('reload'); if(btn) btn.disabled=true;
+  document.getElementById('status').textContent='Đang tải…';
+  try{
+    const res = await fetch(DATA_URL + '?t=' + Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    DATA = await res.json();
+    if(DATA.placeholder || !DATA.months || !DATA.months.length){
+      document.getElementById('content').style.display='none';
+      const e=document.getElementById('empty'); e.style.display='block';
+      e.innerHTML = 'Chưa có dữ liệu.<br><span style="font-size:11px">Chạy <b>setup</b> trong Apps Script rồi chờ Pages build ~1–3 phút, bấm ⟳.</span>';
+      document.getElementById('status').textContent = DATA.lastUpdatedText ? ('Cập nhật: '+DATA.lastUpdatedText) : '—';
+      return;
+    }
+    document.getElementById('empty').style.display='none';
+    document.getElementById('content').style.display='block';
+    render();
+    const c = DATA.counts||{};
+    document.getElementById('status').innerHTML = 'Cập nhật: '+(DATA.lastUpdatedText||'—')+'<br>'+(c.rowsUsed||0).toLocaleString()+' record · '+(DATA.months.length)+' tháng';
+  }catch(e){
+    document.getElementById('status').textContent='Lỗi tải data ('+e.message+')';
+    const el=document.getElementById('empty'); el.style.display='block';
+    el.innerHTML='Không tải được <b>data.json</b> ('+e.message+').<br><span style="font-size:11px">Nếu là lần đầu: chạy setup trong Apps Script.</span>';
+  }finally{ if(btn) btn.disabled=false; }
+}
+window.onload = () => loadData(false);
+</script>
+</body>
+</html>
