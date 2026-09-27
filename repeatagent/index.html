@@ -1643,6 +1643,8 @@ var TRT_SEGS=['Buyer','Seller','Multi'];
 var TRT_GROUPS=[{key:'Overall',label:'Overall MCVN'},{key:'Non',label:'Non-Treatment'},{key:'Treat',label:'Treatment'}];
 function trtMonthLabel(mk){var m=/^(\d{4})-(\d{2})$/.exec(mk);return m?('Th'+(+m[2])+'/'+m[1]):mk;}
 function trtGv(mk,g,seg){var d=(TRT_DATA.data[mk]||{})[seg]||{treatment:0,non:0};if(g==='Treat')return d.treatment||0;if(g==='Non')return d.non||0;return (d.treatment||0)+(d.non||0);}
+function trtHc(mk,g,seg){ if(!TRT_DATA.hc) return null; var st=g==='Treat'?'treat':(g==='Non'?'non':'all'); var m=TRT_DATA.hc[mk]||{}; var v=m[st+'|'+(seg||'all')]; return (v==null?null:v); }
+function trtHcCell(v){ return (v==null?'—':v); }
 function trtGroupTotal(mk,g){return TRT_SEGS.reduce(function(s,seg){return s+trtGv(mk,g,seg);},0);}
 function trtGrand(mk){return trtGroupTotal(mk,'Overall');}
 function trtMom(cur,prev){
@@ -1689,13 +1691,15 @@ function renderTreatment(){
   var gTot=trtGrand(cur), rows='';
   TRT_GROUPS.forEach(function(g){
     var gc=trtGroupTotal(cur,g.key), gp=prev?trtGroupTotal(prev,g.key):0;
-    rows+='<tr class="grp0"><td>'+g.label+'</td><td>'+gc+'</td><td>'+(prev?gp:'—')+'</td><td>'+(prev?trtMom(gc,gp):'—')+'</td><td>'+trtContrib(gc,gTot)+'</td></tr>';
+    var ghc=trtHc(cur,g.key,'all');
+    rows+='<tr class="grp0"><td>'+g.label+'</td><td>'+gc+'</td><td>'+trtHcCell(ghc)+'</td><td>'+(prev?gp:'—')+'</td><td>'+(prev?trtMom(gc,gp):'—')+'</td><td>'+trtContrib(gc,gTot)+'</td></tr>';
     TRT_SEGS.forEach(function(seg){
       var c=trtGv(cur,g.key,seg), p=prev?trtGv(prev,g.key,seg):0;
-      rows+='<tr class="grp1"><td>'+seg+'</td><td>'+c+'</td><td>'+(prev?p:'—')+'</td><td>'+(prev?trtMom(c,p):'—')+'</td><td>'+trtContrib(c,gTot)+'</td></tr>';
+      var shc=trtHc(cur,g.key,seg);
+      rows+='<tr class="grp1"><td>'+seg+'</td><td>'+c+'</td><td>'+trtHcCell(shc)+'</td><td>'+(prev?p:'—')+'</td><td>'+(prev?trtMom(c,p):'—')+'</td><td>'+trtContrib(c,gTot)+'</td></tr>';
     });
   });
-  document.getElementById('trt-tbl').innerHTML='<thead><tr><th>Nhóm</th><th>'+trtMonthLabel(cur)+'</th><th>'+(prev?trtMonthLabel(prev):'—')+'</th><th>MoM Δ</th><th>% đóng góp</th></tr></thead><tbody>'+rows+'</tbody>';
+  document.getElementById('trt-tbl').innerHTML='<thead><tr><th>Nhóm</th><th>Record '+trtMonthLabel(cur)+'</th><th>HC '+trtMonthLabel(cur)+'</th><th>Record '+(prev?trtMonthLabel(prev):'—')+'</th><th>MoM Δ</th><th>% đóng góp</th></tr></thead><tbody>'+rows+'</tbody>';
   var alm=TRT_DATA.agentListMonths||[], unc=months.filter(function(m){return alm.indexOf(m)<0;});
   document.getElementById('trt-coverage').textContent = unc.length?('⚠️ Agent List không có data các tháng: '+unc.map(trtMonthLabel).join(', ')+' → các tháng này 100% "Không action".'):'';
 }
