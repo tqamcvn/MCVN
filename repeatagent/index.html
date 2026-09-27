@@ -224,6 +224,7 @@ table.at tbody tr:last-child td{border-bottom:none}
   <button class="pnav active" id="nav-dashboard" onclick="showPage('dashboard',this)">Dashboard</button>
   <button class="pnav" id="nav-history" onclick="showPage('history',this)">CSAT History</button>
   <button class="pnav" id="nav-report" onclick="showPage('report',this)">Report</button>
+  <button class="pnav" id="nav-treatment" onclick="showPage('treatment',this)">Treatment tháng</button>
 </div>
 <button class="theme-toggle" onclick="autoLoadData()" id="reload-btn" title="Tải lại data từ Google Sheet" style="font-size:15px">⟳</button>
 <span id="load-status" style="font-size:11px;color:var(--t2)"></span>
@@ -501,6 +502,26 @@ Row 1-5 có thể là header/meta — script sẽ tự detect header dòng có c
     </div>
   </div>
 </div>
+
+<div id="page-treatment" class="page">
+  <div style="max-width:1000px">
+    <div class="hdr">
+      <div><h1>Treatment vs Non-Treatment theo tháng</h1>
+        <div class="hdr-meta">Đếm số record · Có action = agent nằm trong Agent List tháng đó · Không action = ngoài list</div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="trt-month" onchange="renderTreatment()" style="background:var(--s2);border:1px solid var(--bdr);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;font-weight:600"></select>
+        <span id="trt-cmp" style="font-size:11px;color:var(--t3)"></span>
+        <button class="btn btn-ghost" onclick="loadTreatment(true)">⟳ Tải lại</button>
+      </div>
+    </div>
+    <div id="trt-empty" class="empty-state"><div class="icon">📊</div><p id="trt-empty-msg">Đang tải dữ liệu tháng…</p></div>
+    <div id="trt-content" style="display:none">
+      <div class="tbl-wrap"><table class="sum-tbl" id="trt-tbl"></table></div>
+      <div id="trt-coverage" style="color:var(--warn);font-size:11px;margin-top:10px"></div>
+      <p id="trt-stamp" style="font-size:11px;color:var(--t3);margin-top:8px"></p>
+    </div>
+  </div>
+</div>
 </div>
 <div class="toast" id="toast">Đã copy!</div>
 
@@ -557,6 +578,7 @@ function showPage(id,btn){
   document.querySelectorAll('.pnav').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
+  if(id==='treatment') loadTreatment();
 }
 function cc(v){if(v==null||isNaN(v))return'#5b9cf6';if(v>=90)return'#3ec989';if(v>=80)return'#5b9cf6';if(v>=70)return'#f0c94a';return'#e05252';}
 function fmt(v,d=1){return v!=null&&!isNaN(v)?v.toFixed(d)+'%':'—';}
@@ -1611,6 +1633,72 @@ window.addEventListener('DOMContentLoaded',()=>{
   autoLoadData({silent:fromCache});       // rồi cập nhật data mới ở nền
   setInterval(()=>autoLoadData({silent:true}), REFRESH_MS);  // tự làm mới mỗi 30 phút khi tab mở
 });
+
+/* ================================================================
+   TAB "Treatment tháng" — đọc /treatment-monthly/data.json (cùng domain)
+   Đếm số record: Overall / Non-Treatment / Treatment × Buyer/Seller/Multi, MoM
+   ================================================================ */
+var TRT_DATA=null, TRT_LOADING=false, TRT_LOADED=false;
+var TRT_SEGS=['Buyer','Seller','Multi'];
+var TRT_GROUPS=[{key:'Overall',label:'Overall MCVN'},{key:'Non',label:'Non-Treatment'},{key:'Treat',label:'Treatment'}];
+function trtMonthLabel(mk){var m=/^(\d{4})-(\d{2})$/.exec(mk);return m?('Th'+(+m[2])+'/'+m[1]):mk;}
+function trtGv(mk,g,seg){var d=(TRT_DATA.data[mk]||{})[seg]||{treatment:0,non:0};if(g==='Treat')return d.treatment||0;if(g==='Non')return d.non||0;return (d.treatment||0)+(d.non||0);}
+function trtGroupTotal(mk,g){return TRT_SEGS.reduce(function(s,seg){return s+trtGv(mk,g,seg);},0);}
+function trtGrand(mk){return trtGroupTotal(mk,'Overall');}
+function trtMom(cur,prev){
+  if(prev===0&&cur===0)return '<span style="color:var(--t3)">—</span>';
+  if(prev===0)return '<span style="color:var(--green)">mới</span>';
+  var d=(cur-prev)/prev*100;
+  if(Math.abs(d)<0.05)return '<span style="color:var(--t3)">0%</span>';
+  return d>0?('<span style="color:var(--green);font-weight:700">+'+d.toFixed(1)+'% ▲</span>')
+            :('<span style="color:var(--red);font-weight:700">'+d.toFixed(1)+'% ▼</span>');
+}
+function trtContrib(v,tot){return tot?(v/tot*100).toFixed(0)+'%':'—';}
+async function loadTreatment(force){
+  if(TRT_LOADING) return; if(TRT_LOADED && !force) return;
+  TRT_LOADING=true;
+  var em=document.getElementById('trt-empty-msg'); if(em) em.textContent='Đang tải dữ liệu tháng…';
+  document.getElementById('trt-empty').style.display=''; document.getElementById('trt-content').style.display='none';
+  try{
+    var res=await fetch('/treatment-monthly/data.json?t='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    TRT_DATA=await res.json();
+    if(TRT_DATA.placeholder || !TRT_DATA.months || !TRT_DATA.months.length){
+      if(em) em.innerHTML='Chưa có dữ liệu tháng.<br><span style="font-size:11px">Chạy <b>setup</b> trong Apps Script (treatment-monthly) rồi bấm ⟳.</span>';
+      TRT_LOADED=true; return;
+    }
+    var sel=document.getElementById('trt-month'); var keep=sel.value;
+    sel.innerHTML=TRT_DATA.months.slice().reverse().map(function(m){return '<option value="'+m+'">'+trtMonthLabel(m)+'</option>';}).join('');
+    if(keep && TRT_DATA.months.indexOf(keep)>=0) sel.value=keep;
+    document.getElementById('trt-empty').style.display='none'; document.getElementById('trt-content').style.display='';
+    renderTreatment();
+    var c=TRT_DATA.counts||{}; var st=document.getElementById('trt-stamp');
+    if(st) st.textContent='Cập nhật: '+(TRT_DATA.lastUpdatedText||'—')+' · '+(c.rowsUsed||0)+' record · '+TRT_DATA.months.length+' tháng';
+    TRT_LOADED=true;
+  }catch(e){
+    if(em) em.textContent='Không tải được data ('+e.message+'). Bấm ⟳ để thử lại.';
+    document.getElementById('trt-empty').style.display=''; document.getElementById('trt-content').style.display='none';
+  }finally{ TRT_LOADING=false; }
+}
+function renderTreatment(){
+  if(!TRT_DATA || !TRT_DATA.months) return;
+  var months=TRT_DATA.months, sel=document.getElementById('trt-month');
+  var cur=(sel.value && months.indexOf(sel.value)>=0)?sel.value:months[months.length-1];
+  var idx=months.indexOf(cur), prev=idx>0?months[idx-1]:null;
+  document.getElementById('trt-cmp').textContent = prev?('so với '+trtMonthLabel(prev)):'(không có tháng trước)';
+  var gTot=trtGrand(cur), rows='';
+  TRT_GROUPS.forEach(function(g){
+    var gc=trtGroupTotal(cur,g.key), gp=prev?trtGroupTotal(prev,g.key):0;
+    rows+='<tr class="grp0"><td>'+g.label+'</td><td>'+gc+'</td><td>'+(prev?gp:'—')+'</td><td>'+(prev?trtMom(gc,gp):'—')+'</td><td>'+trtContrib(gc,gTot)+'</td></tr>';
+    TRT_SEGS.forEach(function(seg){
+      var c=trtGv(cur,g.key,seg), p=prev?trtGv(prev,g.key,seg):0;
+      rows+='<tr class="grp1"><td>'+seg+'</td><td>'+c+'</td><td>'+(prev?p:'—')+'</td><td>'+(prev?trtMom(c,p):'—')+'</td><td>'+trtContrib(c,gTot)+'</td></tr>';
+    });
+  });
+  document.getElementById('trt-tbl').innerHTML='<thead><tr><th>Nhóm</th><th>'+trtMonthLabel(cur)+'</th><th>'+(prev?trtMonthLabel(prev):'—')+'</th><th>MoM Δ</th><th>% đóng góp</th></tr></thead><tbody>'+rows+'</tbody>';
+  var alm=TRT_DATA.agentListMonths||[], unc=months.filter(function(m){return alm.indexOf(m)<0;});
+  document.getElementById('trt-coverage').textContent = unc.length?('⚠️ Agent List không có data các tháng: '+unc.map(trtMonthLabel).join(', ')+' → các tháng này 100% "Không action".'):'';
+}
 </script>
 <script src="/lantern-companion/lantern.js?v=20260918-1" defer></script>
 </body>
