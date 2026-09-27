@@ -169,7 +169,17 @@
   setInterval(tick,1000);
   document.addEventListener('visibilitychange',tick);
   window.addEventListener('lantern:complete',e=>celebrate(typeof e.detail?.message==='string'?e.detail.message:undefined));
-  window.LanternCompanion={celebrate,remind,show:home,dismiss:close,selectMascot,getMascot:()=>selectedMascot};
+  function selectCustomMascot(item){
+    if(!item||typeof item.name!=='string'||!/^blob:/.test(item.directions)||!/^blob:/.test(item.reactions))return false;
+    selectedMascot=item.id;direction=item.directions;reaction=item.reactions;
+    root.querySelector('strong').textContent=item.name+' ở đây';
+    pet.title=item.name+' · Kéo để di chuyển · Bấm để nhận lời động viên';
+    pet.setAttribute('aria-label',item.name+': bấm để nhận lời động viên, kéo hoặc dùng phím mũi tên để di chuyển');
+    expressionUntil=0;pet.classList.remove('sleep');sprite(4);
+    document.querySelectorAll('[data-mascot-choice]').forEach(input=>{input.checked=false;});
+    return true;
+  }
+  window.LanternCompanion={celebrate,remind,show:home,dismiss:close,selectMascot,selectCustomMascot,getMascot:()=>selectedMascot};
   let savedMascot='lantern';try{savedMascot=localStorage.getItem(mascotKey)||'lantern';}catch{}
   if(!selectMascot(savedMascot,false))selectMascot('lantern',false);
   document.querySelectorAll('[data-mascot-choice]').forEach(input=>{
