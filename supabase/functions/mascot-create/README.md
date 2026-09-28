@@ -2,6 +2,16 @@
 
 Settings → Companion includes the studio. Built-in mascots remain available without the backend. No API key belongs in the static site.
 
+## Deployment status — 2026-09-28
+
+- Migration applied successfully through the Supabase SQL editor to `ytbcydursrpjqnaalhxc`. Do not run the initial creation migration again on this project; it is not idempotent and was applied outside CLI migration history.
+- `mascot-create` deployed through the dashboard editor with source matching this repository. Legacy gateway JWT verification is off; the function requires an authenticated user via `auth.getUser`.
+- Live checks: CORS preflight returns 200 for `https://teamqamcvn.com`; unauthenticated POST returns 401.
+- No custom secrets existed at the last check. Still pending: add `OPENAI_API_KEY`, verify a real permitted-user generation, and publish the frontend. No paid image request has run.
+- Frontend changes are saved in draft PR https://github.com/tqamcvn/MCVN/pull/28 and are not on the production website yet.
+
+## Setup for a fresh environment
+
 1. Apply `supabase/migrations/202609280001_user_mascots.sql` to project `ytbcydursrpjqnaalhxc` via the SQL editor or migration workflow. This adds private storage, owner-only policies, account preferences and atomic quotas.
 2. In Supabase → Edge Functions → Secrets, set `OPENAI_API_KEY` to a project key with image generation access. Never paste it into the repository, frontend or chat. Optional `MASCOT_IMAGE_MODEL` defaults to `gpt-image-1.5`; overrides must support PNG transparency and 1024×1536. `MASCOT_ORIGIN` defaults to `https://teamqamcvn.com`.
 3. Deploy: `supabase functions deploy mascot-create --project-ref ytbcydursrpjqnaalhxc --no-verify-jwt`. The handler validates bearer tokens via `auth.getUser` before any privileged action. Supabase injects its URL and service role secret.
