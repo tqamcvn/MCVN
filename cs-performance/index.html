@@ -2114,11 +2114,17 @@ function refreshLivePeriodOptions(){
 
   async function load(){
     try{
-      var res = await sb.from('csp_records').select('id,kind,data,deleted').eq('deleted', false).limit(20000);
-      if(res.error) throw res.error;
-      (res.data||[]).forEach(function(r){ applyRecord(r.kind, r.id, r.data, false); synced.set(r.id, JSON.stringify(r.data)); known.set(r.id, r.kind); });
+      // Supabase cắt mỗi lần đọc ở max-rows (1000) bất kể limit() -> đọc theo trang, sắp theo id đến hết.
+      var rows = [];
+      for(;;){
+        var res = await sb.from('csp_records').select('id,kind,data,deleted').eq('deleted', false).order('id').range(rows.length, rows.length+999);
+        if(res.error) throw res.error;
+        if(!res.data || !res.data.length) break;
+        rows = rows.concat(res.data);
+      }
+      rows.forEach(function(r){ applyRecord(r.kind, r.id, r.data, false); synced.set(r.id, JSON.stringify(r.data)); known.set(r.id, r.kind); });
       if(typeof render==='function') render();
-      console.log('[CSP] loaded', (res.data||[]).length, 'records from Supabase');
+      console.log('[CSP] loaded', rows.length, 'records from Supabase');
     }catch(e){
       _off = true;   // bảng chưa tạo / chưa có quyền -> chạy chế độ chỉ-xem, không spam lỗi
       console.warn('[CSP] persistence OFF (load failed):', e && (e.message||e));
