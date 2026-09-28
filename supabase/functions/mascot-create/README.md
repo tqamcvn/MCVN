@@ -1,3 +1,7 @@
+# Cancelled — 2026-09-28
+
+The site owner cancelled user-created mascots. PR #28 is closed without merging; the production frontend keeps its built-in mascots. The deployed mascot-create endpoint now returns HTTP 410 and makes no OpenAI or database calls. No API key is needed. Private tables and the bucket are retained unused; no user data was deleted. The setup notes below describe the abandoned implementation, not current activation instructions.
+
 # User mascot rollout
 
 Settings → Companion includes the studio. Built-in mascots remain available without the backend. No API key belongs in the static site.
@@ -29,3 +33,4 @@ Settings → Companion includes the studio. Built-in mascots remain available wi
 - Production migration, provider output and deployed Edge behavior require credentialed integration validation. Mock tests are not deployment evidence.
 
 References: [Images API](https://developers.openai.com/api/docs/guides/image-generation), [Edge limits](https://supabase.com/docs/guides/functions/limits).
+
