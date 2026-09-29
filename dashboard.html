@@ -432,7 +432,7 @@ body.sb-collapsed .nav-group-head { justify-content: center; padding-left: 0; pa
 .b { width: 10px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.2; }
 .b.hi { opacity: 1; }
 
-.daily-table { min-width: 1000px; table-layout: fixed; }
+.daily-table { min-width: 1200px; table-layout: fixed; }
 .daily-table th:first-child,.daily-table td:first-child { width:260px; position:sticky; left:0; background:var(--white); z-index:1; }
 .daily-table th:last-child { width:140px; }
 .daily-value { font-variant-numeric:tabular-nums; }
@@ -1885,29 +1885,34 @@ function renderDailyCsat() {
   const en = currentLang() === 'en';
   document.getElementById('daily-week').textContent = en ? ' · 7 days' : ' · 7 ngày';
   const target = document.getElementById('daily-content');
-  const dates = CSAT_AGENTS.dailyDates || [];
+  const sourceDates = CSAT_AGENTS.dailyDates || [];
+  const dates = sourceDates.length ? Array.from({length:7}, (_,i) => { const d=new Date(sourceDates[sourceDates.length-1]+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()-6+i); return d.toISOString().slice(0,10); }) : [];
+  const valuesOf = a => dates.map(d => (a.daily || [])[sourceDates.indexOf(d)]);
   if (!dates.length) {
     target.textContent = en ? 'No daily data for this week yet.' : 'Chưa có dữ liệu daily trong tuần này.';
     return;
   }
   const valid = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
   const cell = v => valid(v) ? '<span class="daily-value">'+csatPct(v)+'</span><span class="daily-track"><i style="width:'+(v*100).toFixed(1)+'%"></i></span>' : '<span class="my-sub">—</span>';
+  const dailyCell = (values,i) => cell(values[i]) + (i && valid(values[i]) && valid(values[i-1]) ? '<div class="my-sub '+(values[i]>=values[i-1]?'up':'dn')+'">'+(values[i]>values[i-1]?'▲ ':values[i]<values[i-1]?'▼ ':'▬ ')+Math.abs((values[i]-values[i-1])*100).toFixed(1)+'%</div>' : '');
+  const l7d = values => { const v=values.filter(valid); return '<td class="num"><b>'+(v.length===7?csatPct(v.reduce((a,b)=>a+b,0)/7):'—')+'</b><div class="my-sub">'+v.length+'/7 '+(en?'days':'ngày')+'</div></td>'; };
   const trend = values => {
+    if(values.filter(valid).length<2) return '<span class="my-sub">'+(en?'Not enough data':'Chưa đủ dữ liệu')+'</span>';
     const points = values.map((v,i) => valid(v) ? [8+i*18,44-v*36] : null);
     let path = '', previous = false;
     points.forEach(p => { if (!p) { previous=false; return; } path += (previous?' L':' M')+p[0]+','+p[1]; previous=true; });
     return '<svg width="128" height="52" viewBox="0 0 128 52" role="img" aria-label="'+(en?'Daily CSAT trend, 0 to 100%':'Xu hướng CSAT ngày, 0 đến 100%')+'"><path d="M8 44H120" stroke="var(--gray-200)"/><path d="'+path+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+points.map((p,i)=>p?'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="var(--accent)"><title>'+escHtml(dates[i])+': '+csatPct(values[i])+'</title></circle>':'').join('')+'</svg>';
   };
   const averages = dates.map((d,i) => {
-    const values = rows.map(a => (a.daily || [])[i]).filter(valid);
+    const values = rows.map(a => valuesOf(a)[i]).filter(valid);
     return values.length ? values.reduce((s,v) => s+v,0)/values.length : null;
   });
   const label = d => new Date(d+'T00:00:00Z').toLocaleDateString(en ? 'en-GB' : 'vi-VN', {weekday:'short',day:'2-digit',month:'2-digit',timeZone:'UTC'});
   target.innerHTML = '<p class="my-sub" style="margin-bottom:12px">' +
-    (en ? 'Seven source dates (AC:AI). Bar length shows CSAT, 0–100%. Blank: —; 0% is kept as reported.' : '7 ngày từ AC:AI. Thanh dài hơn = CSAT cao hơn (0–100%). Ô trống: —; 0% giữ nguyên theo sheet.') +
-    '</p><table class="below-tbl daily-table"><thead><tr><th>Agent</th>' + dates.map(d => '<th class="num">'+escHtml(label(d))+'</th>').join('') +
-    '<th>'+(en?'Trend':'Xu hướng')+'</th></tr></thead><tbody>' + (handled.length ? '<tr><th>'+(en ? 'Your agents · Average' : 'Agent của bạn · Trung bình')+'</th>'+averages.map(v=>'<td class="num">'+cell(v)+'</td>').join('')+'<td>'+trend(averages)+'</td></tr>' : '') +
-    rows.map(a => '<tr><td>'+escHtml(a.name)+'<div class="my-sub">'+escHtml(a.email)+'</div></td>'+dates.map((d,i)=>'<td class="num">'+cell((a.daily || [])[i])+'</td>').join('')+'<td>'+trend(dates.map((d,i)=>(a.daily || [])[i]))+'</td></tr>').join('') + '</tbody></table>';
+    (en ? 'L7D = unweighted average of seven daily percentages. ▲/▼ = change from previous day. Blank: —; zero is kept.' : 'TB L7D = trung bình cộng % của đủ 7 ngày, không trọng số. ▲/▼ = chênh lệch với ngày trước. Ô trống: —; 0% giữ nguyên theo sheet.') +
+    '</p>'+(sourceDates.length<7?'<p class="my-sub">'+(en?'Source contains only '+sourceDates.length+' day(s). Update Apps Script and run refreshAndPush.':'Nguồn hiện chỉ có '+sourceDates.length+' ngày. Cập nhật Apps Script và chạy refreshAndPush để lấy đủ AC:AI.')+'</p>':'')+'<table class="below-tbl daily-table"><thead><tr><th>Agent</th><th class="num">TB L7D</th>' + dates.map(d => '<th class="num">'+escHtml(label(d))+'</th>').join('') +
+    '<th>'+(en?'Trend':'Xu hướng')+'</th></tr></thead><tbody>' + (handled.length ? '<tr><th>'+(en ? 'Your agents · Average' : 'Agent của bạn · Trung bình')+'</th>'+l7d(averages)+averages.map((v,i)=>'<td class="num">'+dailyCell(averages,i)+'</td>').join('')+'<td>'+trend(averages)+'</td></tr>' : '') +
+    rows.map(a => '<tr><td>'+escHtml(a.name)+'<div class="my-sub">'+escHtml(a.email)+'</div></td>'+l7d(valuesOf(a))+dates.map((d,i)=>'<td class="num">'+dailyCell(valuesOf(a),i)+'</td>').join('')+'<td>'+trend(valuesOf(a))+'</td></tr>').join('') + '</tbody></table>';
 }
 
 let LAST_CSAT_SAVED_AT = null, LAST_CSAT_FROM_CACHE = false;
