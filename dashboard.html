@@ -922,6 +922,10 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
 
       <!-- CSAT của chính user đăng nhập (csat-agent/data.json) so với MCVN Overall -->
       <div id="my-csat" class="my-csat" hidden></div>
+      <details id="daily-box" class="below-box" hidden>
+        <summary>CSAT Daily <span id="daily-week" class="my-sub"></span></summary>
+        <div id="daily-content" style="padding:0 18px 16px;overflow-x:auto"></div>
+      </details>
 
       <!-- Dropdown: agent có CSAT tuần mới nhất thấp hơn baseline (QA + IH) -->
       <details id="below-box" class="below-box qa-ih" hidden>
@@ -1751,7 +1755,7 @@ function csatMiniCard(m) {
     '<div class="my-sub">' + sub + '</div>' +
     '</div>';
 }
-function renderMyCsat() { renderMine(); renderBelow(); }
+function renderMyCsat() { renderMine(); renderBelow(); renderDailyCsat(); }
 function renderMine() {
   const box = document.getElementById('my-csat');
   if (!box || !MY_CSAT) return;
@@ -1861,6 +1865,39 @@ async function loadMyCsat(email, name) {
     try { localStorage.setItem(key, JSON.stringify(MY_CSAT)); } catch (e) {}
   } catch (e) { /* chưa có data.json (Apps Script chưa setup) -> giữ cache / ẩn khối */ }
 }
+function renderDailyCsat() {
+  const box = document.getElementById('daily-box');
+  if (!box) return;
+  box.hidden = true;
+  if (!CSAT_AGENTS || !MY_CSAT || MY_CSAT.notFound) return;
+  const all = (CSAT_AGENTS.agents || []).filter(a => !isSkipped(a));
+  const handled = all.filter(a => a.qaEmail === MY_EMAIL);
+  const own = all.filter(a => a.email === MY_EMAIL);
+  const rows = handled.length ? handled : own;
+  if (!rows.length) return;
+  box.hidden = false;
+  const en = currentLang() === 'en';
+  document.getElementById('daily-week').textContent = ' · ' + ((CSAT_AGENTS.weeks || [])[0] || '');
+  const target = document.getElementById('daily-content');
+  const dates = CSAT_AGENTS.dailyDates || [];
+  if (!dates.length) {
+    target.textContent = en ? 'No daily data for this week yet.' : 'Chưa có dữ liệu daily trong tuần này.';
+    return;
+  }
+  const valid = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+  const cell = v => valid(v) ? csatPct(v) : '—';
+  const averages = dates.map((d,i) => {
+    const values = rows.map(a => (a.daily || [])[i]).filter(valid);
+    return values.length ? values.reduce((s,v) => s+v,0)/values.length : null;
+  });
+  const label = d => new Date(d+'T00:00:00Z').toLocaleDateString(en ? 'en-GB' : 'vi-VN', {weekday:'short',day:'2-digit',month:'2-digit',timeZone:'UTC'});
+  target.innerHTML = '<p class="my-sub" style="margin-bottom:12px">' +
+    (en ? 'Daily average of your agents. Blank cells: —; 0% is kept as reported in the sheet.' : 'Trung bình CSAT theo ngày của agent bạn phụ trách. Ô trống: —; 0% giữ nguyên theo sheet.') +
+    '</p><table class="below-tbl"><thead><tr><th>Agent</th>' + dates.map(d => '<th class="num">'+escHtml(label(d))+'</th>').join('') +
+    '</tr></thead><tbody>' + (handled.length ? '<tr><th>'+(en ? 'Your agents · Average' : 'Agent của bạn · Trung bình')+'</th>'+averages.map(v=>'<td class="num"><b>'+cell(v)+'</b></td>').join('')+'</tr>' : '') +
+    rows.map(a => '<tr><td>'+escHtml(a.name)+'<div class="my-sub">'+escHtml(a.email)+'</div></td>'+dates.map((d,i)=>'<td class="num">'+cell((a.daily || [])[i])+'</td>').join('')+'</tr>').join('') + '</tbody></table>';
+}
+
 let LAST_CSAT_SAVED_AT = null, LAST_CSAT_FROM_CACHE = false;
 function csatStamp(savedAt, fromCache) {
   const el = document.getElementById('csat-stamp');

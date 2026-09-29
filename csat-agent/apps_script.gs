@@ -61,6 +61,16 @@ function buildPayload_() {
     weekCols.push({ col: c, week: /^W\d+$/.test(wk) ? wk : ('W?' + (c + 1)), start: weekStart_(vals, head, c) });
   }
   const firstCsat = weekCols[0].col;
+  // AC:AI, date headers on the agent header row. Keep only the week of K.
+  const start = dailyDate_(weekCols[0].start, true);
+  const end = start ? new Date(start + 'T00:00:00Z') : null;
+  if (end) end.setUTCDate(end.getUTCDate() + 7);
+  const dailyCols = [];
+  for (let c = 28; c <= 34; c++) {
+    const date = dailyDate_(hdr[c], false);
+    if (start && date && date >= start && date < end.toISOString().slice(0, 10)) dailyCols.push({col:c, date:date});
+  }
+  dailyCols.sort(function(a,b) { return a.date.localeCompare(b.date); });
 
   const agents = [];
   for (let i = head + 1; i < vals.length; i++) {
@@ -87,6 +97,7 @@ function buildPayload_() {
       seniority: seniority,
       ratings:   cRate !== undefined ? toNum_(r[cRate]) : 0,
       qaEmail:   qaEmail,
+      daily:     dailyCols.map(function(d) { return toPct_(r[d.col]); }),
       csat:      weekCols.map(function (w) { return toPct_(r[w.col]); })   // cùng thứ tự với weeks[]
     });
   }
@@ -100,9 +111,23 @@ function buildPayload_() {
     lastUpdatedText: Utilities.formatDate(now, TZ, 'HH:mm - dd/MM/yyyy'),
     weeks:           weekCols.map(function (w) { return w.week; }),    // mới nhất trước
     weekStart:       weekCols.map(function (w) { return w.start; }),
+    dailyDates:      dailyCols.map(function(d) { return d.date; }),
     counts:          { agents: agents.length },
     agents:          agents
   };
+}
+
+// Date cells use sheet timezone; text daily headers use M/d/yyyy.
+function dailyDate_(v, dayFirst) {
+  if (v instanceof Date && !isNaN(v.getTime())) return Utilities.formatDate(v, TZ, 'yyyy-MM-dd');
+  const s = String(v || '').trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return s;
+  m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (!m) return '';
+  const month = Number(m[dayFirst ? 2 : 1]), day = Number(m[dayFirst ? 1 : 2]);
+  const d = new Date(Date.UTC(Number(m[3]), month - 1, day));
+  return d.getUTCMonth() === month - 1 && d.getUTCDate() === day ? d.toISOString().slice(0,10) : '';
 }
 
 /** Ngày đầu tuần: ô Date gần nhất phía trên dòng nhãn tuần, cùng cột. */
