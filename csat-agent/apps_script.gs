@@ -28,6 +28,7 @@
 /* ===================== CONFIG ===================== */
 const SPREADSHEET_ID = '1NrKWbj6Fd42RgkYMZv0bUgPsUM6oWtdDQn5gb6mAEQ0';
 const SHEET_GID      = 680802481;           // tab CSAT theo agent (gid trong URL)
+const CSAT_EXPORT_VERSION = 'daily-7d-v2';
 const LATEST_COL     = 11;                  // cột K = CSAT tuần mới nhất (1-based)
 const GH_OWNER  = 'tqamcvn';
 const GH_REPO   = 'MCVN';
@@ -65,9 +66,11 @@ function buildPayload_() {
   const dailyCols = [];
   for (let c = 28; c <= 34; c++) {
     const date = dailyDate_(hdr[c], false);
+    Logger.log('Daily ' + String.fromCharCode(65 + Math.floor(c / 26) - 1) + String.fromCharCode(65 + c % 26) + ': header=' + String(hdr[c]) + ' -> ' + (date || 'INVALID'));
     if (date) dailyCols.push({col:c, date:date});
   }
   dailyCols.sort(function(a,b) { return a.date.localeCompare(b.date); });
+  if (dailyCols.length !== 7) throw new Error(CSAT_EXPORT_VERSION + ': Chỉ đọc được ' + dailyCols.length + '/7 ngày ở AC:AI. Xem log header phía trên; giữ dữ liệu cũ.');
 
   const agents = [];
   for (let i = head + 1; i < vals.length; i++) {
@@ -104,6 +107,7 @@ function buildPayload_() {
 
   const now = new Date();
   return {
+    exportVersion:   CSAT_EXPORT_VERSION,
     lastUpdated:     Utilities.formatDate(now, TZ, "yyyy-MM-dd'T'HH:mm:ssXXX"),
     lastUpdatedText: Utilities.formatDate(now, TZ, 'HH:mm - dd/MM/yyyy'),
     weeks:           weekCols.map(function (w) { return w.week; }),    // mới nhất trước
@@ -166,7 +170,10 @@ function setup() {
 
 /** Trigger 30' gọi hàm này (cũng chạy tay được để đẩy ngay). */
 function refreshAndPush() {
-  const json = JSON.stringify(buildPayload_());
+  Logger.log('Exporter: ' + CSAT_EXPORT_VERSION + ' | AC:AI, không lọc tuần');
+  const payload = buildPayload_();
+  Logger.log('Daily dates (' + payload.dailyDates.length + '): ' + payload.dailyDates.join(', '));
+  const json = JSON.stringify(payload);
   Logger.log(pushToGitHub_(json) ? 'Đã đẩy data.json mới.' : 'Data không đổi, bỏ qua commit.');
 }
 
