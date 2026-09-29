@@ -6,10 +6,19 @@ let people = new Map(), isManager = false, selectedFeedback = null, detailVersio
 let replyFiles = [], replySending = false;
 const replyBucket = 'feedback-reply-attachments';
 const maxBody = 10000;
+$('reply-attach').onclick=()=>$('reply-files').click();
+function updateReplyComposer(){
+  const input=$('reply-body');
+  input.style.height='auto';input.style.height=Math.min(input.scrollHeight,144)+'px';
+  $('reply-submit').disabled=replySending||!input.value.trim();
+  $('reply-submit').setAttribute('aria-label',replySending?'Đang gửi phản hồi':'Gửi phản hồi');
+  $('reply-submit').classList.toggle('is-sending',replySending);
+}
+$('reply-body').addEventListener('input',updateReplyComposer);
 function renderReplyFiles(){
   $('reply-file-list').replaceChildren(...replyFiles.map((file,i)=>{
-    const li=node('li',file.name+' · '+(file.size/1024/1024).toFixed(1)+' MB ');
-    const remove=node('button','Bỏ');remove.type='button';remove.disabled=replySending;
+    const li=node('div',file.name+' · '+(file.size/1024/1024).toFixed(1)+' MB ');
+    const remove=node('button','×');remove.setAttribute('aria-label','Bỏ '+file.name);remove.type='button';remove.disabled=replySending;
     remove.onclick=()=>{replyFiles.splice(i,1);renderReplyFiles();};li.append(remove);return li;
   }));
 }
@@ -117,11 +126,11 @@ async function showDetail(r){
   $('manager-actions').hidden=!isManager;$('reply-form').hidden=!user;$('detail-error').textContent='';
   renderTask(r);
   $('reply-body').value='';try{const wire=sessionStorage.getItem('feedback.reply.'+user.id+'.'+r.id)||'';if($('reply-body').mentionValue)$('reply-body').mentionValue.restore(wire);else $('reply-body').value=wire;}catch{}
-  $('replies').textContent='Đang tải phản hồi…';if(!$('detail').open)$('detail').showModal();
+  $('replies').textContent='Đang tải phản hồi…';if(!$('detail').open)$('detail').showModal();updateReplyComposer();
   markFeedbackNotificationsRead(r.id);
   try{const result=await db.from('feedback_replies').select('*').eq('feedback_id',r.id).order('created_at');if(result.error)throw result.error;if(version!==detailVersion)return;
     $('replies').replaceChildren();if(!result.data.length)$('replies').textContent='Chưa có phản hồi.';
-    result.data.forEach(reply=>{const box=node('article','','reply');box.append(person(reply.author_id),node('time',new Date(reply.created_at).toLocaleString('vi-VN'),'muted'),mentionParagraph(reply.body));(reply.attachments||[]).forEach(file=>{const button=node('button','↓ '+file.name);button.type='button';button.onclick=()=>downloadReplyFile(file,button);box.append(button);});$('replies').append(box);});
+    result.data.forEach(reply=>{const box=node('article','','reply'+(reply.author_id===user.id?' own':''));box.append(person(reply.author_id),node('time',new Date(reply.created_at).toLocaleString('vi-VN'),'muted'),mentionParagraph(reply.body));(reply.attachments||[]).forEach(file=>{const button=node('button','↓ '+file.name,'reply-attachment');button.type='button';button.onclick=()=>downloadReplyFile(file,button);box.append(button);});$('replies').append(box);});
   }catch{if(version===detailVersion)$('replies').textContent='Không tải được phản hồi. Đóng và mở lại để thử lại.';}
 }
 $('reply-body').oninput=()=>{try{sessionStorage.setItem('feedback.reply.'+user.id+'.'+selectedFeedback.id,$('reply-body').mentionValue?.serialize()||$('reply-body').value);}catch{}};
@@ -138,7 +147,7 @@ $('reply-form').onsubmit=async e=>{
   if(replySending||!user||!body||!selectedFeedback)return;
   const id=selectedFeedback.id,attachments=[];replySending=true;
   Array.from($('reply-form').elements).forEach(el=>el.disabled=true);renderReplyFiles();
-  $('reply-submit').textContent='Đang gửi…';$('detail-error').textContent='';
+  updateReplyComposer();$('detail-error').textContent='';
   let saved=false;
   try{
     for(const file of replyFiles){
@@ -157,7 +166,7 @@ $('reply-form').onsubmit=async e=>{
     $('detail-error').textContent=saved?'Đã gửi phản hồi. Mở lại để cập nhật.':'Chưa gửi được phản hồi. Nội dung và file vẫn được giữ lại.';
   }finally{
     replySending=false;Array.from($('reply-form').elements).forEach(el=>el.disabled=false);
-    renderReplyFiles();$('reply-submit').textContent='Gửi phản hồi';
+    renderReplyFiles();updateReplyComposer();
   }
 };
 async function load(){

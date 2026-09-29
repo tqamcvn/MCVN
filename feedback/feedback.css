@@ -36,3 +36,42 @@ body.dark .badge.status[data-status="Hoàn thành"],body.dark .badge.status[data
 button.mention-highlight{border:0;font:inherit;font-weight:600;cursor:pointer;display:inline;padding:1px 4px;min-height:0}button.mention-highlight:hover{background:#cbdfff;text-decoration:underline}button.mention-highlight:focus-visible{outline:2px solid #1976bd;outline-offset:2px}.mention-profile{width:min(380px,calc(100vw - 32px));padding:28px;border:1px solid #dae4ef;border-radius:18px;color:#233b53;background:#fff;box-sizing:border-box}.mention-profile::backdrop{background:#162d4866}.profile-close{position:absolute;right:10px;top:8px}.profile-avatar{position:relative;width:76px;height:76px;border-radius:50%;background:#e5efff;color:#1859ad;display:grid;place-items:center;font-size:24px;font-weight:700;overflow:hidden}.profile-avatar img{position:absolute;width:100%;height:100%;object-fit:cover}.mention-profile h2{font-size:20px;margin:16px 0}.mention-profile dl{display:grid;grid-template-columns:90px 1fr;gap:14px;margin:0}.mention-profile dt{color:#718399}.mention-profile dd{margin:0;overflow-wrap:anywhere}.dark .mention-profile{background:#172b40;color:#e3edf7;border-color:#38516b}
 
 button.person{border:0;background:transparent;padding:0;border-radius:4px;cursor:pointer;text-align:left}button.person:hover>span:last-child{text-decoration:underline;color:var(--blue)}button.person:focus-visible{outline:2px solid var(--blue);outline-offset:4px}
+
+/* Messages-inspired conversation and compact composer. */
+#detail{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:26px;border-color:transparent;box-shadow:0 28px 100px #0003}
+#detail .dialog-head button{width:32px;height:32px;padding:0;border-radius:50%;background:#f0f0f3;color:#85858b;line-height:1}
+#detail h3{font-size:13px;font-weight:600;color:var(--muted);margin:28px 0 18px}
+#replies{display:flex;flex-direction:column;gap:20px;padding-bottom:24px}
+#replies:empty{padding-bottom:0}
+.reply{display:flex;flex-direction:column;align-items:flex-start;max-width:88%;padding:0;border:0;gap:5px}
+.reply.own{align-self:flex-end;align-items:flex-end}
+.reply .person{font-size:11px;color:var(--muted);gap:6px}
+.reply .avatar{width:22px;height:22px;font-size:9px}
+.reply time{font-size:10px;margin:0;order:3;color:var(--muted)}
+.reply p{margin:0;background:#eeeef0;color:#1d1d1f;border-radius:18px 18px 18px 5px;padding:10px 15px;line-height:1.5;max-width:100%;font-size:15px}
+.reply.own p{background:#007aff;color:white;border-radius:18px 18px 5px 18px}
+.reply.own .mention-highlight{background:#ffffff26;color:white}
+.reply-attachment{max-width:100%;overflow-wrap:anywhere;font-size:12px;border-radius:14px;background:#f2f2f7;padding:9px 13px}
+#reply-form{border-top:1px solid var(--line);padding-top:16px;margin-top:0}
+.message-composer{display:flex;align-items:flex-end;gap:10px}
+#reply-attach{height:36px;width:36px;flex:0 0 36px;margin-bottom:3px;border:0;border-radius:50%;background:#e9e9ed;color:#6e6e73;font-size:29px;font-weight:400;padding:0;line-height:32px}
+.message-field{display:flex;align-items:flex-end;gap:6px;flex:1;min-width:0;border:1px solid #d1d1d6;border-radius:23px;padding:4px 5px 4px 15px;background:var(--surface);transition:border-color .15s,box-shadow .15s}
+.message-field:focus-within{border-color:#007aff;box-shadow:0 0 0 3px #007aff12}
+#reply-body{flex:1;min-width:0;width:100%;min-height:32px;max-height:144px;margin:0;padding:4px 0;border:0;border-radius:0;background:transparent;resize:none;line-height:24px;font-size:16px;outline:0;box-shadow:none}
+#reply-body::placeholder{color:#919196}
+#reply-submit{display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border:0;border-radius:50%;padding:0;background:#007aff;color:#fff;margin:0}
+#reply-submit svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+#reply-submit:disabled{background:#d1d1d6;opacity:1;cursor:default}
+#reply-submit.is-sending{opacity:.55}
+#reply-hint{margin:8px 0 0 47px;font-size:11px;line-height:1.5;color:#8e8e93}
+#reply-file-list{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0}
+#reply-file-list:not(:empty){margin-bottom:10px}
+#reply-file-list>div{display:flex;align-items:center;gap:8px;max-width:100%;overflow-wrap:anywhere;background:#f2f2f7;padding:6px 8px 6px 12px;border-radius:12px;font-size:12px}
+#reply-file-list button{border:0;background:#e5e5ea;border-radius:50%;padding:0;width:24px;height:24px;flex-shrink:0;font-size:18px;color:#6e6e73}
+.dark #detail .dialog-head button,.dark #reply-attach{background:#3a3a3c;color:#aeaeb2}
+.dark .reply p,.dark .reply-attachment,.dark #reply-file-list>div{background:#343438;color:#f5f5f7}
+.dark .reply.own p{background:#0a84ff}
+.dark .message-field{border-color:#545458}
+.dark #reply-submit:disabled{background:#545458}
+.dark #reply-file-list button{background:#545458;color:white}
+@media(max-width:600px){#detail{padding:20px 16px;border-radius:24px;width:calc(100% - 16px)}.reply{max-width:92%}#reply-hint{font-size:10px}.message-composer{gap:8px}}
