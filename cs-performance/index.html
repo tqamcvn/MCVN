@@ -2289,9 +2289,31 @@ function addCommitRow(section,value,requestedIndex){
 function fillCommitRow(row,c){for(const [name,value] of Object.entries({journeyMetric:c.commitMetric||'csat',journeyTarget:c.commitTarget??'',commitChannel:c.commitChannel||'',commitSegment:c.commitSegment||''}))row.querySelector('[name^="'+name+'"]').value=value;row.querySelector('select').dispatchEvent(new Event('change'));}
 // Action nhẹ (Follow-up, Gửi KB, Monitor...) không có Recap nhưng vẫn cần ghi lý do chọn action / issue để follow cải thiện.
 function journeyReasonField(dialog,type,notes){const e=dialog.querySelector('#jActNote, #rnNote, #edNote'),label=e&&e.closest('label');if(!label)return;label.style.display=type?'block':'none';if(label.firstChild&&label.firstChild.nodeType===3)label.firstChild.nodeValue=notes?'Recap · tóm tắt buổi coaching / action đã diễn ra':'Lý do chọn action · issue của CS cần cải thiện để follow';e.placeholder=notes?'':'VD: CS còn sai bước xác minh đơn hàng, chưa cần coaching; follow tuần sau xem đã cải thiện chưa...';}
+// Bảng CSAT theo tuần × channel (CS Multi tách Buyer/Seller) trong phần Cam kết -> QA đặt target sát thực tế.
+function csatWeekPanel(email){
+ const a=agent(email)||{},rows=(db.ratingsV4||[]).filter(r=>r[0]===email&&r[2]&&notFutureWeek(r[2]));
+ const weeks=[...new Set(rows.map(r=>r[2]))].sort().slice(-4);
+ if(!weeks.length)return '<div data-csat-weeks class="muted" style="margin:10px 0">Chưa có dữ liệu CSAT của CS này.</div>';
+ const multi=[a.group,a.csatGroup].includes('Multi')||String(a.queue||'').toUpperCase()==='ALL',target=perfTarget(a),agg={};
+ const put=(w,ch,sg,r)=>{const o=agg[w+'|'+ch+'|'+sg]||(agg[w+'|'+ch+'|'+sg]={g:0,t:0});o.g+=Number(r[3])||0;o.t+=Number(r[4])||0;};
+ for(const r of rows){if(!weeks.includes(r[2]))continue;const ch=String(r[5]||'').trim(),sg=multi?segmentValue(r[6]):'';put(r[2],'','',r);if(ch)put(r[2],ch,'',r);if(sg){put(r[2],'',sg,r);if(ch)put(r[2],ch,sg,r);}}
+ const lines=[['','']];if(multi)lines.push(['','Buyer'],['','Seller']);
+ for(const c of COMMIT_CHANNELS){lines.push([c,'']);if(multi)lines.push([c,'Buyer'],[c,'Seller']);}
+ const has=(ch,sg)=>weeks.some(w=>agg[w+'|'+ch+'|'+sg]?.t);
+ const now=weekOf(today()),td='padding:4px 8px;border-bottom:1px solid var(--csp-line,#e3e9f2);text-align:right;white-space:nowrap';
+ const cell=(w,ch,sg)=>{const o=agg[w+'|'+ch+'|'+sg];if(!o||!o.t)return '<td style="'+td+';color:var(--csp-muted,#8b9dbf)">—</td>';const v=o.g/o.t*100,below=target!=null&&v<target;return '<td style="'+td+'"><b style="color:'+(below?'var(--csp-danger,#c62828)':'inherit')+'">'+v.toFixed(1)+'%</b> <span style="font-size:11px;color:var(--csp-muted,#8b9dbf)">'+o.t+'</span></td>';};
+ const body=lines.filter(([ch,sg])=>(!ch&&!sg)||has(ch,sg)).map(([ch,sg])=>'<tr data-csat-key="'+esc(ch+'|'+sg)+'"><td style="'+td+';text-align:left;'+(sg?'padding-left:22px':'font-weight:600')+'">'+esc(sg?sg:(ch||'All channel'))+'</td>'+weeks.map(w=>cell(w,ch,sg)).join('')+'</tr>').join('');
+ return '<div data-csat-weeks style="margin:10px 0;padding:10px 12px;border:1px solid var(--csp-line,#e3e9f2);border-radius:10px;background:var(--csp-card,#fff)"><b>📊 CSAT của CS theo tuần</b><div class="muted" style="font-size:12px;margin:2px 0 6px">'+(multi?'CS Multi · tách queue Buyer / Seller':'Queue '+esc(a.queue||'—'))+' · Target nhóm: '+(target==null?'chưa đặt':target+'%')+' · số nhỏ = số rating · đỏ = dưới target · dòng tô nền = channel/queue đang chọn cam kết</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr><th style="'+td+';text-align:left">Channel · Queue</th>'+weeks.map(w=>'<th style="'+td+'">'+esc(w.slice(5))+(w===now?' (WTD)':'')+'</th>').join('')+'</tr></thead><tbody>'+body+'</tbody></table></div></div>';
+}
+function csatWeekMount(section){
+ if(!section||section.querySelector('[data-csat-weeks]'))return;const email=section.dataset.email,a=agent(email)||{},multi=[a.group,a.csatGroup].includes('Multi')||String(a.queue||'').toUpperCase()==='ALL';
+ const anchor=section.querySelector('[data-commit-rows]');if(!anchor||!email)return;anchor.insertAdjacentHTML('beforebegin',csatWeekPanel(email));
+ const mark=()=>{const picks=new Set([...section.querySelectorAll('[data-commit-row]')].filter(r=>r.querySelector('[name^="journeyMetric"]')?.value==='csat').map(r=>(r.querySelector('[name^="commitChannel"]')?.value||'')+'|'+(multi?(r.querySelector('[name^="commitSegment"]')?.value||''):'')));section.querySelectorAll('[data-csat-key]').forEach(tr=>{tr.style.background=picks.has(tr.dataset.csatKey)?'var(--csp-soft,#eaf1ff)':'';});};
+ const later=()=>setTimeout(mark,0);section.addEventListener('change',later);section.addEventListener('click',later);later();
+}
 wireJourneyCommit=function(dialog,selector){
  const type=dialog.querySelector(selector),section=dialog.querySelector('[data-journey-commit]'),mode=section.querySelector('[name="journeyMode"]'),date=section.querySelector('[name="journeyNext"]');
- section.querySelectorAll('[data-commit-row]').forEach(row=>wireCommitRow(row,section));section.querySelector('[data-add-commit]').onclick=()=>addCommitRow(section);
+ section.querySelectorAll('[data-commit-row]').forEach(row=>wireCommitRow(row,section));section.querySelector('[data-add-commit]').onclick=()=>addCommitRow(section);csatWeekMount(section);
  const sync=()=>{const enabled=String(type.value).toLowerCase()!=='monitor case',notes=needsJourneyNotes(type.value);section.hidden=!enabled;
  const session=dialog.querySelector('[name="journeySessionCategory"]');if(session){session.closest('label').hidden=!needsSessionCategory(type.value);session.required=needsSessionCategory(type.value);}
  for(const selector of ['[name="journeyNextSteps"]','[name="journeyDocument"]']){const e=dialog.querySelector(selector);if(e)e.closest('label').style.display=notes?'block':'none';}journeyReasonField(dialog,type.value,notes);
