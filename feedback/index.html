@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Feedback · TQA MCVN</title><link rel="stylesheet" href="feedback.css?v=20260929-messages"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="mentions.js?v=20260924-author-profile" defer></script><script src="config.js" defer></script><script src="feedback.js?v=20260929-messages" defer></script></head>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Feedback · TQA MCVN</title><link rel="stylesheet" href="feedback.css?v=20260929-plus-center"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="mentions.js?v=20260924-author-profile" defer></script><script src="config.js" defer></script><script src="feedback.js?v=20260929-messages" defer></script></head>
 <body><main>
 <header><div><span class="eyebrow">CÙNG XÂY DỰNG CÔNG CỤ TỐT HƠN</span><h1>Feedback</h1><p>Góp ý của bạn, thay đổi cho cả đội.</p></div><button class="primary" id="write" disabled>＋ Viết phản hồi</button></header>
 <div id="notice" role="status"></div><section id="inbox" hidden><h2>Thông báo của bạn <span id="unread-count"></span></h2><div id="notification-list"></div></section>
@@ -17,7 +17,7 @@
 <dialog id="detail" aria-labelledby="detail-title"><div class="dialog-head"><h2 id="detail-title"></h2><button id="detail-close" aria-label="Đóng">×</button></div><p id="detail-meta" class="muted"></p><div id="detail-body"></div><div id="detail-files"></div><ol hidden id="task-progress" aria-label="Tiến độ xử lý"></ol><div id="manager-actions" hidden><label for="task-status">Trạng thái task</label><select id="task-status"><option value="">Chọn trạng thái</option><option>Đã nhận</option><option>Đang thực hiện</option><option>Hoàn thành</option></select></div><p id="detail-error" role="status"></p><h3>Phản hồi</h3><div id="replies"></div><form id="reply-form" hidden>
 <div id="reply-file-list" aria-label="File đính kèm"></div>
 <div class="message-composer">
-<button type="button" id="reply-attach" aria-label="Đính kèm file" title="Đính kèm file">+</button>
+<button type="button" id="reply-attach" aria-label="Đính kèm file" title="Đính kèm file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 <input id="reply-files" type="file" multiple hidden accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
 <div class="message-field"><textarea id="reply-body" rows="1" maxlength="10000" required aria-label="Phản hồi" placeholder="Gửi tin nhắn" aria-describedby="reply-hint"></textarea>
 <button class="primary" id="reply-submit" aria-label="Gửi phản hồi" title="Gửi phản hồi" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></div>

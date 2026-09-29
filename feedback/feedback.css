@@ -75,3 +75,7 @@ button.person{border:0;background:transparent;padding:0;border-radius:4px;cursor
 .dark #reply-submit:disabled{background:#545458}
 .dark #reply-file-list button{background:#545458;color:white}
 @media(max-width:600px){#detail{padding:20px 16px;border-radius:24px;width:calc(100% - 16px)}.reply{max-width:92%}#reply-hint{font-size:10px}.message-composer{gap:8px}}
+
+/* Center the attachment icon independently of font baseline metrics. */
+#reply-attach{display:grid;place-items:center;line-height:1}
+#reply-attach svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
