@@ -671,9 +671,10 @@ function wireJourneyCommit(dialog,selector){
 function readJourneyCommit(dialog,actionType,csEmail,baseDate){
   const recap=dialog.querySelector('#jActNote, #rnNote, #edNote')?.value.trim()||'',nextSteps=dialog.querySelector('[name="journeyNextSteps"]').value.trim(),evidence=dialog.querySelector('[name="journeyDocument"]').value.trim();
   if(needsJourneyNotes(actionType)&&(!recap||!nextSteps))throw Error('Vui lòng nhập Recap và Next steps.');
+ if(actionType&&!needsJourneyNotes(actionType)&&!recap)throw Error('Vui lòng nhập lý do chọn action / issue cần cải thiện để follow.');
   const sessionCategory=needsSessionCategory(actionType)?(dialog.querySelector('[name="journeySessionCategory"]')?.value||''):'';
   if(needsSessionCategory(actionType)&&!SESSION_CATEGORIES.includes(sessionCategory))throw Error('Vui lòng chọn Session Type.');
-  const notes={recap,nextSteps,evidence,commitment:nextSteps,sessionCategory,sessionType:(dialog.querySelector('[name="journeySessionType"]')?.value||'')};
+  const heavy=needsJourneyNotes(actionType),notes={recap:heavy?recap:'',reason:heavy?'':recap,nextSteps:heavy?nextSteps:'',evidence:heavy?evidence:'',commitment:heavy?nextSteps:'',sessionCategory,sessionType:(dialog.querySelector('[name="journeySessionType"]')?.value||'')};
   if(String(actionType||'').trim().toLowerCase()==='monitor case')return notes;
   const get=name=>dialog.querySelector('[name="'+name+'"]').value.trim();
   const commitment=nextSteps,commitMetric=get('journeyMetric'),mode=get('journeyMode')||'daily',raw=get('journeyTarget'),commitTarget=commitMetric?Number(raw):null;
@@ -696,7 +697,7 @@ function showCreateJourney(csEmail){
   let existing=db.csJourneys.find(j=>j.csEmail===csEmail);
   if(existing){showJourneyDetail(existing.id);return;}
 
-  let allWeeks=[...new Set((db.rawV3||[]).map(r=>r[3]).filter(Boolean))].sort().reverse();
+  let allWeeks=[...new Set((db.rawV3||[]).map(r=>r[3]).filter(Boolean))].filter(notFutureWeek).sort().reverse();
   let d=document.createElement('dialog');
   d.innerHTML=`
     <div class="dialog-head"><h2 style="margin:0;font-size:17px">Tạo Journey · ${esc(a.name)}</h2>
@@ -782,7 +783,7 @@ function showAddRound(journeyId,preselect){
   const qaSession=currentQASession();if(!qaSession){openQAIdentity(()=>showAddRound(journeyId,preselect));return;}
   let j=db.csJourneys.find(x=>x.id===journeyId);
   if(!j) return;
-  let allWeeks=[...new Set((db.rawV3||[]).map(r=>r[3]).filter(Boolean))].sort().reverse();
+  let allWeeks=[...new Set((db.rawV3||[]).map(r=>r[3]).filter(Boolean))].filter(notFutureWeek).sort().reverse();
   let d=document.createElement('dialog');
   d.innerHTML=`
     <div class="dialog-head"><h2 style="margin:0;font-size:16px">Thêm Action · ${esc(j.csName)}</h2>
@@ -838,7 +839,7 @@ function showEditRound(journeyId, roundId){
   const qaSession=currentQASession();if(!qaSession){openQAIdentity(()=>showEditRound(journeyId, roundId));return;}
   let j=db.csJourneys.find(x=>x.id===journeyId); if(!j) return;
   let r=j.rounds.find(x=>x.id===roundId); if(!r) return;
-  let allWeeks=[...new Set((db.rawV3||[]).map(x=>x[3]).filter(Boolean))].sort().reverse();
+  let allWeeks=[...new Set((db.rawV3||[]).map(x=>x[3]).filter(Boolean))].filter(notFutureWeek).sort().reverse();
   if(r.week&&!allWeeks.includes(r.week)) allWeeks.unshift(r.week);
   let d=document.createElement('dialog');
   d.innerHTML=`
@@ -2286,12 +2287,14 @@ function addCommitRow(section,value,requestedIndex){
  const holder=section.querySelector('[data-commit-rows]');holder.insertAdjacentHTML('beforeend',commitRowMarkup(index));const row=holder.lastElementChild;wireCommitRow(row,section);if(value)fillCommitRow(row,value);return row;
 }
 function fillCommitRow(row,c){for(const [name,value] of Object.entries({journeyMetric:c.commitMetric||'csat',journeyTarget:c.commitTarget??'',commitChannel:c.commitChannel||'',commitSegment:c.commitSegment||''}))row.querySelector('[name^="'+name+'"]').value=value;row.querySelector('select').dispatchEvent(new Event('change'));}
+// Action nhẹ (Follow-up, Gửi KB, Monitor...) không có Recap nhưng vẫn cần ghi lý do chọn action / issue để follow cải thiện.
+function journeyReasonField(dialog,type,notes){const e=dialog.querySelector('#jActNote, #rnNote, #edNote'),label=e&&e.closest('label');if(!label)return;label.style.display=type?'block':'none';if(label.firstChild&&label.firstChild.nodeType===3)label.firstChild.nodeValue=notes?'Recap · tóm tắt buổi coaching / action đã diễn ra':'Lý do chọn action · issue của CS cần cải thiện để follow';e.placeholder=notes?'':'VD: CS còn sai bước xác minh đơn hàng, chưa cần coaching; follow tuần sau xem đã cải thiện chưa...';}
 wireJourneyCommit=function(dialog,selector){
  const type=dialog.querySelector(selector),section=dialog.querySelector('[data-journey-commit]'),mode=section.querySelector('[name="journeyMode"]'),date=section.querySelector('[name="journeyNext"]');
  section.querySelectorAll('[data-commit-row]').forEach(row=>wireCommitRow(row,section));section.querySelector('[data-add-commit]').onclick=()=>addCommitRow(section);
  const sync=()=>{const enabled=String(type.value).toLowerCase()!=='monitor case',notes=needsJourneyNotes(type.value);section.hidden=!enabled;
  const session=dialog.querySelector('[name="journeySessionCategory"]');if(session){session.closest('label').hidden=!needsSessionCategory(type.value);session.required=needsSessionCategory(type.value);}
- for(const selector of ['#jActNote, #rnNote, #edNote','[name="journeyNextSteps"]','[name="journeyDocument"]']){const e=dialog.querySelector(selector);if(e)e.closest('label').style.display=notes?'block':'none';}
+ for(const selector of ['[name="journeyNextSteps"]','[name="journeyDocument"]']){const e=dialog.querySelector(selector);if(e)e.closest('label').style.display=notes?'block':'none';}journeyReasonField(dialog,type.value,notes);
  date.closest('label').hidden=mode.value!=='custom';date.disabled=!enabled||mode.value!=='custom';date.required=!date.disabled;date.min=section.dataset.baseDate||today();section.querySelector('[data-next-preview]').textContent=mode.value==='custom'?(date.value||'Chọn ngày follow'):nextFromMode(date.min,mode.value);};
  type.addEventListener('change',sync);mode.addEventListener('change',sync);date.addEventListener('change',sync);sync();
 };
@@ -2299,8 +2302,9 @@ readJourneyCommit=function(dialog,actionType,csEmail,baseDate){
  const get=n=>dialog.querySelector('[name="'+n+'"]')?.value.trim()||'';
  const recap=dialog.querySelector('#jActNote, #rnNote, #edNote')?.value.trim()||'',nextSteps=get('journeyNextSteps'),evidence=get('journeyDocument');
  if(needsJourneyNotes(actionType)&&(!recap||!nextSteps))throw Error('Vui lòng nhập Recap và Next steps.');
+ if(actionType&&!needsJourneyNotes(actionType)&&!recap)throw Error('Vui lòng nhập lý do chọn action / issue cần cải thiện để follow.');
  const sessionCategory=needsSessionCategory(actionType)?get('journeySessionCategory'):'';if(needsSessionCategory(actionType)&&!SESSION_CATEGORIES.includes(sessionCategory))throw Error('Vui lòng chọn Session Type.');
- const notes={recap,nextSteps,evidence,commitment:nextSteps,sessionCategory,sessionType:get('journeySessionType')};
+ const heavy=needsJourneyNotes(actionType),notes={recap:heavy?recap:'',reason:heavy?'':recap,nextSteps:heavy?nextSteps:'',evidence:heavy?evidence:'',commitment:heavy?nextSteps:'',sessionCategory,sessionType:get('journeySessionType')};
  if(String(actionType).toLowerCase()==='monitor case')return {...notes,commitments:[]};
  const commitments=[],scopes=new Set(),followMode=get('journeyMode')||'daily',next=resolveFollowDate(baseDate||today(),followMode,get('journeyNext'));
  for(const row of dialog.querySelectorAll('[data-commit-row]')){
