@@ -61,14 +61,11 @@ function buildPayload_() {
     weekCols.push({ col: c, week: /^W\d+$/.test(wk) ? wk : ('W?' + (c + 1)), start: weekStart_(vals, head, c) });
   }
   const firstCsat = weekCols[0].col;
-  // AC:AI, date headers on the agent header row. Keep only the week of K.
-  const start = dailyDate_(weekCols[0].start, true);
-  const end = start ? new Date(start + 'T00:00:00Z') : null;
-  if (end) end.setUTCDate(end.getUTCDate() + 7);
+  // AC:AI: all seven source dates, including dates across week boundaries.
   const dailyCols = [];
   for (let c = 28; c <= 34; c++) {
     const date = dailyDate_(hdr[c], false);
-    if (start && date && date >= start && date < end.toISOString().slice(0, 10)) dailyCols.push({col:c, date:date});
+    if (date) dailyCols.push({col:c, date:date});
   }
   dailyCols.sort(function(a,b) { return a.date.localeCompare(b.date); });
 

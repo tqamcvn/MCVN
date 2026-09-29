@@ -432,6 +432,12 @@ body.sb-collapsed .nav-group-head { justify-content: center; padding-left: 0; pa
 .b { width: 10px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.2; }
 .b.hi { opacity: 1; }
 
+.daily-table { min-width: 1000px; table-layout: fixed; }
+.daily-table th:first-child,.daily-table td:first-child { width:260px; position:sticky; left:0; background:var(--white); z-index:1; }
+.daily-table th:last-child { width:140px; }
+.daily-value { font-variant-numeric:tabular-nums; }
+.daily-track { display:block; height:5px; background:var(--gray-100); border-radius:4px; margin-top:7px; overflow:hidden; }
+.daily-track i { display:block; height:100%; background:var(--accent); border-radius:4px; }
 /* ---- CSAT của bạn (theo email đăng nhập) so với MCVN + từng team ---- */
 .my-csat { display: flex; flex-wrap: wrap; align-items: stretch; border-top: 1px solid var(--gray-200); background: var(--white); }
 .my-csat[hidden] { display: none; }
@@ -1877,7 +1883,7 @@ function renderDailyCsat() {
   if (!rows.length) return;
   box.hidden = false;
   const en = currentLang() === 'en';
-  document.getElementById('daily-week').textContent = ' · ' + ((CSAT_AGENTS.weeks || [])[0] || '');
+  document.getElementById('daily-week').textContent = en ? ' · 7 days' : ' · 7 ngày';
   const target = document.getElementById('daily-content');
   const dates = CSAT_AGENTS.dailyDates || [];
   if (!dates.length) {
@@ -1885,17 +1891,23 @@ function renderDailyCsat() {
     return;
   }
   const valid = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
-  const cell = v => valid(v) ? csatPct(v) : '—';
+  const cell = v => valid(v) ? '<span class="daily-value">'+csatPct(v)+'</span><span class="daily-track"><i style="width:'+(v*100).toFixed(1)+'%"></i></span>' : '<span class="my-sub">—</span>';
+  const trend = values => {
+    const points = values.map((v,i) => valid(v) ? [8+i*18,44-v*36] : null);
+    let path = '', previous = false;
+    points.forEach(p => { if (!p) { previous=false; return; } path += (previous?' L':' M')+p[0]+','+p[1]; previous=true; });
+    return '<svg width="128" height="52" viewBox="0 0 128 52" role="img" aria-label="'+(en?'Daily CSAT trend, 0 to 100%':'Xu hướng CSAT ngày, 0 đến 100%')+'"><path d="M8 44H120" stroke="var(--gray-200)"/><path d="'+path+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+points.map((p,i)=>p?'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="var(--accent)"><title>'+escHtml(dates[i])+': '+csatPct(values[i])+'</title></circle>':'').join('')+'</svg>';
+  };
   const averages = dates.map((d,i) => {
     const values = rows.map(a => (a.daily || [])[i]).filter(valid);
     return values.length ? values.reduce((s,v) => s+v,0)/values.length : null;
   });
   const label = d => new Date(d+'T00:00:00Z').toLocaleDateString(en ? 'en-GB' : 'vi-VN', {weekday:'short',day:'2-digit',month:'2-digit',timeZone:'UTC'});
   target.innerHTML = '<p class="my-sub" style="margin-bottom:12px">' +
-    (en ? 'Daily average of your agents. Blank cells: —; 0% is kept as reported in the sheet.' : 'Trung bình CSAT theo ngày của agent bạn phụ trách. Ô trống: —; 0% giữ nguyên theo sheet.') +
-    '</p><table class="below-tbl"><thead><tr><th>Agent</th>' + dates.map(d => '<th class="num">'+escHtml(label(d))+'</th>').join('') +
-    '</tr></thead><tbody>' + (handled.length ? '<tr><th>'+(en ? 'Your agents · Average' : 'Agent của bạn · Trung bình')+'</th>'+averages.map(v=>'<td class="num"><b>'+cell(v)+'</b></td>').join('')+'</tr>' : '') +
-    rows.map(a => '<tr><td>'+escHtml(a.name)+'<div class="my-sub">'+escHtml(a.email)+'</div></td>'+dates.map((d,i)=>'<td class="num">'+cell((a.daily || [])[i])+'</td>').join('')+'</tr>').join('') + '</tbody></table>';
+    (en ? 'Seven source dates (AC:AI). Bar length shows CSAT, 0–100%. Blank: —; 0% is kept as reported.' : '7 ngày từ AC:AI. Thanh dài hơn = CSAT cao hơn (0–100%). Ô trống: —; 0% giữ nguyên theo sheet.') +
+    '</p><table class="below-tbl daily-table"><thead><tr><th>Agent</th>' + dates.map(d => '<th class="num">'+escHtml(label(d))+'</th>').join('') +
+    '<th>'+(en?'Trend':'Xu hướng')+'</th></tr></thead><tbody>' + (handled.length ? '<tr><th>'+(en ? 'Your agents · Average' : 'Agent của bạn · Trung bình')+'</th>'+averages.map(v=>'<td class="num">'+cell(v)+'</td>').join('')+'<td>'+trend(averages)+'</td></tr>' : '') +
+    rows.map(a => '<tr><td>'+escHtml(a.name)+'<div class="my-sub">'+escHtml(a.email)+'</div></td>'+dates.map((d,i)=>'<td class="num">'+cell((a.daily || [])[i])+'</td>').join('')+'<td>'+trend(dates.map((d,i)=>(a.daily || [])[i]))+'</td></tr>').join('') + '</tbody></table>';
 }
 
 let LAST_CSAT_SAVED_AT = null, LAST_CSAT_FROM_CACHE = false;
