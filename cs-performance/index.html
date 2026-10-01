@@ -2239,7 +2239,8 @@ function mngScopedCommits(email,channel){
 }
 function mngFocusChannels(email,requested){
   const a=agent(email),isMT=[a?.group,a?.csatGroup,a?.fullTeam].some(v=>/^(multi|mt)$/i.test(String(v||'').trim()));
-  return isMT?['Chat','Internet Call']:[requested||''];
+  // Theo channel impacted của request (MNG dán theo ngày); chỉ MT không có channel mới mặc định Chat + Internet Call.
+  return requested?[requested]:isMT?['Chat','Internet Call']:[''];
 }
 function mngRequestCommits(email,channel){return mngFocusChannels(email,channel).flatMap(c=>mngScopedCommits(email,c));}
 function mngFocusTargetCell(entry){return mngFocusChannels(entry.r.email,entry.r.channel).map(channel=>mngTargetCell({r:{...entry.r,channel}})).join('');}
