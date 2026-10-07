@@ -3,6 +3,10 @@
   if (!sidebar) return;
   // Left sidebar layout: retain the original nodes, routes and collapse control.
   document.body.classList.add('glass-navigation');
+  // backdrop-filter on .main creates a containing/stacking context for fixed
+  // descendants. Keep the modal at body level, above the floating My Space frame.
+  const settingsModal = document.getElementById('settings-view');
+  if (settingsModal) document.body.append(settingsModal);
   sidebar.setAttribute('aria-label', 'Điều hướng chính');
   sidebar.querySelectorAll('.nav-group-head').forEach(head => {
     head.setAttribute('role', 'button');
