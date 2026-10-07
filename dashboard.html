@@ -741,7 +741,7 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
 </style>
 <script src="/assets/tqa-i18n.js" defer></script>
 <link rel="stylesheet" href="/assets/navigation-bar.css?v=20261007-1">
-<link rel="stylesheet" href="/assets/glass-surface.css?v=20261007-layer-fix">
+<link rel="stylesheet" href="/assets/glass-surface.css?v=20261007-perf-1">
 </head>
 <body>
 
@@ -1559,23 +1559,36 @@ function layoutMySpace() {
   if (open) {
     var r = mySpaceSlot.getBoundingClientRect();
     mySpaceFrame.classList.remove('mini');
-    mySpaceFrame.style.cssText = 'display:block;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px';
+    setMySpaceStyle('display:block;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px');
   } else if (mini) {
     mySpaceFrame.classList.add('mini');
     var mp = miniPos();
-    mySpaceFrame.style.cssText = 'display:block;left:' + mp.x + 'px;top:' + mp.y + 'px';
+    setMySpaceStyle('display:block;left:' + mp.x + 'px;top:' + mp.y + 'px');
   } else {
     mySpaceFrame.classList.remove('mini');
-    mySpaceFrame.style.cssText = 'display:none';
+    setMySpaceStyle('display:none');
   }
   if (mini !== mySpaceMini && mySpaceFrame.contentWindow) {
     mySpaceMini = mini;
     try { mySpaceFrame.contentWindow.postMessage({ type:'mcvn-mini', on: mini }, location.origin); } catch(e) {}
   }
 }
-if (window.ResizeObserver) new ResizeObserver(layoutMySpace).observe(mySpaceSlot);
-window.addEventListener('resize', layoutMySpace);
-document.addEventListener('transitionend', layoutMySpace);
+function setMySpaceStyle(css) {
+  if (mySpaceFrame.dataset.layoutStyle === css) return;
+  mySpaceFrame.dataset.layoutStyle = css;
+  mySpaceFrame.style.cssText = css;
+}
+var mySpaceLayoutPending = false;
+function scheduleMySpaceLayout() {
+  if (mySpaceLayoutPending) return;
+  mySpaceLayoutPending = true;
+  requestAnimationFrame(function() { mySpaceLayoutPending = false; layoutMySpace(); });
+}
+if (window.ResizeObserver) new ResizeObserver(scheduleMySpaceLayout).observe(mySpaceSlot);
+window.addEventListener('resize', scheduleMySpaceLayout);
+document.addEventListener('transitionend', function(e) {
+  if (e.target === document.querySelector('.main') || e.target === document.querySelector('.sidebar')) scheduleMySpaceLayout();
+});
 mySpaceFrame.addEventListener('load', function(){ mySpaceMini = null; layoutMySpace(); });
 /* Đồng hồ Focus của My Space vẫn chạy khi xem dashboard khác: hiện giờ còn lại trên menu + báo khi hết giờ. */
 function showMySpaceFocus(d) {
@@ -2126,6 +2139,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script src="/lantern-companion/lantern.js?v=20260928-focus-reminders" defer></script>
 <script src="/feedback/sidebar-notifications.js?v=20260921" defer></script>
-<script src="/assets/navigation-bar.js?v=20261007-layer-fix" defer></script>
+<script src="/assets/navigation-bar.js?v=20261007-perf-1" defer></script>
 </body>
 </html>
