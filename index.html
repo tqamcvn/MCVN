@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TQA MCVN — Đăng nhập</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png?v=20261007">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20261007">
 
 <!-- Preconnect tới CDN để rút ngắn bắt tay DNS/TLS -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -56,6 +58,8 @@
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: 13px; font-weight: 600; letter-spacing: -0.3px; flex-shrink: 0;
   }
+  .logo-mark { width: auto; height: 40px; aspect-ratio: 37 / 20; background: #fff; border: 1px solid var(--gray-200); overflow: hidden; padding: 0; }
+  .logo-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .brand-name { font-size: 14px; font-weight: 600; color: var(--gray-900); line-height: 1.3; }
   .brand-sub { font-size: 11px; color: var(--gray-500); font-weight: 400; }
   .divider { height: 1px; background: var(--gray-200); margin-bottom: 28px; }
@@ -129,7 +133,7 @@
 
 <div class="card">
   <div class="card-brand">
-    <div class="logo-mark">TQA</div>
+    <div class="logo-mark"><img src="/assets/logo-qa.png?v=20261007" alt="Team QA MCVN"></div>
     <div>
       <div class="brand-name">Team QA MCVN</div>
       <div class="brand-sub">Shopee Vietnam CS</div>

@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TQA MCVN — Home</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png?v=20261007">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20261007">
 <link rel="stylesheet" href="/assets/loading-snake.css?v=20260922-1">
 <script defer src="/assets/loading-snake.js?v=20260922-5"></script>
 <script defer src="/assets/dashboard-presence.js?v=20260924-2"></script>
@@ -694,7 +696,9 @@ body { background: var(--canvas); }
 .sidebar-logo { border-bottom: none; padding: 0 12px 14px 16px; }
 .brand-block { min-width: 0; }
 .brand-name, .brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.logo-mark { border-radius: 50%; }
+.logo-mark { border-radius: 10px; }
+.logo-mark { width: auto; height: 34px; aspect-ratio: 37 / 20; background: #fff; border: 1px solid var(--gray-200); overflow: hidden; padding: 0; }
+.logo-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* Mục menu dạng viên thuốc bo tròn */
 .nav-item, .nav-group-head {
@@ -736,12 +740,13 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
 </style>
 <script src="/assets/tqa-i18n.js" defer></script>
 <link rel="stylesheet" href="/assets/navigation-bar.css?v=20261007-1">
+<link rel="stylesheet" href="/assets/glass-surface.css?v=20261007-1">
 </head>
 <body>
 
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-mark">TQA</div>
+    <div class="logo-mark"><img src="/assets/logo-qa.png?v=20261007" alt="Team QA MCVN"></div>
     <div class="brand-block">
       <div class="brand-name">Team QA MCVN</div>
       <div class="brand-sub">Shopee Vietnam CS</div>
