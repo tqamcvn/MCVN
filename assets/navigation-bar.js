@@ -85,4 +85,7 @@
   updatePaletteLabels();
   apply(selected);
   window.addEventListener('storage', e => { if (e.key === storageKey) apply(e.newValue || 'default'); });
+  const tourScript = document.createElement('script');
+  tourScript.src = '/assets/interface-tour.js?v=20261007-1';
+  document.body.append(tourScript);
 })();
