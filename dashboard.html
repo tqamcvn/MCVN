@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TQA MCVN — Home</title>
-<link rel="icon" type="image/png" href="/assets/favicon.png?v=20261007">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20261007">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/loading-snake.css?v=20260922-1">
 <script defer src="/assets/loading-snake.js?v=20260922-5"></script>
 <script defer src="/assets/dashboard-presence.js?v=20260924-2"></script>
@@ -697,8 +696,7 @@ body { background: var(--canvas); }
 .brand-block { min-width: 0; }
 .brand-name, .brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .logo-mark { border-radius: 10px; }
-.logo-mark { width: auto; height: 34px; aspect-ratio: 37 / 20; background: #fff; border: 1px solid var(--gray-200); overflow: hidden; padding: 0; }
-.logo-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.logo-mark { background: var(--accent-light); border: 1px solid var(--accent-border); font-size: 18px; line-height: 1; }
 
 /* Mục menu dạng viên thuốc bo tròn */
 .nav-item, .nav-group-head {
@@ -746,7 +744,7 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
 
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-mark"><img src="/assets/logo-qa.png?v=20261007" alt="Team QA MCVN"></div>
+    <div class="logo-mark" aria-hidden="true">✨</div>
     <div class="brand-block">
       <div class="brand-name">Team QA MCVN</div>
       <div class="brand-sub">Shopee Vietnam CS</div>
