@@ -520,8 +520,11 @@ body.sb-collapsed .nav-text,
 body.sb-collapsed .nav-label,
 body.sb-collapsed .user-info,
 body.sb-collapsed .logout-btn { display: none; }
-body.sb-collapsed .logo-mark { display: none; }
-body.sb-collapsed .sidebar-logo { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
+/* Thu gọn: vẫn hiện chữ TQA, xếp trên nút mở rộng */
+body.sb-collapsed .sidebar-logo { flex-direction: column; justify-content: center; padding-left: 0; padding-right: 0; gap: 8px; }
+body.sb-collapsed .logo-mark { display: flex; width: 40px; height: 40px; font-size: 0; }
+body.sb-collapsed .logo-mark::after { content: 'TQA'; font-size: 12px; font-weight: 700; color: var(--accent-dark); letter-spacing: -0.2px; }
+body.sb-collapsed .sb-toggle { margin-left: 0; }
 body.sb-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; border-left-width: 0; }
 body.sb-collapsed .user-chip { justify-content: center; margin: 0; }
 body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
