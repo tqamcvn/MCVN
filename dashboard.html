@@ -735,6 +735,7 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
 }
 </style>
 <script src="/assets/tqa-i18n.js" defer></script>
+<link rel="stylesheet" href="/assets/navigation-bar.css?v=20261007-1">
 </head>
 <body>
 
@@ -1541,7 +1542,7 @@ function miniPos() {
   if (!mySpaceMiniPos) { try { mySpaceMiniPos = JSON.parse(localStorage.getItem(MINI_POS_KEY) || 'null'); } catch (e) { mySpaceMiniPos = null; } }
   var s = miniSize();
   var p = mySpaceMiniPos && isFinite(mySpaceMiniPos.x) && isFinite(mySpaceMiniPos.y) ? mySpaceMiniPos
-    : { x: innerWidth - s.w - (innerWidth <= 540 ? 10 : 170), y: innerHeight - s.h - (innerWidth <= 540 ? 160 : 20) };
+    : { x: innerWidth - s.w - (innerWidth <= 540 ? 10 : 170), y: innerHeight - s.h - (innerWidth <= 540 ? 160 : 110) };
   return clampMini(p.x, p.y);
 }
 function layoutMySpace() {
@@ -2119,5 +2120,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script src="/lantern-companion/lantern.js?v=20260928-focus-reminders" defer></script>
 <script src="/feedback/sidebar-notifications.js?v=20260921" defer></script>
+<script src="/assets/navigation-bar.js?v=20261007-1" defer></script>
 </body>
 </html>
