@@ -1,87 +1,84 @@
 (() => {
   const sidebar = document.querySelector('.sidebar');
   if (!sidebar) return;
-  document.body.classList.add('bottom-navigation');
-  const dock = document.createElement('nav');
-  dock.className = 'bottom-nav';
-  dock.setAttribute('aria-label', 'Điều hướng chính');
-  const backdrop = document.createElement('div');
-  backdrop.className = 'navigation-backdrop';
-  backdrop.hidden = true;
-  const sheet = document.createElement('section');
-  sheet.className = 'navigation-sheet';
-  sheet.id = 'navigation-tools';
-  sheet.hidden = true;
-  sheet.setAttribute('aria-label', 'Công cụ');
-  sheet.innerHTML = '<div class="navigation-sheet-header"><strong>Công cụ</strong><button type="button" aria-label="Đóng menu">×</button></div>';
-  const home = document.getElementById('home-nav');
-  const space = document.getElementById('my-space-nav');
-  const reports = sidebar.querySelector('[data-tool="csat"]');
-  [home, space, reports].filter(Boolean).forEach(link => dock.append(link));
-  if (reports) reports.querySelector('.nav-text').removeAttribute('data-i18n');
-  const tools = document.createElement('button');
-  tools.type = 'button';
-  tools.className = 'dock-button';
-  tools.setAttribute('aria-expanded', 'false');
-  tools.setAttribute('aria-controls', sheet.id);
-  tools.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span data-i18n="tools">Công cụ</span>';
-  const profile = document.createElement('button');
-  profile.type = 'button';
-  profile.className = 'dock-button';
-  profile.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg><span>Hồ sơ</span>';
-  dock.append(tools, profile);
-  Array.from(sidebar.children).forEach(node => {
-    if (!node.matches('.sidebar-logo, .nav-label')) sheet.append(node);
-  });
-  document.body.append(backdrop, sheet, dock);
-  sheet.querySelectorAll('.nav-group-head').forEach(head => {
+  // Left sidebar layout: retain the original nodes, routes and collapse control.
+  document.body.classList.add('glass-navigation');
+  sidebar.setAttribute('aria-label', 'Điều hướng chính');
+  sidebar.querySelectorAll('.nav-group-head').forEach(head => {
     head.setAttribute('role', 'button');
     head.tabIndex = 0;
     head.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); head.click(); }
     });
-    const update = () => head.setAttribute('aria-expanded', String(head.parentElement.classList.contains('open')));
-    new MutationObserver(update).observe(head.parentElement, { attributes: true, attributeFilter: ['class'] });
-    update();
   });
-  function closeMenu(restoreFocus = false) {
-    sheet.hidden = backdrop.hidden = true;
-    tools.setAttribute('aria-expanded', 'false');
-    if (restoreFocus) tools.focus();
-  }
-  tools.addEventListener('click', () => {
-    if (!sheet.hidden) return closeMenu(true);
-    sheet.hidden = backdrop.hidden = false;
-    tools.setAttribute('aria-expanded', 'true');
-    sheet.querySelector('button').focus();
-  });
-  backdrop.addEventListener('click', () => closeMenu(true));
-  sheet.querySelector('button').addEventListener('click', () => closeMenu(true));
-  sheet.addEventListener('click', e => {
-    if (e.target.closest('.nav-item, .user-chip')) closeMenu();
-  });
-  profile.addEventListener('click', () => { closeMenu(); document.querySelector('.user-chip').click(); });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !sheet.hidden) closeMenu(true);
-  });
-  function sync() {
-    const active = document.querySelector('.nav-item.active');
-    tools.classList.toggle('active', !!active && sheet.contains(active));
-    profile.classList.toggle('active', document.getElementById('settings-view').classList.contains('visible'));
-    dock.querySelectorAll('.nav-item').forEach(link => {
-      if (link === active) link.setAttribute('aria-current', 'page');
-      else link.removeAttribute('aria-current');
+  if (location.pathname === '/navigation-preview') {
+    document.getElementById('sb-toggle').addEventListener('click', () => {
+      document.body.classList.toggle('sb-collapsed');
     });
   }
+  const sync = () => sidebar.querySelectorAll('.nav-item').forEach(link => {
+    if (link.classList.contains('active')) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
   const observer = new MutationObserver(sync);
-  document.querySelectorAll('.nav-item, #settings-view').forEach(node => observer.observe(node, { attributes: true, attributeFilter: ['class'] }));
-  function updateLabels() {
-    const english = document.documentElement.lang === 'en';
-    profile.querySelector('span').textContent = english ? 'Profile' : 'Hồ sơ';
-    sheet.querySelector('strong').textContent = english ? 'Tools' : 'Công cụ';
-    if (reports) reports.querySelector('.nav-text').textContent = english ? 'Reports' : 'Báo cáo';
-  }
-  new MutationObserver(updateLabels).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-  updateLabels();
+  sidebar.querySelectorAll('.nav-item').forEach(link => observer.observe(link, { attributes: true, attributeFilter: ['class'] }));
   sync();
+  const palettes = [
+    ['default', 'Mặc định', 'Default', null, 'linear-gradient(135deg,#77ddd6,#b899ee,#f4abc8)'],
+    ['blue', 'Xanh dương', 'Blue', 215, '#98bdee'],
+    ['green', 'Xanh lá', 'Green', 155, '#a4dbc2'],
+    ['purple', 'Tím', 'Purple', 270, '#c4adec'],
+    ['pink', 'Hồng', 'Pink', 335, '#ebb2cc'],
+    ['orange', 'Cam', 'Orange', 28, '#efc49e'],
+    ['gray', 'Xám', 'Gray', 220, '#b9c1cf']
+  ];
+  const fieldset = document.createElement('fieldset');
+  fieldset.className = 'background-preferences';
+  const legend = document.createElement('legend');
+  fieldset.append(legend);
+  const hint = document.createElement('p');
+  fieldset.append(hint);
+  const choices = document.createElement('div');
+  choices.className = 'background-choices';
+  fieldset.append(choices);
+  let selected = 'default';
+  const storageKey = 'tqa_background_palette';
+  try { selected = localStorage.getItem(storageKey) || 'default'; } catch (_) {}
+  function apply(value) {
+    const palette = palettes.find(p => p[0] === value) || palettes[0];
+    selected = palette[0];
+    if (selected === 'default') {
+      delete document.body.dataset.backgroundPalette;
+      document.body.style.removeProperty('--background-hue');
+    } else {
+      document.body.dataset.backgroundPalette = selected;
+      document.body.style.setProperty('--background-hue', palette[3]);
+    }
+    choices.querySelectorAll('input').forEach(input => { input.checked = input.value === selected; });
+  }
+  palettes.forEach(palette => {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'radio'; input.name = 'background-palette'; input.value = palette[0];
+    const tile = document.createElement('span'); tile.className = 'background-tile';
+    const swatch = document.createElement('span'); swatch.className = 'background-swatch';
+    swatch.style.background = palette[4]; swatch.setAttribute('aria-hidden', 'true');
+    const title = document.createElement('span'); title.dataset.paletteLabel = palette[0];
+    tile.append(swatch, title); label.append(input, tile); choices.append(label);
+    input.addEventListener('change', () => {
+      apply(input.value);
+      try { localStorage.setItem(storageKey, selected); } catch (_) {}
+    });
+  });
+  document.getElementById('theme-light').closest('.prefs-card').append(fieldset);
+  function updatePaletteLabels() {
+    const en = document.documentElement.lang === 'en';
+    legend.textContent = en ? 'Background color' : 'Màu nền';
+    hint.textContent = en ? 'Applies immediately and is saved in this browser. Choose Default to restore the gradient.' : 'Đổi ngay khi chọn và tự lưu trên trình duyệt này. Chọn Mặc định để khôi phục nền gradient.';
+    palettes.forEach(p => { choices.querySelector('[data-palette-label="' + p[0] + '"]').textContent = en ? p[2] : p[1]; });
+  }
+  new MutationObserver(updatePaletteLabels).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+  updatePaletteLabels();
+  apply(selected);
+  window.addEventListener('storage', e => { if (e.key === storageKey) apply(e.newValue || 'default'); });
 })();
