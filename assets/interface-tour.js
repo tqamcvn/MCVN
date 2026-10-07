@@ -14,9 +14,6 @@
   tip.innerHTML = '<span class="tour-count"></span><h3 id="tour-title"></h3><p></p><div class="tour-actions"><button type="button" class="tour-skip">Bỏ qua</button><button type="button" class="tour-next"></button></div>';
   const nodes = [...shades,ring,tip];
   nodes.forEach(node => { node.hidden = true; document.body.append(node); });
-  const replay = document.createElement('button');
-  replay.type = 'button'; replay.className = 'tour-replay'; replay.textContent = 'Xem hướng dẫn giao diện';
-  palette.append(replay);
   function finish() {
     running = false; nodes.forEach(node => { node.hidden = true; });
     try { localStorage.setItem(key,'done'); } catch (_) {}
@@ -63,7 +60,6 @@
   }
   tip.querySelector('.tour-next').addEventListener('click',next);
   tip.querySelector('.tour-skip').addEventListener('click',finish);
-  replay.addEventListener('click',start);
   chip.addEventListener('click', () => {
     if (running && step === 0) {
       step = 1; palette.scrollIntoView({block:'center',behavior:'instant'}); render();
