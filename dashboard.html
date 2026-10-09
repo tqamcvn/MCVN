@@ -741,7 +741,8 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
 </style>
 <script src="/assets/tqa-i18n.js" defer></script>
 <link rel="stylesheet" href="/assets/navigation-bar.css?v=20261007-1">
-<link rel="stylesheet" href="/assets/glass-surface.css?v=20261007-tour-2">
+<link rel="stylesheet" href="/assets/glass-surface.css?v=20261009-settings-1">
+<link rel="stylesheet" href="/assets/mac-settings.css?v=20261009-1">
 </head>
 <body>
 
@@ -1049,7 +1050,13 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
         <label class="mascot-option"><input type="radio" name="companion-mascot" value="wizard" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/wizard-directions.webp')"></span><span data-i18n="mascot_wizard">Phù thủy</span></span></label>
         <label class="mascot-option"><input type="radio" name="companion-mascot" value="cube" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/cube-directions.webp')"></span><span data-i18n="mascot_cube">Robot Cube</span></span></label>
         <label class="mascot-option"><input type="radio" name="companion-mascot" value="pug" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/pug-directions.webp')"></span><span data-i18n="mascot_pug">Cún Pug</span></span></label>
-      </div>
+      <label class="mascot-option"><input type="radio" name="companion-mascot" value="glasses" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/glasses-directions.webp')"></span><span data-i18n="mascot_glasses">Bạn kính</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="ballerina" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/ballerina-directions.webp')"></span><span data-i18n="mascot_ballerina">Ballerina</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="cap" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/cap-directions.webp')"></span><span data-i18n="mascot_cap">Bạn mũ đỏ</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="kamran" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/kamran-directions.webp')"></span><span data-i18n="mascot_kamran">Kamran</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="hamster" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/hamster-directions.webp')"></span><span data-i18n="mascot_hamster">Hamster</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="skater" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/skater-directions.webp')"></span><span data-i18n="mascot_skater">Skater</span></span></label>
+</div>
     </div>
 
     <div class="stg-card" style="margin-bottom:20px">
@@ -1095,7 +1102,7 @@ const LANG_KEY = 'tqa_lang';
 const I18N = {
   vi: {
     companion:'Bạn đồng hành', companionDesc:'Chọn người bạn nhỏ bên cạnh bạn. Đổi ngay khi chọn và tự lưu trên trình duyệt này.',
-    mascot_lantern:'Đèn nhỏ', mascot_raccoon:'Gấu mèo', mascot_fox:'Cáo nhỏ', mascot_sloth:'Bạn lười', mascot_bunny:'Thỏ nhỏ', mascot_sheep:'Cừu nhỏ', mascot_wizard:'Phù thủy', mascot_cube:'Robot Cube', mascot_pug:'Cún Pug',
+    mascot_lantern:'Đèn nhỏ', mascot_raccoon:'Gấu mèo', mascot_fox:'Cáo nhỏ', mascot_sloth:'Bạn lười', mascot_bunny:'Thỏ nhỏ', mascot_sheep:'Cừu nhỏ', mascot_wizard:'Phù thủy', mascot_cube:'Robot Cube', mascot_pug:'Cún Pug', mascot_glasses:'Bạn kính', mascot_ballerina:'Ballerina', mascot_cap:'Bạn mũ đỏ', mascot_kamran:'Kamran', mascot_hamster:'Hamster', mascot_skater:'Skater',
     home:'Trang chủ', csatReports:'Báo cáo CSAT', tools:'Công cụ',
     teamCall:'Team Call', teamChat:'Team Chat', teamMulti:'Team Multi', inDevelopment:'Đang phát triển',
     anonymousForm:'Form ẩn danh', settings:'Cài đặt', accountSettings:'Cài đặt tài khoản',
@@ -1125,7 +1132,7 @@ const I18N = {
   },
   en: {
     companion:'Companion', companionDesc:'Choose your little companion. Changes apply instantly and are saved in this browser.',
-    mascot_lantern:'Lantern', mascot_raccoon:'Raccoon', mascot_fox:'Fox', mascot_sloth:'Sloth', mascot_bunny:'Bunny', mascot_sheep:'Sheep', mascot_wizard:'Wizard', mascot_cube:'Cube Robot', mascot_pug:'Pug',
+    mascot_lantern:'Lantern', mascot_raccoon:'Raccoon', mascot_fox:'Fox', mascot_sloth:'Sloth', mascot_bunny:'Bunny', mascot_sheep:'Sheep', mascot_wizard:'Wizard', mascot_cube:'Cube Robot', mascot_pug:'Pug', mascot_glasses:'Glasses', mascot_ballerina:'Ballerina', mascot_cap:'Red Cap', mascot_kamran:'Kamran', mascot_hamster:'Hamster', mascot_skater:'Skater',
     home:'Home', csatReports:'CSAT Reports', tools:'Tools',
     teamCall:'Team Call', teamChat:'Team Chat', teamMulti:'Team Multi', inDevelopment:'In development',
     anonymousForm:'Anonymous Form', settings:'Settings', accountSettings:'Account Settings',
@@ -2137,8 +2144,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<script src="/lantern-companion/lantern.js?v=20260928-focus-reminders" defer></script>
+<script src="/lantern-companion/lantern.js?v=20261009-companions-1" defer></script>
 <script src="/feedback/sidebar-notifications.js?v=20260921" defer></script>
-<script src="/assets/navigation-bar.js?v=20261007-tour-2" defer></script>
+<script src="/assets/navigation-bar.js?v=20261009-settings-1" defer></script>
 </body>
 </html>

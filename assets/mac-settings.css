@@ -1,0 +1,73 @@
+/* System-settings window: solid readable content and a frosted navigation rail. */
+.settings-view .stg-dialog.mac-settings { width:min(940px,calc(100vw - 32px)); max-width:940px; height:min(680px,calc(100dvh - 48px)); padding:0; display:grid; grid-template-columns:220px minmax(0,1fr); overflow:hidden; border:1px solid rgba(255,255,255,.45); border-radius:20px; background:var(--gray-50); box-shadow:0 28px 85px #0005; }
+.mac-settings-rail { min-width:0; padding:20px 12px; background:var(--gray-100); border-right:1px solid var(--gray-200); overflow:auto; }
+@media(max-width:640px) { .settings-view .stg-dialog.mac-settings { grid-template-rows:auto minmax(0,1fr); } }
+.mac-window-lights { display:flex; align-items:center; gap:8px; margin:0 8px 28px; }
+.mac-window-lights .stg-close,.mac-window-lights > span { width:12px; height:12px; min-width:12px; border-radius:50%; padding:0; }
+.mac-window-lights .stg-close { background:#ff5f57; border:1px solid #e44941; }
+.mac-window-lights .stg-close svg { width:8px; height:8px; opacity:0; color:#5e1511; }
+.mac-window-lights .stg-close:hover svg,.mac-window-lights .stg-close:focus-visible svg { opacity:1; }
+.mac-light-yellow { background:#febc2e; border:1px solid #dfa023; }
+.mac-light-green { background:#28c840; border:1px solid #1fad32; }
+.mac-settings-account { display:flex; align-items:center; gap:10px; padding:8px 6px 22px; }
+.mac-account-icon { width:40px; height:40px; display:grid; place-items:center; border-radius:50%; background:#d7e4f7; color:#174fac; font-size:28px; }
+.mac-settings-account strong { display:block; font-size:12px; }
+.mac-settings-account small { display:block; margin-top:4px; font-size:11px; color:var(--gray-600); }
+.mac-settings-account .mac-account-icon { flex:0 0 40px; overflow:hidden; font-size:15px; font-weight:600; }
+.mac-account-icon img { width:100%; height:100%; display:block; object-fit:cover; }
+.mac-account-copy { min-width:0; }
+.mac-account-copy strong { overflow-wrap:anywhere; }
+.mac-settings-rail nav { display:grid; gap:4px; }
+.mac-settings-rail nav button { display:flex; align-items:center; gap:10px; border:0; padding:9px 10px; border-radius:8px; font:inherit; font-size:13px; color:var(--gray-900); background:transparent; text-align:left; cursor:pointer; }
+.mac-settings-rail nav button:hover { background:var(--gray-200); }
+.mac-settings-rail nav button.selected { background:#0879ef; color:white; }
+.mac-category-icon { display:grid; place-items:center; width:22px; height:22px; border-radius:5px; color:#fff; font-size:17px; }
+.mac-category-icon { flex:0 0 22px; line-height:1; }
+.mac-category-icon svg { display:block; width:16px; height:16px; }
+body.companion-hidden #lantern-companion { display:none !important; }
+.companion-visibility-row { display:flex; align-items:center; gap:12px; padding:16px; margin-bottom:18px; border:1px solid var(--gray-200); border-radius:12px; background:var(--white); cursor:pointer; position:relative; }
+.companion-visibility-row > span:first-child { flex:1; }
+.companion-visibility-row strong { display:block; font-size:13px; }
+.companion-visibility-row small { display:block; margin-top:6px; font-size:11px; color:var(--gray-600); line-height:1.5; }
+.companion-visibility-row input { position:absolute; right:16px; opacity:0; width:38px; height:22px; }
+.companion-switch { pointer-events:none; width:38px; height:22px; flex:0 0 38px; border-radius:20px; background:#7b8696; padding:3px; }
+.companion-switch::after { content:''; display:block; width:16px; height:16px; border-radius:50%; background:#fff; }
+.companion-visibility-row input:checked + .companion-switch { background:#0879ef; }
+.companion-visibility-row input:checked + .companion-switch::after { transform:translateX(16px); }
+.companion-visibility-row input:focus-visible + .companion-switch { outline:3px solid var(--accent); outline-offset:3px; }
+.companion-name-form { padding:16px; margin-bottom:18px; border:1px solid var(--gray-200); border-radius:12px; background:var(--white); }
+.companion-name-form label { font-size:13px; font-weight:600; }
+.companion-name-form p { font-size:11px; color:var(--gray-600); line-height:1.6; margin:6px 0 12px; }
+.companion-name-form > div { display:flex; flex-wrap:wrap; gap:8px; }
+.companion-name-form .stg-input { flex:1 1 180px; min-width:0; width:auto; margin:0; }
+.companion-name-form small { display:block; margin-top:8px; color:var(--gray-600); }
+.companion-name-reset { border:1px solid var(--gray-300); border-radius:12px; padding:8px 12px; background:var(--gray-100); color:var(--gray-900); cursor:pointer; }
+.mac-settings-main { min-width:0; overflow:auto; padding:22px 26px; }
+.mac-settings-main .stg-dialog-head { margin-bottom:26px; }
+.mac-settings-main .stg-dialog-title { font-size:17px; font-weight:650; }
+.mac-settings-main .stg-dialog-head { gap:16px; }
+.mac-settings-main .mac-clear-close { width:auto; height:34px; display:flex; gap:6px; padding:6px 10px; border:1px solid var(--gray-300); border-radius:8px; background:var(--white); color:var(--gray-700); font-size:12px; flex-shrink:0; }
+.mac-clear-close svg { width:16px; height:16px; }
+.mac-settings-main .mac-clear-close:hover { background:#d92e3a; color:#fff; border-color:#d92e3a; }
+.mac-settings .mascot-tile > [data-i18n] { display:none; }
+.mac-settings .mascot-tile { padding:8px; gap:0; }
+.settings-view .mac-settings-panel { background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important; }
+.mac-settings-panel[hidden] { display:none !important; }
+.mac-settings-panel > .stg-title { display:none; }
+.mac-settings-panel .stg-desc { font-size:12px; margin-bottom:20px; color:var(--gray-600); }
+.mac-settings-main .pref-row { padding:16px; background:var(--white); border:1px solid var(--gray-200); border-radius:12px; margin-bottom:14px; display:flex; flex-direction:row; align-items:center; gap:16px; }
+.mac-settings-main .pref-copy { flex:1; }
+.mac-settings-main .pref-name { font-size:13px; }
+.mac-settings-main .pref-help { font-size:11px; line-height:1.5; margin-top:4px; }
+.mac-settings-main .seg-switch { width:auto; flex-shrink:0; }
+.mac-settings-main #theme-light,.mac-settings-main #theme-dark { display:flex; flex-direction:column; gap:8px; width:92px; align-items:center; background:transparent; box-shadow:none; border:2px solid transparent; font-size:12px; padding:6px; }
+.mac-settings-main #theme-light::before,.mac-settings-main #theme-dark::before { content:''; width:68px; height:44px; border-radius:6px; background:linear-gradient(0deg,#f1f4fb 35%,transparent 35%),linear-gradient(145deg,#4fa5f6,#7c69d6 50%,#fcaccb); box-shadow:inset 0 0 0 1px #0002; }
+.mac-settings-main #theme-dark::before { background:linear-gradient(0deg,#293140 35%,transparent 35%),linear-gradient(145deg,#175ab5,#302064 50%,#844b8d); }
+.mac-settings-main #theme-light.active,.mac-settings-main #theme-dark.active { border-color:#0879ef; border-radius:10px; }
+.mac-settings-main .background-preferences { padding:16px; border:1px solid var(--gray-200); border-radius:12px; background:var(--white); }
+.mac-settings-main .background-preferences { position:relative; padding-top:44px; }
+.mac-settings-main .background-preferences legend { position:absolute; top:16px; left:16px; padding:0; font-size:13px; line-height:18px; }
+.mac-settings-main .background-preferences p { margin-top:0; }
+.mac-settings-main .background-choices { grid-template-columns:repeat(auto-fit,minmax(60px,1fr)); gap:5px; }
+.mac-settings-main .background-tile { font-size:10px; padding:8px 2px; }
+@media(max-width:640px) { .settings-view .stg-dialog.mac-settings { grid-template-columns:1fr; height:calc(100dvh - 24px); width:calc(100vw - 16px); } .mac-settings-rail { padding:12px; border-right:0; border-bottom:1px solid var(--gray-200); overflow:visible; } .mac-settings-account { display:none; } .mac-window-lights { margin-bottom:14px; } .mac-settings-rail nav { display:flex; overflow-x:auto; } .mac-settings-rail nav button { white-space:nowrap; font-size:11px; padding:7px; } .mac-category-icon { width:18px; height:18px; } .mac-settings-main { padding:18px 14px; } .mac-settings-main .pref-row { flex-direction:column; align-items:stretch; } .mac-settings-main .seg-switch { align-self:flex-start; } }

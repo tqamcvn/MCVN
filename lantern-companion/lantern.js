@@ -81,17 +81,30 @@
   window.addEventListener('resize',()=>{if(position)moveTo(position.x,position.y);else placeBubble();});
   new ResizeObserver(placeBubble).observe(bubble);
   new MutationObserver(placeBubble).observe(bubble,{attributes:true,attributeFilter:['hidden']});
-  const mascots={lantern:'Đèn nhỏ',raccoon:'Gấu mèo',fox:'Cáo nhỏ',sloth:'Bạn lười',bunny:'Thỏ nhỏ',sheep:'Cừu nhỏ',wizard:'Phù thủy',cube:'Robot Cube',pug:'Cún Pug'};
+  const mascots={lantern:'Đèn nhỏ',raccoon:'Gấu mèo',fox:'Cáo nhỏ',sloth:'Bạn lười',bunny:'Thỏ nhỏ',sheep:'Cừu nhỏ',wizard:'Phù thủy',cube:'Robot Cube',pug:'Cún Pug',glasses:'Bạn kính',ballerina:'Ballerina',cap:'Bạn mũ đỏ',kamran:'Kamran',hamster:'Hamster',skater:'Skater'};
   const mascotKey='tqa-companion-mascot';
+  const nameKey='tqa-companion-name';
+  let customName='';
+  try { customName=(localStorage.getItem(nameKey)||'').trim().slice(0,40); } catch {}
   let selectedMascot='lantern',direction='',reaction='';
+  function updateName(){
+    const name=customName||mascots[selectedMascot];
+    root.querySelector('strong').textContent=name+' ở đây';
+    pet.title=name+' · Kéo để di chuyển · Bấm để nhận lời động viên';
+    pet.setAttribute('aria-label',name+': bấm để nhận lời động viên, kéo hoặc dùng phím mũi tên để di chuyển');
+  }
+  function setName(value){
+    customName=String(value||'').trim().slice(0,40);
+    try { if(customName)localStorage.setItem(nameKey,customName);else localStorage.removeItem(nameKey); } catch {}
+    updateName();
+  }
+  window.addEventListener('storage',e=>{if(e.key===nameKey){customName=(e.newValue||'').trim().slice(0,40);updateName();}});
   function selectMascot(id,persist=true){
     if(!Object.hasOwn(mascots,id))return false;
     selectedMascot=id;
     direction=new URL('mascots/'+id+'-directions.webp',base).href;
     reaction=new URL('mascots/'+id+'-reactions.webp',base).href;
-    root.querySelector('strong').textContent=mascots[id]+' ở đây';
-    pet.title=mascots[id]+' · Kéo để di chuyển · Bấm để nhận lời động viên';
-    pet.setAttribute('aria-label',mascots[id]+': bấm để nhận lời động viên, kéo hoặc dùng phím mũi tên để di chuyển');
+    updateName();
     expressionUntil=0;pet.classList.remove('sleep');sprite(4);
     if(persist){try{localStorage.setItem(mascotKey,id);}catch{}}
     document.querySelectorAll('[data-mascot-choice]').forEach(input=>{input.checked=input.value===id;});
@@ -169,7 +182,7 @@
   setInterval(tick,1000);
   document.addEventListener('visibilitychange',tick);
   window.addEventListener('lantern:complete',e=>celebrate(typeof e.detail?.message==='string'?e.detail.message:undefined));
-  window.LanternCompanion={celebrate,remind,show:home,dismiss:close,selectMascot,getMascot:()=>selectedMascot};
+  window.LanternCompanion={celebrate,remind,show:home,dismiss:close,selectMascot,getMascot:()=>selectedMascot,setName,getName:()=>customName||mascots[selectedMascot]};
   let savedMascot='lantern';try{savedMascot=localStorage.getItem(mascotKey)||'lantern';}catch{}
   if(!selectMascot(savedMascot,false))selectMascot('lantern',false);
   document.querySelectorAll('[data-mascot-choice]').forEach(input=>{
